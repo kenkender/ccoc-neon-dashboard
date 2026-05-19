@@ -53,14 +53,3 @@ body {
 .anim-pop-in        { animation: pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-float         { animation: float-slow 4s ease-in-out infinite; }
 .anim-pulse-glow    { animation: pulse-glow 2.4s ease-in-out infinite; }
-
-/* เคารพ accessibility — ถ้าผู้ใช้ปิด motion ก็ตัดทุกแอนิเมชันออก */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-}
