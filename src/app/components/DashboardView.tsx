@@ -173,7 +173,9 @@ export default function DashboardView({ missions, refreshData }: { missions: any
             <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} /> REFRESH
           </button>
 
+
           <button id="export-btn" onClick={handleExport} className="flex items-center gap-2 bg-linear-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all border border-purple-400/50 ml-1 shadow-[0_0_15px_rgba(168,85,247,0.5)] active:scale-95">
+
             <Download size={14} /> EXPORT .PNG
           </button>
         </div>

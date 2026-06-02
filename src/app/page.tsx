@@ -70,7 +70,7 @@ export default function Home() {
       setData({ missions: cleanedMissions });
       setUsersList(result.data?.users || []); 
       setLoading(false);
-      setLoginLogs(result.data?.log || result.data?.logs || []);
+      setLoginLogs(result.data?.login_logs || result.data?.log || result.data?.logs || []);
     } catch (error) { console.error("Error fetching data:", error); setLoading(false); }
   };
 
@@ -420,11 +420,37 @@ export default function Home() {
              <p className="text-cyan-400 font-mono tracking-widest animate-pulse drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">กำลังเชื่อมต่อกับเซิฟเวอร์...</p>
           </div>
         ) : (
-          <LoginView usersList={usersList} onLogin={(user) => {
-            setCurrentUser(user);
-            if (user.role === "user") { setFormData(prev => ({ ...prev, affiliation: user.affiliation, vehicle_id: user.vehicle_id })); }
-            fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "login", timestamp: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' }), data: { username: user.username, affiliation: user.affiliation, role: user.role } }), mode: "no-cors" });
-          }} />
+          <LoginView 
+            usersList={usersList} 
+            onLogin={(user) => {
+              setCurrentUser(user);
+              if (user.role === "user") { 
+                setFormData(prev => ({ ...prev, affiliation: user.affiliation, vehicle_id: user.vehicle_id })); 
+              }
+              
+              // 1. สร้าง Object สำหรับ Log ใหม่
+              const currentTimestamp = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' });
+              const newLog = {
+                username: user.username,
+                affiliation: user.affiliation,
+                role: user.role,
+                timestamp: currentTimestamp
+              };
+
+              // 2. อัปเดต UI ทันที (Optimistic Update) โดยเอา Log ใหม่ต่อท้าย Array เดิม
+              setLoginLogs(prev => [...prev, newLog]);
+
+              // 3. ยิงข้อมูลไปบันทึกหลังบ้านแบบ Fire-and-Forget
+              fetch(API_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ 
+                  action: "login", 
+                  timestamp: currentTimestamp, 
+                  data: { username: user.username, affiliation: user.affiliation, role: user.role } 
+                }), 
+                mode: "no-cors" 
+              }).catch(err => console.error("Login log tracking failed", err));
+            }} />
         )}
       </div>
     </div>
