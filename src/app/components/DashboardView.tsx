@@ -40,12 +40,32 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       return;
     }
 
+    // 1. ดึงความกว้างและความสูงที่แท้จริงของเนื้อหาทั้งหมด (รวมส่วนที่มองไม่เห็น)
+    const scrollWidth = element.scrollWidth;
+    const scrollHeight = element.scrollHeight;
+
+    // 2. ปลดล็อกข้อจำกัดเพื่อเตรียมวาดภาพ
+    const originalWidth = element.style.width;
+    const originalHeight = element.style.height;
+    element.style.width = `${scrollWidth}px`;
+    element.style.height = `${scrollHeight}px`;
+
+    // หน่วงเวลาให้ DOM จัด Layout ใหม่เสร็จสมบูรณ์
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     try {
       const dataUrl = await toPng(element, {
         backgroundColor: '#050505',
         pixelRatio: 2,
+        // 3. แจ้ง html-to-image ให้สร้าง Canvas เท่ากับขนาดเนื้อหาจริงเป๊ะๆ
+        width: scrollWidth,
+        height: scrollHeight,
+        style: {
+          width: `${scrollWidth}px`,
+          height: `${scrollHeight}px`,
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        },
         filter: (node: any) => node?.id !== 'export-btn'
       });
       
@@ -57,6 +77,11 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       console.error('Export Failed:', err);
       alert('❌ ไม่สามารถแคปภาพได้');
     } finally {
+      // 4. ทำความสะอาด คืนค่า UI กลับสู่สภาวะปกติ
+      if (element) {
+        element.style.width = originalWidth || '';
+        element.style.height = originalHeight || '';
+      }
       setIsExporting(false);
     }
   };
@@ -121,7 +146,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const topIncidents = Object.keys(incidentStats).map(key => ({ name: key, count: incidentStats[key] })).sort((a, b) => b.count - a.count).slice(0, 10);
 
   return (
-    <div id="dashboard-content" className="w-full h-full mx-auto relative transition-all p-3 md:p-4 bg-[#0f151f] flex flex-col rounded-2xl overflow-hidden">
+    <div id="dashboard-content" className={`w-full mx-auto relative transition-all p-3 md:p-4 bg-[#0f151f] flex flex-col rounded-2xl ${isExporting ? 'h-auto overflow-visible shrink-0' : 'h-full overflow-hidden'}`}>
 
       {isExporting && (
         <style>{`
@@ -186,7 +211,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       </div>
 
       {/* Chart Panels (Flex-1) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 flex-1 min-h-0">
+      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 ${isExporting ? 'h-[280px] shrink-0' : 'flex-1 min-h-0'}`}>
         <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Car size={18} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
           <div className="flex-1 min-h-0 w-full">
@@ -255,8 +280,9 @@ export default function DashboardView({ missions, refreshData }: { missions: any
         </div>
       </div>
 
+      
       {/* Top 10 Lists (Flex-[1.2] เพื่อให้สมมาตรและมีพื้นที่บรรทัดมากขึ้น) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-[1.2] min-h-0">
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-3 ${isExporting ? 'h-auto shrink-0' : 'flex-[1.2] min-h-0'}`}>
         
         <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-purple-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '460ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Trophy size={16} className="text-yellow-500 anim-pulse-glow" /> TOP 10 VEHICLES</h3>
