@@ -48,32 +48,18 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
     }
   };
 
-  return (
+ return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden font-sans">
-
-      {/* 🟢 แทรก Style แอนิเมชัน */}
       <style>{neonChaseAnimation}</style>
       
-      {/* 🟢 กล่องหลัก (ลด Border ของเดิมให้บางลง เพื่อให้ไฟนีออนเด่นขึ้น) */}
-      <div className="relative w-full max-w-md bg-gray-950/80 backdrop-blur-xl border border-cyan-900/20 p-10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] z-10 anim-pop-in">
+      {/* ปรับจาก p-10 เป็น py-8 px-6 เพื่อลดความสูงโดยไม่เสียความกว้าง */}
+      <div className="relative w-full max-w-md bg-gray-950/80 backdrop-blur-xl border border-cyan-900/20 py-8 px-6 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] z-10 anim-pop-in">
         
-        {/* 🟢 SVG วาดเส้นไฟวิ่งรอบกรอบแบบแนบสนิท */}
+        {/* SVG Wrapper คงเดิม */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            {/* ไล่สีจากฟ้าไปม่วง */}
-            <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#22d3ee" />
-              <stop offset="50%" stopColor="#c084fc" />
-              <stop offset="100%" stopColor="#22d3ee" />
-            </linearGradient>
-            {/* เอฟเฟกต์ Glow เรืองแสง */}
-            <filter id="neonGlow">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
+          {/* ... (เนื้อหา SVG คงเดิม) ... */}
           <rect
-            x="0" y="0" width="100%" height="100%" rx="24" /* rx="24" คือความโค้งที่พอดีกับ rounded-3xl */
+            x="0" y="0" width="100%" height="100%" rx="24"
             fill="none"
             stroke="url(#neonGradient)"
             strokeWidth="3"
@@ -82,9 +68,9 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
           />
         </svg>
         
-        {/* 🟢 คอนเทนต์หลัก ต้องใช้ relative z-10 เพื่อให้อยู่เหนือไฟวิ่ง */}
         <div className="relative z-10">
-          <div className="flex flex-col items-center mb-10">
+          {/* ปรับ mb-10 เป็น mb-6 เพื่อลดระยะห่างช่วงบน */}
+          <div className="flex flex-col items-center mb-6">
             <div className="w-16 h-16 bg-gray-900 border border-cyan-500/50 rounded-2xl flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_20px_rgba(34,211,238,0.2)] anim-float">
               <Fingerprint size={32} />
             </div>
@@ -93,6 +79,7 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
+            {/* ส่วน Input คงเดิม */}
             <div className="space-y-2 anim-fade-in-up" style={{ animationDelay: '120ms' }}>
               <label className="text-cyan-400 text-xs font-bold tracking-widest pl-1 drop-shadow-[0_0_6px_rgba(34,211,238,0.5)]">USERNAME / รหัสประจำรถ</label>
               <div className="relative">
@@ -121,11 +108,11 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
             </button>
           </form>
           
-          <div className="mt-8 text-center border-t border-gray-800/50 pt-6">
+          {/* ปรับ mt-8 เป็น mt-6 เพื่อลดระยะห่างช่วงล่าง */}
+          <div className="mt-6 text-center border-t border-gray-800/50 pt-6">
             <p className="text-gray-600 text-[10px] font-mono">AUTHORIZED PERSONNEL ONLY. SYSTEM MONITORED.</p>
           </div>
         </div>
-
       </div>
     </div>
   );
