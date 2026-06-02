@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Activity, Filter, List, MapPin, Users, Car, Trophy, AlertTriangle, Map, Download, Shield, RefreshCw} from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadialBarChart, RadialBar, Legend, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import IncidentModal from "./IncidentModal";
 
 
@@ -18,11 +18,11 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterVehicle, setFilterVehicle] = useState("ALL");
   const [filterAffiliation, setFilterAffiliation] = useState("ALL");
-  const [isExporting, setIsExporting] = useState(false); // 🟢 เพิ่มตัวแปรนี้
+  const [isExporting, setIsExporting] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleLocalRefresh = async () => { // 🟢 และตรงนี้
+  const handleLocalRefresh = async () => { 
     setIsRefreshing(true);
     if (refreshData) {
       await refreshData();
@@ -31,10 +31,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   };
 
   const handleExport = async () => {
-    // 1. แค่เปลี่ยน State เพื่อซ่อนปุ่ม (ไม่เปลี่ยน Padding หรือ Layout ใดๆ ทั้งสิ้น)
     setIsExporting(true);
-
-    // Dynamic Import
     const { toPng } = await import('html-to-image');
     const element = document.getElementById('dashboard-content');
 
@@ -43,15 +40,12 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       return;
     }
 
-    // 2. หน่วงเวลาสั้นๆ ให้ UI นิ่งสนิท (ห้ามเปลี่ยน CSS ใดๆ)
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     try {
-      // 3. ใช้ html-to-image แคปโดยตรง
       const dataUrl = await toPng(element, {
         backgroundColor: '#050505',
         pixelRatio: 2,
-        // 🟢 กลับมาใช้ filter กรองแค่ปุ่ม Export ออกอย่างเดียวก็พอครับ กล่องอื่นๆ จะได้ไม่หาย
         filter: (node: any) => node?.id !== 'export-btn'
       });
       
@@ -85,17 +79,13 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const kpiTotalPeople = filteredMissions.reduce((sum: number, m: any) => sum + Number(m.people_total || 0), 0);
 
   const vehicleStats = filteredMissions.reduce((acc: any, m: any) => { const v = String(m.vehicle_id || 'Unknown').toLowerCase(); acc[v] = (acc[v] || 0) + 1; return acc; }, {});
-  const chartDataVehicle = Object.keys(vehicleStats).map(key => ({ name: VEHICLE_NAMES[key] || key.toUpperCase(), shortName: key.toUpperCase(), // 🟢 สร้างตัวย่อ (เช่น STC01)
-  count: vehicleStats[key]}));
+  const chartDataVehicle = Object.keys(vehicleStats).map(key => ({ name: VEHICLE_NAMES[key] || key.toUpperCase(), shortName: key.toUpperCase(), count: vehicleStats[key]}));
   const topVehicles = [...chartDataVehicle].sort((a, b) => b.count - a.count).slice(0, 10);
 
   const provinceStats = filteredMissions.reduce((acc: any, m: any) => { const p = m.province || 'ไม่ระบุ'; acc[p] = (acc[p] || 0) + 1; return acc; }, {});
   const chartDataProvince = Object.keys(provinceStats).map(key => ({ name: key, count: provinceStats[key] }));
   const topProvinces = [...chartDataProvince].sort((a, b) => b.count - a.count).slice(0, 10);
-  // 🟢 เพิ่ม Logic คำนวณสถิติแต่ละสังกัด
-  // 🟢 คำนวณข้อมูลสังกัด และใส่สีประจำตัวให้แต่ละวงแหวน
-  // 🟢 คำนวณข้อมูลสังกัด เรียงจากมากไปน้อย และใส่สีนีออน
-  // 1. จัดกลุ่มข้อมูลจากภารกิจทั้งหมด
+  
   const affiliationStats = filteredMissions.reduce((acc: any, m: any) => { 
     let aff = String(m.affiliation || "").trim();
     if (!aff || aff === "-") aff = "ไม่ระบุสังกัด";
@@ -103,8 +93,6 @@ export default function DashboardView({ missions, refreshData }: { missions: any
     return acc; 
   }, {});
 
-  // 2. กำหนดลำดับที่ต้องการ (เลขน้อยจะอยู่บนสุด)
-  // ตรวจสอบตัวสะกดให้ตรงกับในฐานข้อมูลเป๊ะๆ นะครับ
   const orderWeight: Record<string, number> = {
     "ฝ่ายอำนวยการ 6": 1,
     "บช.ทท.": 1,
@@ -120,7 +108,6 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       fill: ['#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#ec4899'][index % 6] 
     }))
     .sort((a, b) => {
-      // ดึงค่าน้ำหนักมาเทียบกัน ถ้าไม่เจอในรายชื่อให้ไปอยู่ท้ายสุด (99)
       const weightA = orderWeight[a.name] || 99;
       const weightB = orderWeight[b.name] || 99;
       return weightA - weightB;
@@ -134,22 +121,21 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const topIncidents = Object.keys(incidentStats).map(key => ({ name: key, count: incidentStats[key] })).sort((a, b) => b.count - a.count).slice(0, 10);
 
   return (
-    // 🟢 เปลี่ยนแบคกราวด์ให้ลึกขึ้น และใช้ relative สำหรับเทคนิค 3D
-    <div id="dashboard-content" className="w-full max-w-[98%] mx-auto relative transition-all p-8 bg-[#050505]">
+    <div id="dashboard-content" className="w-full h-full mx-auto relative transition-all p-3 md:p-4 bg-[#0f151f] flex flex-col rounded-2xl overflow-hidden">
 
       {isExporting && (
         <style>{`
           #dashboard-content * {
             animation: none !important;
             transition: none !important;
-            /* 🟢 ปิดเอฟเฟกต์กระจกชั่วคราวตอนแคปรูป เพื่อไม่ให้ html-to-image บั๊ก หรือแสดงผลเพี้ยน */
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
           }
         `}</style>
       )}
 
-      <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-purple-900/50 pb-3 gap-3 ${isExporting ? '' : 'anim-fade-in-down'}`}>
+      {/* Header Section */}
+      <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-3 pb-2 border-b border-purple-900/50 gap-3 shrink-0 ${isExporting ? '' : 'anim-fade-in-down'}`}>
         <h2 className="text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-pink-500 flex items-center gap-2 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"><Activity size={24} className="text-purple-400" /> แดชบอร์ดวิเคราะห์สถิติ</h2>
         
         <div className="flex flex-wrap items-center gap-2 bg-gray-900/80 backdrop-blur-md p-1.5 rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
@@ -168,68 +154,62 @@ export default function DashboardView({ missions, refreshData }: { missions: any
             {Object.keys(VEHICLE_NAMES).map(k => <option key={k} value={k}>{VEHICLE_NAMES[k]}</option>)}
           </select>
 
-          {/* 🟢 ปุ่มรีเฟรชข้อมูล (หน้าแดชบอร์ด) */}
           <button onClick={handleLocalRefresh} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-cyan-400 text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all border border-cyan-900/50 shadow-lg active:scale-95">
             <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} /> REFRESH
           </button>
 
-
           <button id="export-btn" onClick={handleExport} className="flex items-center gap-2 bg-linear-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all border border-purple-400/50 ml-1 shadow-[0_0_15px_rgba(168,85,247,0.5)] active:scale-95">
-
             <Download size={14} /> EXPORT .PNG
           </button>
         </div>
       </div>
 
-      {/* 🟢 3D KPI Cards: ใส่ Effect ลอยตัว (hover:-translate-y-2), เรืองแสง และ Glassmorphism */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 rounded-2xl border border-purple-500/20 shadow-[0_15px_40px_rgba(168,85,247,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-2 hover:shadow-purple-500/30 hover:border-purple-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '60ms' }}>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 shrink-0">
+        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-purple-500/20 shadow-[0_15px_40px_rgba(168,85,247,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-purple-500/30 hover:border-purple-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '60ms' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-linear-to-b from-purple-500 to-transparent opacity-70 group-hover:from-purple-400 group-hover:to-purple-600 transition-colors"></div>
-          <div className="bg-purple-900/40 p-4 rounded-xl text-purple-400 border border-purple-500/20 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)] relative z-10"><List size={28}/></div>
-          <div className="relative z-10"><p className="text-purple-300/70 text-xs font-bold tracking-widest drop-shadow-md">รวมภารกิจทั้งหมด</p><p className="text-4xl font-black text-purple-200 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">{kpiTotalMissions}</p></div>
+          <div className="bg-purple-900/40 p-3 rounded-xl text-purple-400 border border-purple-500/20 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)] relative z-10"><List size={24}/></div>
+          <div className="relative z-10"><p className="text-purple-300/70 text-[11px] font-bold tracking-widest drop-shadow-md">รวมภารกิจทั้งหมด</p><p className="text-3xl font-black text-purple-200 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">{kpiTotalMissions}</p></div>
         </div>
         
-        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 rounded-2xl border border-cyan-500/20 shadow-[0_15px_40px_rgba(6,182,212,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-2 hover:shadow-cyan-500/30 hover:border-cyan-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-cyan-500/20 shadow-[0_15px_40px_rgba(6,182,212,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-cyan-500/30 hover:border-cyan-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '150ms' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-linear-to-b from-cyan-500 to-transparent opacity-70 group-hover:from-cyan-400 group-hover:to-cyan-600 transition-colors"></div>
-          <div className="bg-cyan-900/40 p-4 rounded-xl text-cyan-400 border border-cyan-500/20 shadow-[inset_0_0_10px_rgba(6,182,212,0.2)] relative z-10"><MapPin size={28}/></div>
-          <div className="relative z-10"><p className="text-cyan-300/70 text-xs font-bold tracking-widest drop-shadow-md">ระยะทางปฏิบัติการ (กม.)</p><p className="text-4xl font-black text-cyan-200 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">{kpiTotalDistance.toLocaleString()}</p></div>
+          <div className="bg-cyan-900/40 p-3 rounded-xl text-cyan-400 border border-cyan-500/20 shadow-[inset_0_0_10px_rgba(6,182,212,0.2)] relative z-10"><MapPin size={24}/></div>
+          <div className="relative z-10"><p className="text-cyan-300/70 text-[11px] font-bold tracking-widest drop-shadow-md">ระยะทางปฏิบัติการ (กม.)</p><p className="text-3xl font-black text-cyan-200 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">{kpiTotalDistance.toLocaleString()}</p></div>
         </div>
         
-        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 rounded-2xl border border-green-500/20 shadow-[0_15px_40px_rgba(34,197,94,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-2 hover:shadow-green-500/30 hover:border-green-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '240ms' }}>
+        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-green-500/20 shadow-[0_15px_40px_rgba(34,197,94,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-green-500/30 hover:border-green-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '240ms' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-linear-to-b from-green-500 to-transparent opacity-70 group-hover:from-green-400 group-hover:to-green-600 transition-colors"></div>
-          <div className="bg-green-900/40 p-4 rounded-xl text-green-400 border border-green-500/20 shadow-[inset_0_0_10px_rgba(34,197,94,0.2)] relative z-10"><Users size={28}/></div>
-          <div className="relative z-10"><p className="text-green-300/70 text-xs font-bold tracking-widest drop-shadow-md">จำนวนผู้เข้าร่วมงานรวม</p><p className="text-4xl font-black text-green-200 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]">{kpiTotalPeople.toLocaleString()}</p></div>
+          <div className="bg-green-900/40 p-3 rounded-xl text-green-400 border border-green-500/20 shadow-[inset_0_0_10px_rgba(34,197,94,0.2)] relative z-10"><Users size={24}/></div>
+          <div className="relative z-10"><p className="text-green-300/70 text-[11px] font-bold tracking-widest drop-shadow-md">จำนวนผู้เข้าร่วมงานรวม</p><p className="text-3xl font-black text-green-200 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]">{kpiTotalPeople.toLocaleString()}</p></div>
         </div>
       </div>
 
-      {/* 🟢 3D Chart Panels: แทรก Gradients และเงา 3D สำหรับกราฟแท่ง */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-3">
-        <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-5 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
-          <h3 className="text-purple-400 font-bold mb-4 text-sm tracking-widest flex items-center gap-2 drop-shadow-md"><Car size={20} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
-          <div className="h-56">
+      {/* Chart Panels (Flex-1) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 flex-1 min-h-0">
+        <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
+          <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Car size={18} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
+          <div className="flex-1 min-h-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartDataVehicle} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  {/* Gradient ไล่สีสำหรับกราฟรถ */}
                   <linearGradient id="colorVehicle" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#c084fc" stopOpacity={1}/>
                     <stop offset="80%" stopColor="#7e22ce" stopOpacity={0.8}/>
                     <stop offset="100%" stopColor="#3b0764" stopOpacity={0.3}/>
                   </linearGradient>
-                  {/* เอฟเฟกต์เงา DropShadow สร้างมิติ 3D */}
                   <filter id="shadowPurple">
                     <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="#7e22ce" floodOpacity="0.5"/>
                   </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                <XAxis dataKey="shortName" stroke="#666" tick={{fill: '#888', fontSize: 12}} axisLine={false} tickLine={false} interval={0} />
+                <XAxis dataKey="shortName" stroke="#666" tick={{fill: '#888', fontSize: 11}} axisLine={false} tickLine={false} interval={0} />
                 <YAxis stroke="#666" tick={{fill: '#888', fontSize: 10}} allowDecimals={false} axisLine={false} tickLine={false} />
                 <Tooltip 
                     contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#a855f7', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(168,85,247,0.2)'}} 
                     itemStyle={{color: '#e879f9', fontWeight: 'bold'}} 
                     cursor={{fill: '#ffffff0a'}}
                     labelFormatter={(label: any, payload: any) => {
-                      // 🟢 ดึงชื่อเต็มมาโชว์ในหัวข้อ Tooltip
                       if (payload && payload.length > 0) {
                         return payload[0].payload.name;
                       }
@@ -242,34 +222,30 @@ export default function DashboardView({ missions, refreshData }: { missions: any
           </div>
         </div>
 
-        <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-5 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 hover:border-cyan-500/30 hover:shadow-cyan-500/10 anim-fade-in-up" style={{ animationDelay: '380ms' }}>
-          <h3 className="text-cyan-400 font-bold mb-4 text-sm tracking-widest flex items-center gap-2 drop-shadow-md"><Shield size={20} className="anim-float"/> สถิติภารกิจแต่ละสังกัด</h3>
-          
-          <div className="h-56">
+        <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-cyan-500/30 hover:shadow-cyan-500/10 anim-fade-in-up" style={{ animationDelay: '380ms' }}>
+          <h3 className="text-cyan-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Shield size={18} className="anim-float"/> สถิติภารกิจแต่ละสังกัด</h3>
+          <div className="flex-1 min-h-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              {/* 🟢 กราฟเส้นนีออนแนวนอน (Horizontal Bar Chart) */}
               <BarChart 
                 data={chartDataAffiliation} 
-                layout="vertical" // สั่งให้เป็นแนวนอน
+                layout="vertical"
                 margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={true} vertical={false} />
                 <XAxis type="number" stroke="#666" tick={{fill: '#888', fontSize: 10}} axisLine={false} tickLine={false} />
-                <YAxis dataKey="name" type="category" stroke="#e5e7eb" tick={{fill: '#e5e7eb', fontSize: 11, fontWeight: 'bold'}} axisLine={false} tickLine={false} width={120} />
+                <YAxis dataKey="name" type="category" stroke="#e5e7eb" tick={{fill: '#e5e7eb', fontSize: 11, fontWeight: 'bold'}} axisLine={false} tickLine={false} width={110} />
                 <Tooltip 
                   cursor={{fill: '#ffffff0a'}}
                   contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#06b6d4', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(6,182,212,0.2)'}} 
                   itemStyle={{ fontWeight: 'bold', color: '#fff' }} 
                   formatter={(value: any) => [`${value} ภารกิจ`, 'จำนวน']}
                 />
-                
-                {/* 🟢 บีบขนาดเส้นให้เรียวบาง (barSize=6) ขอบมน และใส่ Glow */}
-                <Bar dataKey="count" barSize={6} radius={[0, 10, 10, 0]}>
+                <Bar dataKey="count" barSize={8} radius={[0, 10, 10, 0]}>
                   {chartDataAffiliation.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
                       fill={entry.fill} 
-                      style={{ filter: `drop-shadow(0px 0px 8px ${entry.fill})` }} // เอฟเฟกต์เรืองแสงนีออน
+                      style={{ filter: `drop-shadow(0px 0px 8px ${entry.fill})` }}
                     />
                   ))}
                 </Bar>
@@ -279,46 +255,47 @@ export default function DashboardView({ missions, refreshData }: { missions: any
         </div>
       </div>
 
-      {/* 🟢 3D Top Lists: สร้างความลึกให้แผ่นรายการแต่ละแผ่น */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-purple-900/30 p-5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'h-80'}`} style={{ animationDelay: '460ms' }}>
-          <h3 className="text-purple-400 font-bold mb-4 text-sm tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Trophy size={18} className="text-yellow-500 anim-pulse-glow" /> TOP 10 VEHICLES</h3>
-          <ul className={`space-y-3 custom-scrollbar pr-2 flex-1 min-h-0 ${isExporting ? 'overflow-visible' : 'overflow-y-auto'}`}>
-            {topVehicles.length === 0 && <li className="text-gray-500 text-sm text-center py-4">NO DATA</li>}
+      {/* Top 10 Lists (Flex-[1.2] เพื่อให้สมมาตรและมีพื้นที่บรรทัดมากขึ้น) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-[1.2] min-h-0">
+        
+        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-purple-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '460ms' }}>
+          <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Trophy size={16} className="text-yellow-500 anim-pulse-glow" /> TOP 10 VEHICLES</h3>
+          <ul className={`space-y-1.5 pb-1 custom-scrollbar pr-1 flex-1 ${isExporting ? 'overflow-visible' : 'overflow-y-auto min-h-0'}`}>
+            {topVehicles.length === 0 && <li className="text-gray-500 text-xs text-center py-4">NO DATA</li>}
             {topVehicles.map((v: any, i: number) => (
-              <li key={i} className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md p-3 rounded-xl border border-purple-500/10 hover:border-purple-400/50 hover:bg-purple-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${600 + i * 50}ms` }}>
-                <span className="text-gray-200 font-bold text-sm flex items-center gap-3"><span className={`text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full shrink-0 shadow-inner ${i === 0 ? 'bg-linear-to-br from-yellow-300 to-yellow-600 text-black shadow-yellow-500/50' : i === 1 ? 'bg-linear-to-br from-gray-200 to-gray-500 text-black' : i === 2 ? 'bg-linear-to-br from-orange-300 to-orange-600 text-black' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{i + 1}</span>{v.name.split(' ')[1] || v.name}</span><span className="text-purple-300 font-mono text-xs bg-purple-900/50 border border-purple-500/30 px-2.5 py-1 rounded-md shrink-0 shadow-inner">{v.count} งาน</span>
+              <li key={i} className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md py-1.5 px-2.5 rounded-xl border border-purple-500/10 hover:border-purple-400/50 hover:bg-purple-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${600 + i * 50}ms` }}>
+                <span className="text-gray-200 font-bold text-[13px] flex items-center gap-2.5"><span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-inner ${i === 0 ? 'bg-linear-to-br from-yellow-300 to-yellow-600 text-black shadow-yellow-500/50' : i === 1 ? 'bg-linear-to-br from-gray-200 to-gray-500 text-black' : i === 2 ? 'bg-linear-to-br from-orange-300 to-orange-600 text-black' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{i + 1}</span>{v.name.split(' ')[1] || v.name}</span><span className="text-purple-300 font-mono text-[11px] bg-purple-900/50 border border-purple-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{v.count} งาน</span>
               </li>
             ))}
           </ul>
         </div>
         
-        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-cyan-900/30 p-5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col h-80 transition-all hover:border-cyan-500/40 hover:shadow-[0_10px_30px_rgba(6,182,212,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'h-80'}`} style={{ animationDelay: '520ms' }}>
-          <h3 className="text-cyan-400 font-bold mb-4 text-sm tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Map size={18} className="text-cyan-500 anim-pulse-glow" /> TOP 10 LOCATIONS</h3>
-          <ul className={`space-y-3 custom-scrollbar pr-2 flex-1 min-h-0 ${isExporting ? 'overflow-visible' : 'overflow-y-auto'}`}>
-            {topProvinces.length === 0 && <li className="text-gray-500 text-sm text-center py-4">NO DATA</li>}
+        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-cyan-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-cyan-500/40 hover:shadow-[0_10px_30px_rgba(6,182,212,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '520ms' }}>
+          <h3 className="text-cyan-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Map size={16} className="text-cyan-500 anim-pulse-glow" /> TOP 10 LOCATIONS</h3>
+          <ul className={`space-y-1.5 pb-1 custom-scrollbar pr-1 flex-1 ${isExporting ? 'overflow-visible' : 'overflow-y-auto min-h-0'}`}>
+            {topProvinces.length === 0 && <li className="text-gray-500 text-xs text-center py-4">NO DATA</li>}
             {topProvinces.map((p: any, i: number) => (
-              <li key={i} className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md p-3 rounded-xl border border-cyan-500/10 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${640 + i * 50}ms` }}>
-                <span className="text-gray-200 font-bold text-sm flex items-center gap-3"><span className="text-cyan-400 font-black text-xs font-mono shrink-0 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">{i + 1}.</span> {p.name}</span><span className="text-cyan-300 font-mono text-xs bg-cyan-900/50 border border-cyan-500/30 px-2.5 py-1 rounded-md shrink-0 shadow-inner">{p.count} ครั้ง</span>
+              <li key={i} className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md py-1.5 px-2.5 rounded-xl border border-cyan-500/10 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${640 + i * 50}ms` }}>
+                <span className="text-gray-200 font-bold text-[13px] flex items-center gap-2.5"><span className="text-cyan-400 font-black text-[11px] font-mono shrink-0 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">{i + 1}.</span> <span className="truncate max-w-32.5">{p.name}</span></span><span className="text-cyan-300 font-mono text-[11px] bg-cyan-900/50 border border-cyan-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{p.count} ครั้ง</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-red-900/30 p-5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col h-80 transition-all hover:border-red-500/40 hover:shadow-[0_10px_30px_rgba(239,68,68,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'h-80'}`} style={{ animationDelay: '580ms' }}>
-          <h3 className="text-red-400 font-bold mb-4 text-sm tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><AlertTriangle size={18} className="text-red-500 anim-pulse-glow" /> TOP 10 INCIDENTS</h3>
-          <ul className={`space-y-3 custom-scrollbar pr-2 flex-1 min-h-0 ${isExporting ? 'overflow-visible' : 'overflow-y-auto'}`}>
-            {topIncidents.length === 0 && <li className="text-gray-500 text-sm text-center py-4">NO DATA</li>}
+        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-red-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-red-500/40 hover:shadow-[0_10px_30px_rgba(239,68,68,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '580ms' }}>
+          <h3 className="text-red-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><AlertTriangle size={16} className="text-red-500 anim-pulse-glow" /> TOP 10 INCIDENTS</h3>
+          <ul className={`space-y-1.5 pb-1 custom-scrollbar pr-1 flex-1 ${isExporting ? 'overflow-visible' : 'overflow-y-auto min-h-0'}`}>
+            {topIncidents.length === 0 && <li className="text-gray-500 text-xs text-center py-4">NO DATA</li>}
             {topIncidents.map((incident: any, i: number) => (<li key={i}
                   onClick={() => setSelectedIncident(incident.name)}
                   style={{ animationDelay: `${680 + i * 50}ms` }}
-                  className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md p-3 rounded-xl border border-red-500/10 hover:border-red-400/50 hover:bg-red-900/40 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm gap-3 cursor-pointer anim-fade-in-left">                <div className="flex items-start gap-3 overflow-hidden"><span className="text-red-500 font-black text-xs font-mono mt-0.5 shrink-0 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">-</span><span className="text-gray-200 text-sm font-medium line-clamp-2 leading-snug" title={incident.name}>{incident.name}</span></div><span className="text-red-300 font-mono text-xs bg-red-900/50 border border-red-500/30 px-2.5 py-1 rounded-md shrink-0 shadow-inner">{incident.count} เคส</span>
+                  className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md py-1.5 px-2.5 rounded-xl border border-red-500/10 hover:border-red-400/50 hover:bg-red-900/40 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm gap-2 cursor-pointer anim-fade-in-left">                <div className="flex items-start gap-2 overflow-hidden"><span className="text-red-500 font-black text-[11px] font-mono mt-0.5 shrink-0 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">-</span><span className="text-gray-200 text-[12px] font-medium line-clamp-2 leading-snug" title={incident.name}>{incident.name}</span></div><span className="text-red-300 font-mono text-[11px] bg-red-900/50 border border-red-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{incident.count} เคส</span>
               </li>
             ))}
           </ul>
         </div>
       </div>
-      {/* 🟢 เรียกใช้งาน Popup Modal ที่แยกไฟล์ไว้ */}
+      
       <IncidentModal 
         isOpen={selectedIncident !== null} 
         onClose={() => setSelectedIncident(null)} 
@@ -326,7 +303,6 @@ export default function DashboardView({ missions, refreshData }: { missions: any
         missions={
           selectedIncident 
             ? filteredMissions.filter(m => {
-                // Logic คัดกรองให้เหมือนกับตอนที่รวมกลุ่มสถิติเป๊ะๆ
                 let report = String(m.incident_report || "").trim();
                 if (report === "" || report === "-" || report === "ปกติ" || report.includes("เหตุการณ์ปกติ")) { 
                   report = "เหตุการณ์ปกติ / ไม่มีเหตุ"; 

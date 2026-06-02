@@ -719,7 +719,7 @@ export default function Home() {
         {activeMenu === 3 && ( 
           loading ? 
           <div className="flex justify-center items-center h-40"><p className="text-purple-400 font-mono animate-pulse text-lg">&gt; Loading Dashboard...</p></div> : 
-          <div className={`p-8 rounded-[30px] anim-fade-in-up ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+          <div className={`p-9 md:p-4 rounded-[30px] anim-fade-in-up h-[94vh] flex flex-col overflow-hidden ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             <DashboardView missions={allowedMissions} refreshData={fetchData} /> 
           </div> 
         )}
