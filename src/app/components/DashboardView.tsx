@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Activity, Filter, List, MapPin, Users, Car, Trophy, AlertTriangle, Map, Download, Shield, RefreshCw} from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadialBarChart, RadialBar, Legend, Cell } from 'recharts';
-import { toPng } from 'html-to-image';
 import IncidentModal from "./IncidentModal";
+
 
 const VEHICLE_NAMES: Record<string, string> = {
   "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
@@ -30,34 +30,41 @@ export default function DashboardView({ missions, refreshData }: { missions: any
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  const handleExportImage = () => {
-    setIsExporting(true); // 🟢 1. สั่งยืดกล่อง
+  const handleExport = async () => {
+    // 1. แค่เปลี่ยน State เพื่อซ่อนปุ่ม (ไม่เปลี่ยน Padding หรือ Layout ใดๆ ทั้งสิ้น)
+    setIsExporting(true);
 
-    // 🟢 2. รอ 0.3 วินาทีให้กล่องยืดเสร็จ แล้วค่อยถ่ายรูป
-    setTimeout(async () => {
-      const element = document.getElementById('dashboard-content');
-      if (!element) {
-        setIsExporting(false);
-        return;
-      }
+    // Dynamic Import
+    const { toPng } = await import('html-to-image');
+    const element = document.getElementById('dashboard-content');
+
+    if (!element) {
+      setIsExporting(false);
+      return;
+    }
+
+    // 2. หน่วงเวลาสั้นๆ ให้ UI นิ่งสนิท (ห้ามเปลี่ยน CSS ใดๆ)
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    try {
+      // 3. ใช้ html-to-image แคปโดยตรง
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#050505',
+        pixelRatio: 2,
+        // 🟢 กลับมาใช้ filter กรองแค่ปุ่ม Export ออกอย่างเดียวก็พอครับ กล่องอื่นๆ จะได้ไม่หาย
+        filter: (node: any) => node?.id !== 'export-btn'
+      });
       
-      try {
-        const dataUrl = await toPng(element, { 
-          backgroundColor: '#050505', 
-          pixelRatio: 2,
-          filter: (node) => node.id !== 'export-btn'
-        });
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `CCOC_Dashboard_${new Date().toISOString().split('T')[0]}.png`;
-        link.click();
-      } catch (err) {
-        console.error('Error exporting image:', err);
-        alert('❌ เกิดข้อผิดพลาดในการแคปหน้าจอ กรุณาลองใหม่อีกครั้ง');
-      } finally {
-        setIsExporting(false); // 🟢 3. ถ่ายเสร็จ สั่งหดกล่องกลับเหมือนเดิม
-      }
-    }, 300);
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `CCOC_Dashboard_${new Date().toISOString().split('T')[0]}.png`;
+      link.click();
+    } catch (err) {
+      console.error('Export Failed:', err);
+      alert('❌ ไม่สามารถแคปภาพได้');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const filteredMissions = missions.filter((m: any) => {
@@ -128,9 +135,21 @@ export default function DashboardView({ missions, refreshData }: { missions: any
 
   return (
     // 🟢 เปลี่ยนแบคกราวด์ให้ลึกขึ้น และใช้ relative สำหรับเทคนิค 3D
-    <div id="dashboard-content" className={`w-full max-w-[98%] mx-auto relative transition-all anim-fade-in ${isExporting ? 'p-8 bg-[#050505]' : 'pb-6 p-2'}`}>
+    <div id="dashboard-content" className="w-full max-w-[98%] mx-auto relative transition-all p-8 bg-[#050505]">
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-purple-900/50 pb-3 gap-3 anim-fade-in-down">
+      {isExporting && (
+        <style>{`
+          #dashboard-content * {
+            animation: none !important;
+            transition: none !important;
+            /* 🟢 ปิดเอฟเฟกต์กระจกชั่วคราวตอนแคปรูป เพื่อไม่ให้ html-to-image บั๊ก หรือแสดงผลเพี้ยน */
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+          }
+        `}</style>
+      )}
+
+      <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-purple-900/50 pb-3 gap-3 ${isExporting ? '' : 'anim-fade-in-down'}`}>
         <h2 className="text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-pink-500 flex items-center gap-2 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"><Activity size={24} className="text-purple-400" /> แดชบอร์ดวิเคราะห์สถิติ</h2>
         
         <div className="flex flex-wrap items-center gap-2 bg-gray-900/80 backdrop-blur-md p-1.5 rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
@@ -154,8 +173,8 @@ export default function DashboardView({ missions, refreshData }: { missions: any
             <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} /> REFRESH
           </button>
 
-          <button id="export-btn" onClick={handleExportImage} className="flex items-center gap-2 bg-linear-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all border border-purple-400/50 ml-1 shadow-[0_0_15px_rgba(168,85,247,0.5)] active:scale-95">
-            <Download size={14} /> EXPORT
+          <button id="export-btn" onClick={handleExport} className="flex items-center gap-2 bg-linear-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all border border-purple-400/50 ml-1 shadow-[0_0_15px_rgba(168,85,247,0.5)] active:scale-95">
+            <Download size={14} /> EXPORT .PNG
           </button>
         </div>
       </div>
