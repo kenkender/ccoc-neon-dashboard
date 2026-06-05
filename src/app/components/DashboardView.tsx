@@ -150,6 +150,19 @@ export default function DashboardView({ missions, refreshData }: { missions: any
 
       {isExporting && (
         <style>{`
+          #dashboard-content {
+            height: auto !important;
+            min-height: fit-content !important;
+            overflow: visible !important;
+          }
+          #dashboard-content .chart-grid-container {
+            height: 320px !important;
+            flex: none !important;
+          }
+          #dashboard-content .lists-grid-container {
+            height: auto !important;
+            flex: none !important;
+          }
           #dashboard-content * {
             animation: none !important;
             transition: none !important;
@@ -211,7 +224,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       </div>
 
       {/* Chart Panels (Flex-1) */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 ${isExporting ? 'h-[280px] shrink-0' : 'flex-1 min-h-0'}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 flex-1 min-h-0 chart-grid-container">
         <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Car size={18} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
           <div className="flex-1 min-h-0 w-full">
@@ -282,7 +295,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
 
       
       {/* Top 10 Lists (Flex-[1.2] เพื่อให้สมมาตรและมีพื้นที่บรรทัดมากขึ้น) */}
-        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-3 ${isExporting ? 'h-auto shrink-0' : 'flex-[1.2] min-h-0'}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-[1.2] min-h-0 lists-grid-container">
         
         <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-purple-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '460ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Trophy size={16} className="text-yellow-500 anim-pulse-glow" /> TOP 10 VEHICLES</h3>
