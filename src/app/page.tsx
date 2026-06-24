@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw } from "lucide-react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView"; 
+import ThailandMap from "./components/ThailandMap";
 
 const VEHICLE_NAMES: Record<string, string> = {
   "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
@@ -36,6 +37,21 @@ export default function Home() {
   const [selectedMission, setSelectedMission] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false); 
+  const [showMapOverlay, setShowMapOverlay] = useState(true);
+
+  const VEHICLE_AFFILIATIONS: Record<string, string> = {
+    "stc01": "บช.ทท.",
+    "stc02": "บก.ทท.3",
+    "stc03": "บก.ทท.1",
+    "stc04": "บก.ทท.1",
+    "stc05": "บก.ทท.2",
+    "stc06": "บก.ทท.2",
+    "stc07": "บก.ทท.2",
+    "stc08": "บก.ทท.3",
+    "stc09": "บก.ทท.1",
+    "stc10": "บก.ทท.3",
+    "UAV Mobile": "บช.ทท.",
+  };
   
   const [logFilterAffiliation, setLogFilterAffiliation] = useState("ALL");
   const [logFilterStartDate, setLogFilterStartDate] = useState("");
@@ -106,7 +122,7 @@ export default function Home() {
       let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: ""};
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
-      if (action === "edit") { setIsEditing(false); setSelectedMission(null); } else { setActiveMenu(2); }
+      if (action === "edit") { setIsEditing(false); setSelectedMission(null); } else { setActiveMenu(2); setShowMapOverlay(true); }
       setLoading(true); fetchData(); 
     } catch (error) { alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล"); }
     setIsSubmitting(false);
@@ -424,6 +440,7 @@ export default function Home() {
             usersList={usersList} 
             onLogin={(user) => {
               setCurrentUser(user);
+              setShowMapOverlay(true);
               if (user.role === "user") { 
                 setFormData(prev => ({ ...prev, affiliation: user.affiliation, vehicle_id: user.vehicle_id })); 
               }
@@ -481,7 +498,7 @@ export default function Home() {
         
         <div className="flex flex-col p-4 gap-4 mt-2">
           {/* ปุ่มเมนูที่ปรับปรุงเป็น 3D */}
-          <button onClick={() => { setActiveMenu(1); setIsMobileMenuOpen(false); }} style={{ animationDelay: '100ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 1 ? (isDarkMode ? 'menu-active-dark text-fuchsia-400' : 'menu-active-light text-fuchsia-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
+          <button onClick={() => { setActiveMenu(1); setShowMapOverlay(true); setIsMobileMenuOpen(false); }} style={{ animationDelay: '100ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 1 ? (isDarkMode ? 'menu-active-dark text-fuchsia-400' : 'menu-active-light text-fuchsia-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
             <PenTool size={20} /> <span>1. บันทึกภารกิจรถโมบาย</span>
           </button>
           <button onClick={() => { setActiveMenu(2); setIsMobileMenuOpen(false); }} style={{ animationDelay: '180ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 2 ? (isDarkMode ? 'menu-active-dark text-cyan-400' : 'menu-active-light text-cyan-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
@@ -516,14 +533,41 @@ export default function Home() {
         
         {/* หน้า 1: ฟอร์มบันทึกข้อมูล (อัปเดต Layout เป็น 2 คอลัมน์) */}
         {activeMenu === 1 && (
-          <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-7 h-[90vh]">
-            
-            {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (ขยายเป็น 3 คอลัมน์) */}
-            <div className={`lg:col-span-3 p-6 md:p-8 rounded-3xl anim-fade-in-up overflow-y-auto custom-scrollbar ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
-               <h2 className={`text-3xl font-bold mb-8 flex items-center gap-3 pb-4 border-b border-white/10 ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
-                 <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><PenTool size={24} /></div> 
-                 บันทึกภารกิจใหม่ (DATA ENTRY)
-               </h2>
+          showMapOverlay ? (
+            <div className="w-full max-w-8xl mx-auto anim-fade-in">
+              <ThailandMap 
+                currentUser={currentUser} 
+                missions={data?.missions || []} 
+                isDarkMode={isDarkMode}
+                onSelectVehicle={(vehicleId) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    vehicle_id: vehicleId,
+                    affiliation: VEHICLE_AFFILIATIONS[vehicleId] || prev.affiliation
+                  }));
+                  setShowMapOverlay(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-7 h-[84vh] anim-fade-in">
+              
+              {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (ขยายเป็น 3 คอลัมน์) */}
+              <div className={`lg:col-span-3 p-6 md:p-8 rounded-3xl overflow-y-auto custom-scrollbar ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+                 <h2 className={`text-3xl font-bold mb-8 flex items-center justify-between pb-4 border-b border-white/10 ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
+                   <div className="flex items-center gap-3">
+                     <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><PenTool size={24} /></div> 
+                     <span>บันทึกภารกิจใหม่ ({formData.vehicle_id.toUpperCase()})</span>
+                   </div>
+                   
+                   <button 
+                     type="button" 
+                     onClick={() => setShowMapOverlay(true)} 
+                     className={`text-sm font-bold px-4 py-2.5 rounded-xl btn-3d flex items-center gap-2 ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}
+                   >
+                     <MapPin size={16} /> กลับหน้าแผนที่
+                   </button>
+                 </h2>
              
              <form onSubmit={(e) => { e.preventDefault(); setShowConfirmModal(true); }} className="grid grid-cols-1 md:grid-cols-4 gap-6">
               
@@ -643,11 +687,12 @@ export default function Home() {
           </div>
 
           </div>
-        )}
+          )
+         )}
 
         {/* หน้า 2: ตารางรายการ */}
         {activeMenu === 2 && (
-          <div className={`w-full max-w-[96%] mx-auto h-[90vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+          <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
               <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
                 <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={24} /></div>
@@ -657,9 +702,6 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-3 mt-4 lg:mt-0">
                 <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
                   <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรชข้อมูล
-                </button>
-                <button onClick={handleExportExcel} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-600'}`}>
-                  <FileSpreadsheet size={16} /> EXCEL
                 </button>
                 <button onClick={handleExportPDF} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
                   <Printer size={16} /> ดึงไฟล์ PDF
