@@ -11,24 +11,24 @@ body {
   to   { opacity: 1; }
 }
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fade-in-down {
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fade-in-left {
-  from { opacity: 0; transform: translateX(-12px); }
+  from { opacity: 0; transform: translateX(-10px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes fade-in-right {
-  from { opacity: 0; transform: translateX(12px); }
+  from { opacity: 0; transform: translateX(10px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes pop-in {
-  0%   { opacity: 0; transform: scale(0.92); }
-  60%  { opacity: 1; transform: scale(1.02); }
+  0%   { opacity: 0; transform: scale(0.95); }
+  65%  { opacity: 1; transform: scale(1.01); }
   100% { transform: scale(1); }
 }
 @keyframes float-slow {
@@ -45,11 +45,11 @@ body {
 }
 
 /* Utility classes ที่ใช้งานง่ายในทุกที่ */
-.anim-fade-in       { animation: fade-in 0.5s ease-out both; }
-.anim-fade-in-up    { animation: fade-in-up 0.55s ease-out both; }
-.anim-fade-in-down  { animation: fade-in-down 0.45s ease-out both; }
-.anim-fade-in-left  { animation: fade-in-left 0.5s ease-out both; }
-.anim-fade-in-right { animation: fade-in-right 0.5s ease-out both; }
-.anim-pop-in        { animation: pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-in       { animation: fade-in 0.25s ease-out both; }
+.anim-fade-in-up    { animation: fade-in-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-fade-in-down  { animation: fade-in-down 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-fade-in-left  { animation: fade-in-left 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-fade-in-right { animation: fade-in-right 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-pop-in        { animation: pop-in 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
 .anim-float         { animation: float-slow 4s ease-in-out infinite; }
 .anim-pulse-glow    { animation: pulse-glow 2.4s ease-in-out infinite; }

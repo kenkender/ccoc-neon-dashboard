@@ -280,8 +280,8 @@ export default function Home() {
     
     /* 1. แผงควบคุม 3 มิติ (3D Glass Plate) - มีสันขอบชัดเจน มิติเงาลอยตัว */
     .plate-3d-dark {
-      background: linear-gradient(145deg, rgba(30,41,59,0.8), rgba(2,6,23,0.95));
-      backdrop-filter: blur(20px);
+      background: linear-gradient(145deg, rgba(30,41,59,0.88), rgba(2,6,23,0.97));
+      backdrop-filter: blur(4px);
       border-top: 1px solid rgba(255,255,255,0.15);
       border-left: 1px solid rgba(255,255,255,0.1);
       border-bottom: 2px solid rgba(0,0,0,0.8);
@@ -290,8 +290,8 @@ export default function Home() {
       box-shadow: 10px 10px 20px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.1);
     }
     .plate-3d-light {
-      background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(241,245,249,0.95));
-      backdrop-filter: blur(20px);
+      background: linear-gradient(145deg, rgba(255,255,255,0.94), rgba(241,245,249,0.97));
+      backdrop-filter: blur(4px);
       border-top: 2px solid #ffffff;
       border-left: 2px solid #ffffff;
       border-bottom: 2px solid #cbd5e1;
@@ -769,10 +769,10 @@ export default function Home() {
 
       {/* Popup กดยืนยัน (Confirm Modal) หรือดูรายละเอียด (Details Modal) */}
       {(selectedMission || showConfirmModal) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-[4px] z-50 flex items-center justify-center p-4">
           
           {isDeleting && (
-            <div className="absolute inset-0 z-100 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
+            <div className="absolute inset-0 z-100 bg-black/80 backdrop-blur-[4px] flex flex-col items-center justify-center">
               <div className="w-20 h-20 border-4 border-red-500/30 border-t-red-500 rounded-full animate-spin shadow-[0_0_30px_rgba(239,68,68,0.6)] mb-6"></div>
               <h2 className="text-3xl font-black text-red-500 tracking-[0.2em] drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] mb-2">DELETING</h2>
             </div>
