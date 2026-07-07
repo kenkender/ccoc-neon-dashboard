@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw } from "lucide-react";
+import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock } from "lucide-react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView"; 
 import ThailandMap from "./components/ThailandMap";
@@ -86,7 +86,16 @@ export default function Home() {
       setData({ missions: cleanedMissions });
       setUsersList(result.data?.users || []); 
       setLoading(false);
-      setLoginLogs(result.data?.login_logs || result.data?.log || result.data?.logs || []);
+      // 🔍 Debug: แสดงชื่อ key ทั้งหมดที่ API ส่งกลับมา เพื่อตรวจสอบชื่อที่ถูกต้อง
+      console.log("📦 API result.data keys:", result.data ? Object.keys(result.data) : "result.data is null/undefined");
+      console.log("📋 login_logs:", result.data?.login_logs);
+      console.log("📋 log:", result.data?.log);
+      console.log("📋 logs:", result.data?.logs);
+      console.log("📋 loginLogs:", result.data?.loginLogs);
+      console.log("📋 login_history:", result.data?.login_history);
+      const fetchedLogs = result.data?.login_logs || result.data?.log || result.data?.logs || result.data?.loginLogs || result.data?.login_history || [];
+      console.log("✅ fetchedLogs ที่ได้:", fetchedLogs);
+      setLoginLogs(fetchedLogs);
     } catch (error) { console.error("Error fetching data:", error); setLoading(false); }
   };
 
@@ -508,6 +517,13 @@ export default function Home() {
             <LineChart size={20} /> <span>3. แดชบอร์ดวิเคราะห์สถิติ</span>
           </button>
 
+          {/* เมนูที่ 4: ประวัติการเข้าใช้งาน (เฉพาะ Admin) */}
+          {currentUser?.role === "admin" && (
+            <button onClick={() => { setActiveMenu(4); setIsMobileMenuOpen(false); }} style={{ animationDelay: '340ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 4 ? (isDarkMode ? 'menu-active-dark text-green-400' : 'menu-active-light text-green-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
+              <History size={20} /> <span>4. ประวัติการเข้าใช้งาน</span>
+            </button>
+          )}
+
           {/* ปุ่มสลับธีม 3D */}
           <button onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d mt-4 ${isDarkMode ? 'btn-menu-dark text-yellow-500' : 'btn-menu-light text-indigo-600'}`}>
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />} <span>{isDarkMode ? 'สลับเป็นธีมสว่าง' : 'สลับเป็นธีมมืด'}</span>
@@ -764,6 +780,96 @@ export default function Home() {
           <div className={`p-9 md:p-4 rounded-[30px] anim-fade-in-up h-[94vh] flex flex-col overflow-hidden ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             <DashboardView missions={allowedMissions} refreshData={fetchData} /> 
           </div> 
+        )}
+
+        {/* หน้า 4: ประวัติการเข้าใช้งาน (Admin เท่านั้น) */}
+        {activeMenu === 4 && currentUser?.role === "admin" && (
+          <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
+              <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-600'}`}><History size={24} /></div>
+                ประวัติการเข้าใช้งานระบบ
+              </h2>
+              <div className="flex items-center gap-3 mt-4 lg:mt-0">
+                <span className={`text-sm font-mono px-4 py-2 rounded-xl ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`}>
+                  พบ {loginLogs.length} รายการ
+                </span>
+                <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
+                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรช
+                </button>
+              </div>
+            </div>
+
+            {/* Debug Banner: แสดงเมื่อยังไม่มีข้อมูล */}
+            {loginLogs.length === 0 && !loading && (
+              <div className={`mb-4 p-4 rounded-xl border shrink-0 ${isDarkMode ? 'border-yellow-500/30 bg-yellow-900/10 text-yellow-400' : 'border-yellow-400/50 bg-yellow-50 text-yellow-700'}`}>
+                <p className="font-bold text-sm">⚠️ ไม่พบข้อมูล Login Log</p>
+                <p className="text-xs mt-1 font-mono">กรุณาเปิด Browser DevTools (F12) → Console เพื่อดูว่า API ส่ง key ชื่ออะไรกลับมา แล้วแจ้งให้ผู้พัฒนาทราบ</p>
+              </div>
+            )}
+
+            {/* ตาราง Login Log */}
+            {loading ? (
+              <div className="flex justify-center items-center h-40">
+                <p className={`font-mono animate-pulse text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>&gt; กำลังดึงข้อมูล...</p>
+              </div>
+            ) : (
+              <div className={`rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                <div className="overflow-x-auto flex-1 flex flex-col min-h-0 w-full custom-scrollbar p-2">
+                  <div className="min-w-[600px] flex flex-col flex-1 min-h-0">
+                    {/* Header ตาราง */}
+                    <div className={`grid grid-cols-12 gap-4 p-4 rounded-xl mb-2 text-sm tracking-wider shrink-0 font-bold ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-700'}`}>
+                      <div className="col-span-1 text-center">#</div>
+                      <div className="col-span-3">USERNAME / รหัสรถ</div>
+                      <div className="col-span-3 text-center">สังกัด</div>
+                      <div className="col-span-2 text-center">ROLE</div>
+                      <div className="col-span-3 text-right">วันเวลาเข้าใช้งาน</div>
+                    </div>
+                    {/* รายการ */}
+                    <div className="overflow-y-auto flex-1 custom-scrollbar space-y-2 pr-2">
+                      {loginLogs.slice().reverse().map((log: any, index: number) => {
+                        const displayName = VEHICLE_NAMES[log.username] || log.username;
+                        const formattedTime = log.timestamp
+                          ? new Date(log.timestamp).toLocaleString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                          : "ไม่ระบุเวลา";
+                        const isAdmin = log.role === "admin";
+                        return (
+                          <div key={index} style={{ animationDelay: `${Math.min(index, 20) * 25}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light'}`}>
+                            <div className={`col-span-1 text-center font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{(loginLogs.length - index).toString().padStart(3, '0')}</div>
+                            <div className={`col-span-3 font-bold text-sm truncate ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                              <span className="font-mono">{displayName}</span>
+                            </div>
+                            <div className="col-span-3 text-center">
+                              <span className={`text-xs font-mono px-3 py-1.5 rounded-lg shadow-inner ${getAffiliationColor(log.affiliation, isDarkMode)}`}>
+                                {log.affiliation || "-"}
+                              </span>
+                            </div>
+                            <div className="col-span-2 text-center">
+                              <span className={`text-[11px] font-bold px-3 py-1 rounded-lg ${isAdmin ? (isDarkMode ? 'bg-red-900/30 text-red-400 border border-red-500/30' : 'bg-red-100 text-red-700 border border-red-300') : (isDarkMode ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30' : 'bg-cyan-100 text-cyan-700 border border-cyan-300')}`}>
+                                {isAdmin ? "ADMIN" : "USER"}
+                              </span>
+                            </div>
+                            <div className={`col-span-3 text-right font-mono text-xs flex items-center justify-end gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              <Clock size={10} />
+                              <span>{formattedTime}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {loginLogs.length === 0 && (
+                        <div className="text-center py-16">
+                          <History size={48} className={`mx-auto mb-4 opacity-20 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                          <p className={`font-mono ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>NO LOGIN HISTORY FOUND</p>
+                          <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>กรุณาตรวจสอบ Google Apps Script ว่า return key ชื่อ "login_logs" หรือไม่</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
