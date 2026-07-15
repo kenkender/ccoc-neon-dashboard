@@ -14,7 +14,7 @@ export default function PhotoUploadZone({
   files,
   setFiles,
   isDarkMode,
-  maxFiles = 10,
+  maxFiles = 5,
 }: PhotoUploadZoneProps) {
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,21 +47,23 @@ export default function PhotoUploadZone({
 
       // Check file size
       if (file.size > maxSizeBytes) {
-        alert(`❌ ไฟล์ "${file.name}" มีขนาดใหญ่เกิน 20MB`);
+        alert(`❌ ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 20MB)`);
         return;
       }
 
       validFiles.push(file);
     });
 
-    if (limitExceeded) {
-      alert(`⚠️ อัปโหลดได้สูงสุด ${maxFiles} รูปต่อภารกิจ`);
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
     }
 
-    setFiles((prev) => [...prev, ...validFiles]);
+    if (limitExceeded) {
+      alert(`⚠️ อัปโหลดได้สูงสุดไม่เกิน ${maxFiles} รูปภาพครับ`);
+    }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
@@ -71,7 +73,7 @@ export default function PhotoUploadZone({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragActive(false);
@@ -96,8 +98,8 @@ export default function PhotoUploadZone({
 
   return (
     <div className="w-full h-full flex flex-col gap-1.5 min-h-0">
-      <label className={`text-sm font-mono font-bold shrink-0 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-        9. อัปโหลดรูปภาพประกอบภารกิจ (สูงสุด {maxFiles} รูป)
+      <label className={`text-base font-mono font-bold shrink-0 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+        9. อัปโหลดรูปภาพประกอบภารกิจ (อย่างน้อย 2 รูป ไม่เกิน 5 รูปครับ)
       </label>
 
       {/* Drag & Drop Area */}
@@ -138,7 +140,7 @@ export default function PhotoUploadZone({
       {/* Previews */}
       {files.length > 0 && (
         <div
-          className={`p-2 rounded-xl grid grid-cols-5 gap-2 max-h-[85px] overflow-y-auto custom-scrollbar ${
+          className={`p-2 rounded-xl grid grid-cols-5 gap-2 max-h-[110px] overflow-y-auto custom-scrollbar ${
             isDarkMode ? "bg-black/30 border border-purple-950/30" : "bg-gray-100 border border-gray-200"
           }`}
         >

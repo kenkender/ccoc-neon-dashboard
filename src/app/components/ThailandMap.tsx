@@ -22,6 +22,7 @@ interface ThailandMapProps {
     vehicle_id: string;
   };
   missions: any[];
+  loginLogs: any[];
   onSelectVehicle: (vehicleId: string) => void;
   isDarkMode: boolean;
 }
@@ -40,7 +41,7 @@ const STATIONS: Station[] = [
   { id: "stc10", vehicle_id: "stc10", name: "stc10 หาดใหญ่", province: "สงขลา", x: 232, y: 909, defaultLocation: "ตำรวจท่องเที่ยวหาดใหญ่" }
 ];
 
-export default function ThailandMap({ currentUser, missions, onSelectVehicle, isDarkMode }: ThailandMapProps) {
+export default function ThailandMap({ currentUser, missions, loginLogs, onSelectVehicle, isDarkMode }: ThailandMapProps) {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [hoveredStation, setHoveredStation] = useState<Station | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -99,42 +100,46 @@ export default function ThailandMap({ currentUser, missions, onSelectVehicle, is
     setIsDragging(false);
   };
 
-  // วิเคราะห์สถานะรถแต่ละคันจาก Database ภารกิจล่าสุด
+  // วิเคราะห์สถานะรถแต่ละคันจาก Login Log ล่าสุด
+  // รถจะเป็น ACTIVE เฉพาะเมื่อมีคน Login ด้วยรหัสรถนั้นภายใน 8 ชั่วโมงที่ผ่านมาเท่านั้น
   useEffect(() => {
     const statuses: typeof vehicleStatuses = {};
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date().getTime();
+    const ACTIVE_WINDOW_MS = 10 * 60 * 1000; // 10 นาที (ถ้าไม่มีการล็อกอินใหม่หรือสัญญาณ Heartbeat จะกลับเป็น STANDBY)
 
-    STATIONS.forEach((station) => {
-      // ค้นหาภารกิจของรถคันนี้
-      const vehicleMissions = (missions || [])
-        .filter((m) => String(m.vehicle_id).trim() === station.vehicle_id)
-        // เรียงลำดับจากล่าสุดตามวันที่จัดงานหรือ timestamp
-        .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
-
-      if (vehicleMissions.length > 0) {
-        const latest = vehicleMissions[0];
-        
-        // เช็คว่าอยู่ในห้วงเวลาจัดภารกิจหรือไม่
-        const startDate = latest.start_date ? new Date(latest.start_date).toISOString().split("T")[0] : null;
-        const endDate = latest.end_date ? new Date(latest.end_date).toISOString().split("T")[0] : null;
-        
-        const isActive = startDate && endDate && today >= startDate && today <= endDate;
-
-        statuses[station.vehicle_id] = {
-          status: isActive ? "ACTIVE" : "STANDBY",
-          missionName: latest.mission_name,
-          province: latest.province,
-          lastUpdate: latest.timestamp ? new Date(latest.timestamp).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }) : undefined
-        };
-      } else {
-        statuses[station.vehicle_id] = {
-          status: "STANDBY"
-        };
+    // สร้าง map ของ login ล่าสุดของแต่ละ vehicle
+    const latestLoginByVehicle: Record<string, number> = {};
+    (loginLogs || []).forEach((log: any) => {
+      const vehicleId = String(log.vehicle_id || log.username || "").trim();
+      const logTime = log.timestamp ? new Date(log.timestamp).getTime() : 0;
+      if (vehicleId && logTime > (latestLoginByVehicle[vehicleId] || 0)) {
+        latestLoginByVehicle[vehicleId] = logTime;
       }
     });
 
+    STATIONS.forEach((station) => {
+      // ดูภารกิจล่าสุดเพื่อแสดงชื่อภารกิจและจังหวัด
+      const vehicleMissions = (missions || [])
+        .filter((m) => String(m.vehicle_id).trim() === station.vehicle_id)
+        .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      const latest = vehicleMissions[0];
+
+      // ตรวจสอบ: รถ ACTIVE ก็ต่อเมื่อ Login ล่าสุดภายใน 8 ชั่วโมง
+      const lastLogin = latestLoginByVehicle[station.vehicle_id] || 0;
+      const isActive = (now - lastLogin) <= ACTIVE_WINDOW_MS;
+
+      statuses[station.vehicle_id] = {
+        status: isActive ? "ACTIVE" : "STANDBY",
+        missionName: latest?.mission_name,
+        province: latest?.province,
+        lastUpdate: latest?.timestamp
+          ? new Date(latest.timestamp).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })
+          : undefined
+      };
+    });
+
     setVehicleStatuses(statuses);
-  }, [missions]);
+  }, [missions, loginLogs]);
 
   // ฟังก์ชันตรวจสอบสิทธิ์การคลิกเลือกรถ
   const handleStationClick = (station: Station) => {
