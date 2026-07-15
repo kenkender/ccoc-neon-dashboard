@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw } from "lucide-react";
+import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock, Image as ImageIcon } from "lucide-react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView"; 
+import ThailandMap from "./components/ThailandMap";
+import PhotoUploadZone from "./components/PhotoUploadZone";
+import PhotoGallery from "./components/PhotoGallery";
+import MissionPhotoView from "./components/MissionPhotoView";
 
 const VEHICLE_NAMES: Record<string, string> = {
   "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
@@ -27,6 +31,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<any>(null); 
   const [usersList, setUsersList] = useState<any[]>([]); 
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +40,26 @@ export default function Home() {
   const [activeMenu, setActiveMenu] = useState(1);
   const [selectedMission, setSelectedMission] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setUploadedFiles([]);
+  }, [selectedMission, isEditing]);
   const [showConfirmModal, setShowConfirmModal] = useState(false); 
+  const [showMapOverlay, setShowMapOverlay] = useState(true);
+
+  const VEHICLE_AFFILIATIONS: Record<string, string> = {
+    "stc01": "บช.ทท.",
+    "stc02": "บก.ทท.3",
+    "stc03": "บก.ทท.1",
+    "stc04": "บก.ทท.1",
+    "stc05": "บก.ทท.2",
+    "stc06": "บก.ทท.2",
+    "stc07": "บก.ทท.2",
+    "stc08": "บก.ทท.3",
+    "stc09": "บก.ทท.1",
+    "stc10": "บก.ทท.3",
+    "UAV Mobile": "บช.ทท.",
+  };
   
   const [logFilterAffiliation, setLogFilterAffiliation] = useState("ALL");
   const [logFilterStartDate, setLogFilterStartDate] = useState("");
@@ -70,7 +94,16 @@ export default function Home() {
       setData({ missions: cleanedMissions });
       setUsersList(result.data?.users || []); 
       setLoading(false);
-      setLoginLogs(result.data?.login_logs || result.data?.log || result.data?.logs || []);
+      // 🔍 Debug: แสดงชื่อ key ทั้งหมดที่ API ส่งกลับมา เพื่อตรวจสอบชื่อที่ถูกต้อง
+      console.log("📦 API result.data keys:", result.data ? Object.keys(result.data) : "result.data is null/undefined");
+      console.log("📋 login_logs:", result.data?.login_logs);
+      console.log("📋 log:", result.data?.log);
+      console.log("📋 logs:", result.data?.logs);
+      console.log("📋 loginLogs:", result.data?.loginLogs);
+      console.log("📋 login_history:", result.data?.login_history);
+      const fetchedLogs = result.data?.login_logs || result.data?.log || result.data?.logs || result.data?.loginLogs || result.data?.login_history || [];
+      console.log("✅ fetchedLogs ที่ได้:", fetchedLogs);
+      setLoginLogs(fetchedLogs);
     } catch (error) { console.error("Error fetching data:", error); setLoading(false); }
   };
 
@@ -102,11 +135,43 @@ export default function Home() {
     };
     try {
       await fetch(API_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, mode: "no-cors" });
+      
+      // Upload photos if any
+      if (uploadedFiles.length > 0) {
+        const formDataUpload = new FormData();
+        uploadedFiles.forEach(file => {
+          formDataUpload.append("photos", file);
+        });
+        formDataUpload.append("mission_timestamp", payload.timestamp);
+        formDataUpload.append("mission_name", payloadData.mission_name || "");
+
+        const photoApiUrl = process.env.NEXT_PUBLIC_PHOTO_API_URL;
+        const photoApiKey = process.env.NEXT_PUBLIC_PHOTO_API_KEY;
+
+        if (photoApiUrl) {
+          try {
+            await fetch(`${photoApiUrl}/api/upload`, {
+              method: "POST",
+              headers: {
+                "x-api-key": photoApiKey || "",
+                "x-vehicle-id": payloadData.vehicle_id,
+                "x-user-role": currentUser.role,
+              },
+              body: formDataUpload,
+            });
+          } catch (uploadErr) {
+            console.error("❌ Failed to upload photos:", uploadErr);
+            alert("⚠️ บันทึกข้อมูลสำเร็จ แต่ไม่สามารถอัปโหลดรูปภาพได้");
+          }
+        }
+      }
+
       alert(action === "add" ? "✅ ข้อมูลถูกส่งเข้าระบบ Google Sheet เรียบร้อย!" : "✅ อัปเดตข้อมูลสำเร็จ!");
       let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: ""};
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
-      if (action === "edit") { setIsEditing(false); setSelectedMission(null); } else { setActiveMenu(2); }
+      setUploadedFiles([]);
+      if (action === "edit") { setIsEditing(false); setSelectedMission(null); } else { setActiveMenu(2); setShowMapOverlay(true); }
       setLoading(true); fetchData(); 
     } catch (error) { alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล"); }
     setIsSubmitting(false);
@@ -264,8 +329,8 @@ export default function Home() {
     
     /* 1. แผงควบคุม 3 มิติ (3D Glass Plate) - มีสันขอบชัดเจน มิติเงาลอยตัว */
     .plate-3d-dark {
-      background: linear-gradient(145deg, rgba(30,41,59,0.8), rgba(2,6,23,0.95));
-      backdrop-filter: blur(20px);
+      background: linear-gradient(145deg, rgba(30,41,59,0.88), rgba(2,6,23,0.97));
+      backdrop-filter: blur(4px);
       border-top: 1px solid rgba(255,255,255,0.15);
       border-left: 1px solid rgba(255,255,255,0.1);
       border-bottom: 2px solid rgba(0,0,0,0.8);
@@ -274,8 +339,8 @@ export default function Home() {
       box-shadow: 10px 10px 20px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.1);
     }
     .plate-3d-light {
-      background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(241,245,249,0.95));
-      backdrop-filter: blur(20px);
+      background: linear-gradient(145deg, rgba(255,255,255,0.94), rgba(241,245,249,0.97));
+      backdrop-filter: blur(4px);
       border-top: 2px solid #ffffff;
       border-left: 2px solid #ffffff;
       border-bottom: 2px solid #cbd5e1;
@@ -424,6 +489,7 @@ export default function Home() {
             usersList={usersList} 
             onLogin={(user) => {
               setCurrentUser(user);
+              setShowMapOverlay(true);
               if (user.role === "user") { 
                 setFormData(prev => ({ ...prev, affiliation: user.affiliation, vehicle_id: user.vehicle_id })); 
               }
@@ -481,7 +547,7 @@ export default function Home() {
         
         <div className="flex flex-col p-4 gap-4 mt-2">
           {/* ปุ่มเมนูที่ปรับปรุงเป็น 3D */}
-          <button onClick={() => { setActiveMenu(1); setIsMobileMenuOpen(false); }} style={{ animationDelay: '100ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 1 ? (isDarkMode ? 'menu-active-dark text-fuchsia-400' : 'menu-active-light text-fuchsia-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
+          <button onClick={() => { setActiveMenu(1); setShowMapOverlay(true); setIsMobileMenuOpen(false); }} style={{ animationDelay: '100ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 1 ? (isDarkMode ? 'menu-active-dark text-fuchsia-400' : 'menu-active-light text-fuchsia-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
             <PenTool size={20} /> <span>1. บันทึกภารกิจรถโมบาย</span>
           </button>
           <button onClick={() => { setActiveMenu(2); setIsMobileMenuOpen(false); }} style={{ animationDelay: '180ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 2 ? (isDarkMode ? 'menu-active-dark text-cyan-400' : 'menu-active-light text-cyan-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
@@ -489,6 +555,18 @@ export default function Home() {
           </button>
           <button onClick={() => { setActiveMenu(3); setIsMobileMenuOpen(false); }} style={{ animationDelay: '260ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 3 ? (isDarkMode ? 'menu-active-dark text-yellow-400' : 'menu-active-light text-purple-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
             <LineChart size={20} /> <span>3. แดชบอร์ดวิเคราะห์สถิติ</span>
+          </button>
+
+          {/* เมนูที่ 4: ประวัติการเข้าใช้งาน (เฉพาะ Admin) */}
+          {currentUser?.role === "admin" && (
+            <button onClick={() => { setActiveMenu(4); setIsMobileMenuOpen(false); }} style={{ animationDelay: '340ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 4 ? (isDarkMode ? 'menu-active-dark text-green-400' : 'menu-active-light text-green-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
+              <History size={20} /> <span>4. ประวัติการเข้าใช้งาน</span>
+            </button>
+          )}
+
+          {/* เมนูที่ 5: คลังภาพภารกิจ */}
+          <button onClick={() => { setActiveMenu(5); setIsMobileMenuOpen(false); }} style={{ animationDelay: '300ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 5 ? (isDarkMode ? 'menu-active-dark text-cyan-400' : 'menu-active-light text-cyan-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
+            <ImageIcon size={20} /> <span>5. คลังภาพภารกิจ</span>
           </button>
 
           {/* ปุ่มสลับธีม 3D */}
@@ -516,95 +594,160 @@ export default function Home() {
         
         {/* หน้า 1: ฟอร์มบันทึกข้อมูล (อัปเดต Layout เป็น 2 คอลัมน์) */}
         {activeMenu === 1 && (
-          <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-7 h-[90vh]">
-            
-            {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (ขยายเป็น 3 คอลัมน์) */}
-            <div className={`lg:col-span-3 p-6 md:p-8 rounded-3xl anim-fade-in-up overflow-y-auto custom-scrollbar ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
-               <h2 className={`text-3xl font-bold mb-8 flex items-center gap-3 pb-4 border-b border-white/10 ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
-                 <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><PenTool size={24} /></div> 
-                 บันทึกภารกิจใหม่ (DATA ENTRY)
-               </h2>
-             
-             <form onSubmit={(e) => { e.preventDefault(); setShowConfirmModal(true); }} className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          showMapOverlay ? (
+            <div className="w-full max-w-8xl mx-auto anim-fade-in">
+              <ThailandMap 
+                currentUser={currentUser} 
+                missions={data?.missions || []} 
+                isDarkMode={isDarkMode}
+                onSelectVehicle={(vehicleId) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    vehicle_id: vehicleId,
+                    affiliation: VEHICLE_AFFILIATIONS[vehicleId] || prev.affiliation
+                  }));
+                  setShowMapOverlay(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-7 items-start anim-fade-in">
               
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>สังกัดของรถโมบาย (Affiliation)</label>
-                <select required disabled={currentUser.role === "user"} name="affiliation" value={formData.affiliation} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
-                  <option value="" disabled>-- โปรดเลือกสังกัดท่าน --</option><option value="บช.ทท.">1. กองบัญชาการตำรวจท่องเที่ยว (บช.ทท.)</option><option value="บก.ทท.1">2. กองบังคับการตำรวจท่องเที่ยว 1</option><option value="บก.ทท.2">3. กองบังคับการตำรวจท่องเที่ยว 2</option><option value="บก.ทท.3">4. กองบังคับการตำรวจท่องเที่ยว 3</option>
-                </select>
-              </div>
+              {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (จัดขนาดแบบ One Page) */}
+              <div className={`lg:col-span-3 p-4 md:p-5 rounded-3xl overflow-hidden flex flex-col h-fit ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+                 <h2 className={`text-xl font-bold mb-4 flex items-center justify-between pb-3 border-b border-white/10 ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
+                   <div className="flex items-center gap-2.5">
+                     <div className={`p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><PenTool size={18} /></div> 
+                     <span>บันทึกภารกิจใหม่ ({formData.vehicle_id.toUpperCase()})</span>
+                   </div>
+                   
+                   <div className="flex items-center gap-3">
+                     <button 
+                       type="button" 
+                       onClick={() => setShowMapOverlay(true)} 
+                       className={`text-xs font-bold px-4 py-2.5 rounded-xl btn-3d flex items-center gap-2 ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}
+                     >
+                       <MapPin size={14} /> กลับหน้าแผนที่
+                     </button>
+                   </div>
+                 </h2>
+              
+                <form id="mission-form" onSubmit={(e) => { e.preventDefault(); setShowConfirmModal(true); }} className="flex-1 flex flex-col gap-3 overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-x-4 gap-y-4 content-start">
+                 
+                 <div className="flex flex-col gap-1 md:col-span-2">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>สังกัดของรถโมบาย (Affiliation)</label>
+                   <select required disabled={currentUser.role === "user"} name="affiliation" value={formData.affiliation} onChange={handleChange} className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
+                     <option value="" disabled>-- โปรดเลือกสังกัดท่าน --</option><option value="บช.ทท.">1. กองบัญชาการตำรวจท่องเที่ยว (บช.ทท.)</option><option value="บก.ทท.1">2. กองบังคับการตำรวจท่องเที่ยว 1</option><option value="บก.ทท.2">3. กองบังคับการตำรวจท่องเที่ยว 2</option><option value="บก.ทท.3">4. กองบังคับการตำรวจท่องเที่ยว 3</option>
+                   </select>
+                 </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ใส่รหัสรถโมบายในสังกัดท่าน</label>
-                <select required disabled={currentUser.role === "user"} name="vehicle_id" value={formData.vehicle_id} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
-                  <option value="" disabled>-- เลือกรหัสรถ --</option><option value="stc01">1. stc01 บช.ทท.</option><option value="stc02">2. stc02 ภูเก็ต</option><option value="stc03">3. stc03 อยุธยา</option><option value="stc04">4. stc04 ชลบุรี</option><option value="stc05">5. stc05 โคราช</option><option value="stc06">6. stc06 เชียงใหม่</option><option value="stc07">7. stc07 พิษณุโลก</option><option value="stc08">8. stc08 หัวหิน</option><option value="stc09">9. stc09 สนามศุภชลาศัย</option><option value="stc10">10. stc10 หาดใหญ่</option><option value="UAV Mobile">11. UAV Mobile</option>
-                </select>
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-2">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ใส่รหัสรถโมบายในสังกัดท่าน</label>
+                   <select required disabled={currentUser.role === "user"} name="vehicle_id" value={formData.vehicle_id} onChange={handleChange} className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
+                     <option value="" disabled>-- เลือกรหัสรถ --</option><option value="stc01">1. stc01 บช.ทท.</option><option value="stc02">2. stc02 ภูเก็ต</option><option value="stc03">3. stc03 อยุธยา</option><option value="stc04">4. stc04 ชลบุรี</option><option value="stc05">5. stc05 โคราช</option><option value="stc06">6. stc06 เชียงใหม่</option><option value="stc07">7. stc07 พิษณุโลก</option><option value="stc08">8. stc08 หัวหิน</option><option value="stc09">9. stc09 สนามศุภชลาศัย</option><option value="stc10">10. stc10 หาดใหญ่</option><option value="UAV Mobile">11. UAV Mobile</option>
+                   </select>
+                 </div>
 
-              <div className="flex flex-col gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>1. หน่วยที่ออกภารกิจ</label>
-                <input required type="text" name="unit_name" value={formData.unit_name} onChange={handleChange} placeholder="เช่น ฝอ.6 บก.อก.บช.ทท." className={`p-4 rounded-xl focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>1. หน่วยที่ออกภารกิจ</label>
+                   <input required type="text" name="unit_name" value={formData.unit_name} onChange={handleChange} placeholder="เช่น ฝอ.6 บก.อก.บช.ทท." className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>2. ชื่อภารกิจ</label>
-                <input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ..." className={`p-4 rounded-xl focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-2">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>2. ชื่อภารกิจ</label>
+                   <input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ..." className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 </div>
 
-              <div className="flex flex-col gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>พิกัด/จังหวัด</label>
-                <input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="เช่น สวนเบญ จ.กทม." className={`p-4 rounded-xl focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>พิกัด/จังหวัด</label>
+                   <input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="เช่น สวนเบญ จ.กทม." className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 </div>
 
-              <div className="flex flex-col justify-end gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>3. วันที่เริ่มภารกิจ</label>
-                <input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>3. วันที่เริ่มภารกิจ</label>
+                   <input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                 </div>
 
-              <div className="flex flex-col justify-end gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>4. วันที่สิ้นสุดภารกิจ</label>
-                <input required type="date" name="end_date" value={formData.end_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>4. วันที่สิ้นสุดภารกิจ</label>
+                   <input required type="date" name="end_date" value={formData.end_date} onChange={handleChange} className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                 </div>
 
-              <div className="flex flex-col justify-end gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>รวมระยะเวลา (วัน)</label>
-                <input readOnly type="text" name="total_days" value={formData.total_days} placeholder="คำนวณอัตโนมัติ" className={`p-4 rounded-xl focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-cyan-400' : 'input-3d-light text-cyan-600'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>รวมระยะเวลา (วัน)</label>
+                   <input readOnly type="text" name="total_days" value={formData.total_days} placeholder="คำนวณอัตโนมัติ" className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-cyan-400' : 'input-3d-light text-cyan-600'}`} />
+                 </div>
 
-              <div className="flex flex-col justify-end gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>5. ระยะทาง (ไป-กลับ กม.)</label>
-                <input type="number" name="distance_km" value={formData.distance_km} onChange={handleChange} placeholder="ระบุระยะทาง" className={`p-4 rounded-xl focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>5. ระยะทาง (ไป-กลับ กม.)</label>
+                   <input type="number" name="distance_km" value={formData.distance_km} onChange={handleChange} placeholder="ระบุระยะทาง" className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 </div>
 
-              <div className="flex flex-col gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>6. จำนวนคน (ต่อวัน)</label>
-                <input type="number" name="people_per_day" value={formData.people_per_day} onChange={handleChange} placeholder="จำนวนคนโดยประมาณ" className={`p-4 rounded-xl focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>6. จำนวนคน (ต่อวัน)</label>
+                   <input type="number" name="people_per_day" value={formData.people_per_day} onChange={handleChange} placeholder="จำนวนคน" className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 </div>
 
-              <div className="flex flex-col gap-2 md:col-span-1">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>รวมผู้ร่วมงานทั้งหมด</label>
-                <input readOnly type="text" name="people_total" value={formData.people_total} placeholder="คำนวณอัตโนมัติ" className={`p-4 rounded-xl focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-1">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>รวมผู้ร่วมงานทั้งหมด</label>
+                   <input readOnly type="text" name="people_total" value={formData.people_total} placeholder="คำนวณอัตโนมัติ" className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`} />
+                 </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>7. เหตุสำคัญ / รับแจ้ง</label>
-                <input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} placeholder="เช่น เหตุการณ์ปกติ, รับแจ้งเด็กพลัดหลง..." className={`p-4 rounded-xl focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-              </div>
+                 <div className="flex flex-col gap-1 md:col-span-2">
+                   <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>7. เหตุสำคัญ / รับแจ้ง</label>
+                   <input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} placeholder="เช่น เหตุการณ์ปกติ..." className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 </div>
+                 </div> {/* end of grid */}
 
-              <div className="flex flex-col gap-2 md:col-span-4">
-                <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>8. หมายเหตุ</label>
-                <textarea rows={3} name="remark" value={formData.remark} onChange={handleChange} placeholder="ระบุเพิ่มเติม (ถ้ามี)..." className={`p-4 rounded-xl focus:outline-none transition-all resize-y ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-              </div>
+                 {/* กรอบสี่เหลี่ยมจัดกลุ่ม หมายเหตุ และ อัปโหลดรูปภาพ (2 คอลัมน์) - ขนาดย่อลง */}
+                 <div className={`h-[205px] min-h-0 p-4 rounded-2xl border transition-all flex flex-col ${
+                   isDarkMode 
+                     ? 'bg-gray-950/40 border-purple-900/30 shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_0_15px_rgba(168,85,247,0.05)]' 
+                     : 'bg-gray-50/50 border-gray-200 shadow-sm'
+                 }`}>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+                     
+                     {/* คอลัมน์ที่ 1: 8. หมายเหตุ */}
+                     <div className="flex flex-col gap-1.5 h-full">
+                       <label className={`text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>8. หมายเหตุ</label>
+                       <textarea 
+                         name="remark" 
+                         value={formData.remark} 
+                         onChange={handleChange} 
+                         placeholder="ระบุเพิ่มเติม (ถ้ามี)..." 
+                         className={`py-3 px-3.5 rounded-xl text-sm focus:outline-none transition-all flex-1 min-h-0 resize-none ${
+                           isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'
+                         }`} 
+                       />
+                     </div>
 
-              <div className="md:col-span-4 mt-8 flex justify-center">
-                <button disabled={isSubmitting} type="submit" className="btn-3d btn-primary-3d px-12 py-5 rounded-2xl font-bold text-lg tracking-wide w-full md:w-auto"> 
-                  {isSubmitting ? "กำลังส่งเข้าฐานข้อมูล..." : "บันทึกเข้าฐานข้อมูล"} 
-                </button>
-              </div>
-            </form>
-          </div>
+                     {/* คอลัมน์ที่ 2: 9. อัปโหลดรูปภาพ */}
+                     <div className="h-full flex flex-col min-h-0">
+                       <PhotoUploadZone
+                         files={uploadedFiles}
+                         setFiles={setUploadedFiles}
+                         isDarkMode={isDarkMode}
+                       />
+                     </div>
+
+                   </div>
+                 </div>
+                 
+                 {/* ปุ่มบันทึกเข้าฐานข้อมูล ตรงกลาง ด้านล่าง */}
+                 <div className="mt-4 flex justify-center">
+                   <button 
+                     disabled={isSubmitting} 
+                     type="submit" 
+                     className="btn-3d btn-primary-3d px-12 py-4 rounded-2xl font-bold text-base tracking-wide w-full md:w-auto shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:scale-[1.02] active:scale-95 transition-all"
+                   > 
+                     {isSubmitting ? "กำลังส่งเข้าฐานข้อมูล..." : "บันทึกเข้าฐานข้อมูล"} 
+                   </button>
+                 </div>
+                </form>
+             </div>
           {/* ฝั่งขวา: กรอบ Log (ใส่เอฟเฟกต์เลื่อนเข้าและเด้งขึ้น) */}
-          <div className={`lg:col-span-1 flex flex-col p-6 rounded-3xl h-215 anim-fade-in-right ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+          <div className={`lg:col-span-1 flex flex-col p-6 rounded-3xl h-[84vh] anim-fade-in-right ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             <h3 className={`text-xl font-bold mb-6 flex items-center gap-2 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
               <Shield size={20} /> ผู้เข้าใช้งานล่าสุด (log)
             </h3>
@@ -643,11 +786,12 @@ export default function Home() {
           </div>
 
           </div>
-        )}
+          )
+         )}
 
         {/* หน้า 2: ตารางรายการ */}
         {activeMenu === 2 && (
-          <div className={`w-full max-w-[96%] mx-auto h-[90vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+          <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
               <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
                 <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={24} /></div>
@@ -657,9 +801,6 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-3 mt-4 lg:mt-0">
                 <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
                   <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรชข้อมูล
-                </button>
-                <button onClick={handleExportExcel} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-600'}`}>
-                  <FileSpreadsheet size={16} /> EXCEL
                 </button>
                 <button onClick={handleExportPDF} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
                   <Printer size={16} /> ดึงไฟล์ PDF
@@ -723,14 +864,113 @@ export default function Home() {
             <DashboardView missions={allowedMissions} refreshData={fetchData} /> 
           </div> 
         )}
+
+        {/* หน้า 4: ประวัติการเข้าใช้งาน (Admin เท่านั้น) */}
+        {activeMenu === 4 && currentUser?.role === "admin" && (
+          <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
+              <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-600'}`}><History size={24} /></div>
+                ประวัติการเข้าใช้งานระบบ
+              </h2>
+              <div className="flex items-center gap-3 mt-4 lg:mt-0">
+                <span className={`text-sm font-mono px-4 py-2 rounded-xl ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`}>
+                  พบ {loginLogs.length} รายการ
+                </span>
+                <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
+                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรช
+                </button>
+              </div>
+            </div>
+
+            {/* Debug Banner: แสดงเมื่อยังไม่มีข้อมูล */}
+            {loginLogs.length === 0 && !loading && (
+              <div className={`mb-4 p-4 rounded-xl border shrink-0 ${isDarkMode ? 'border-yellow-500/30 bg-yellow-900/10 text-yellow-400' : 'border-yellow-400/50 bg-yellow-50 text-yellow-700'}`}>
+                <p className="font-bold text-sm">⚠️ ไม่พบข้อมูล Login Log</p>
+                <p className="text-xs mt-1 font-mono">กรุณาเปิด Browser DevTools (F12) → Console เพื่อดูว่า API ส่ง key ชื่ออะไรกลับมา แล้วแจ้งให้ผู้พัฒนาทราบ</p>
+              </div>
+            )}
+
+            {/* ตาราง Login Log */}
+            {loading ? (
+              <div className="flex justify-center items-center h-40">
+                <p className={`font-mono animate-pulse text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>&gt; กำลังดึงข้อมูล...</p>
+              </div>
+            ) : (
+              <div className={`rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                <div className="overflow-x-auto flex-1 flex flex-col min-h-0 w-full custom-scrollbar p-2">
+                  <div className="min-w-[600px] flex flex-col flex-1 min-h-0">
+                    {/* Header ตาราง */}
+                    <div className={`grid grid-cols-12 gap-4 p-4 rounded-xl mb-2 text-sm tracking-wider shrink-0 font-bold ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-700'}`}>
+                      <div className="col-span-1 text-center">#</div>
+                      <div className="col-span-3">USERNAME / รหัสรถ</div>
+                      <div className="col-span-3 text-center">สังกัด</div>
+                      <div className="col-span-2 text-center">ROLE</div>
+                      <div className="col-span-3 text-right">วันเวลาเข้าใช้งาน</div>
+                    </div>
+                    {/* รายการ */}
+                    <div className="overflow-y-auto flex-1 custom-scrollbar space-y-2 pr-2">
+                      {loginLogs.slice().reverse().map((log: any, index: number) => {
+                        const displayName = VEHICLE_NAMES[log.username] || log.username;
+                        const formattedTime = log.timestamp
+                          ? new Date(log.timestamp).toLocaleString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                          : "ไม่ระบุเวลา";
+                        const isAdmin = log.role === "admin";
+                        return (
+                          <div key={index} style={{ animationDelay: `${Math.min(index, 20) * 25}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light'}`}>
+                            <div className={`col-span-1 text-center font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{(loginLogs.length - index).toString().padStart(3, '0')}</div>
+                            <div className={`col-span-3 font-bold text-sm truncate ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                              <span className="font-mono">{displayName}</span>
+                            </div>
+                            <div className="col-span-3 text-center">
+                              <span className={`text-xs font-mono px-3 py-1.5 rounded-lg shadow-inner ${getAffiliationColor(log.affiliation, isDarkMode)}`}>
+                                {log.affiliation || "-"}
+                              </span>
+                            </div>
+                            <div className="col-span-2 text-center">
+                              <span className={`text-[11px] font-bold px-3 py-1 rounded-lg ${isAdmin ? (isDarkMode ? 'bg-red-900/30 text-red-400 border border-red-500/30' : 'bg-red-100 text-red-700 border border-red-300') : (isDarkMode ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30' : 'bg-cyan-100 text-cyan-700 border border-cyan-300')}`}>
+                                {isAdmin ? "ADMIN" : "USER"}
+                              </span>
+                            </div>
+                            <div className={`col-span-3 text-right font-mono text-xs flex items-center justify-end gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              <Clock size={10} />
+                              <span>{formattedTime}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {loginLogs.length === 0 && (
+                        <div className="text-center py-16">
+                          <History size={48} className={`mx-auto mb-4 opacity-20 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                          <p className={`font-mono ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>NO LOGIN HISTORY FOUND</p>
+                          <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>กรุณาตรวจสอบ Google Apps Script ว่า return key ชื่อ "login_logs" หรือไม่</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* หน้า 5: คลังภาพภารกิจ */}
+        {activeMenu === 5 && (
+          <MissionPhotoView
+            missions={data?.missions || []}
+            currentUser={currentUser}
+            isDarkMode={isDarkMode}
+          />
+        )}
       </div>
 
       {/* Popup กดยืนยัน (Confirm Modal) หรือดูรายละเอียด (Details Modal) */}
       {(selectedMission || showConfirmModal) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-[4px] z-50 flex items-center justify-center p-4">
           
           {isDeleting && (
-            <div className="absolute inset-0 z-100 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
+            <div className="absolute inset-0 z-100 bg-black/80 backdrop-blur-[4px] flex flex-col items-center justify-center">
               <div className="w-20 h-20 border-4 border-red-500/30 border-t-red-500 rounded-full animate-spin shadow-[0_0_30px_rgba(239,68,68,0.6)] mb-6"></div>
               <h2 className="text-3xl font-black text-red-500 tracking-[0.2em] drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] mb-2">DELETING</h2>
             </div>
@@ -806,6 +1046,13 @@ export default function Home() {
                         <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}><p className="text-xs font-bold text-gray-500 mb-2">INCIDENT REPORT</p><p className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{selectedMission.incident_report || "-"}</p></div>
                         <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}><p className="text-xs font-bold text-gray-500 mb-2">REMARK / DISTANCE</p><p className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{selectedMission.remark || "-"}</p><p className={`mt-2 font-mono font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>Distance: {selectedMission.distance_km} km</p></div>
                      </div>
+                     <div className="md:col-span-2 pt-6 border-t border-white/10">
+                       <PhotoGallery
+                         missionTimestamp={selectedMission.timestamp}
+                         currentUser={currentUser}
+                         isDarkMode={isDarkMode}
+                       />
+                     </div>
                   </div>
                 ) : (
                   <form onSubmit={(e) => handleSubmit(e, "edit")} className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -819,6 +1066,13 @@ export default function Home() {
                     <div className="flex flex-col gap-2"><label className="text-sm font-bold text-green-500">รวมผู้เข้าร่วมงานทั้งหมด</label><input readOnly type="text" name="people_total" value={formData.people_total} className={`p-4 rounded-xl font-bold focus:outline-none cursor-not-allowed ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`} /></div>
                     <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">เหตุสำคัญ / รับแจ้ง</label><input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
                     <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">หมายเหตุ</label><input type="text" name="remark" value={formData.remark} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                    <div className="flex flex-col gap-2 md:col-span-2">
+                      <PhotoUploadZone
+                        files={uploadedFiles}
+                        setFiles={setUploadedFiles}
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
                     <div className={`md:col-span-2 mt-6 flex justify-end gap-4 pt-6 border-t border-white/10`}>
                       <button type="button" onClick={() => setIsEditing(false)} className={`px-8 py-4 rounded-xl font-bold btn-3d ${isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600'}`}>ยกเลิก</button>
                       <button disabled={isSubmitting} type="submit" className="btn-3d px-10 py-4 rounded-xl font-bold text-gray-900" style={{ background: 'linear-gradient(145deg, #facc15, #ca8a04)', boxShadow: '5px 5px 15px rgba(0,0,0,0.5), -2px -2px 8px rgba(250,204,21,0.5)' }}>

@@ -176,7 +176,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-3 pb-2 border-b border-purple-900/50 gap-3 shrink-0 ${isExporting ? '' : 'anim-fade-in-down'}`}>
         <h2 className="text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-pink-500 flex items-center gap-2 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"><Activity size={24} className="text-purple-400" /> แดชบอร์ดวิเคราะห์สถิติ</h2>
         
-        <div className="flex flex-wrap items-center gap-2 bg-gray-900/80 backdrop-blur-md p-1.5 rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+        <div className="flex flex-wrap items-center gap-2 bg-gray-950/95 p-1.5 rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
           <Filter className="text-purple-400 ml-2" size={16} />
           <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="bg-black/50 text-[11px] text-gray-300 p-1.5 rounded border border-gray-700 focus:outline-none focus:border-purple-500 transition-colors" style={{colorScheme: "dark"}} />
           <span className="text-gray-600">-</span>
@@ -204,19 +204,19 @@ export default function DashboardView({ missions, refreshData }: { missions: any
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 shrink-0">
-        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-purple-500/20 shadow-[0_15px_40px_rgba(168,85,247,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-purple-500/30 hover:border-purple-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '60ms' }}>
+        <div className="relative group bg-gray-900/90 p-3 md:p-4 rounded-2xl border border-purple-500/20 shadow-[0_15px_40px_rgba(168,85,247,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-purple-500/30 hover:border-purple-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '60ms' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-linear-to-b from-purple-500 to-transparent opacity-70 group-hover:from-purple-400 group-hover:to-purple-600 transition-colors"></div>
           <div className="bg-purple-900/40 p-3 rounded-xl text-purple-400 border border-purple-500/20 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)] relative z-10"><List size={24}/></div>
           <div className="relative z-10"><p className="text-purple-300/70 text-[11px] font-bold tracking-widest drop-shadow-md">รวมภารกิจทั้งหมด</p><p className="text-3xl font-black text-purple-200 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">{kpiTotalMissions}</p></div>
         </div>
         
-        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-cyan-500/20 shadow-[0_15px_40px_rgba(6,182,212,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-cyan-500/30 hover:border-cyan-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="relative group bg-gray-900/90 p-3 md:p-4 rounded-2xl border border-cyan-500/20 shadow-[0_15px_40px_rgba(6,182,212,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-cyan-500/30 hover:border-cyan-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '150ms' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-linear-to-b from-cyan-500 to-transparent opacity-70 group-hover:from-cyan-400 group-hover:to-cyan-600 transition-colors"></div>
           <div className="bg-cyan-900/40 p-3 rounded-xl text-cyan-400 border border-cyan-500/20 shadow-[inset_0_0_10px_rgba(6,182,212,0.2)] relative z-10"><MapPin size={24}/></div>
           <div className="relative z-10"><p className="text-cyan-300/70 text-[11px] font-bold tracking-widest drop-shadow-md">ระยะทางปฏิบัติการ (กม.)</p><p className="text-3xl font-black text-cyan-200 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">{kpiTotalDistance.toLocaleString()}</p></div>
         </div>
         
-        <div className="relative group bg-gray-900/60 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-green-500/20 shadow-[0_15px_40px_rgba(34,197,94,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-green-500/30 hover:border-green-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '240ms' }}>
+        <div className="relative group bg-gray-900/90 p-3 md:p-4 rounded-2xl border border-green-500/20 shadow-[0_15px_40px_rgba(34,197,94,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-green-500/30 hover:border-green-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '240ms' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-linear-to-b from-green-500 to-transparent opacity-70 group-hover:from-green-400 group-hover:to-green-600 transition-colors"></div>
           <div className="bg-green-900/40 p-3 rounded-xl text-green-400 border border-green-500/20 shadow-[inset_0_0_10px_rgba(34,197,94,0.2)] relative z-10"><Users size={24}/></div>
           <div className="relative z-10"><p className="text-green-300/70 text-[11px] font-bold tracking-widest drop-shadow-md">จำนวนผู้เข้าร่วมงานรวม</p><p className="text-3xl font-black text-green-200 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]">{kpiTotalPeople.toLocaleString()}</p></div>
@@ -225,7 +225,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
 
       {/* Chart Panels (Flex-1) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 flex-1 min-h-0 chart-grid-container">
-        <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
+        <div className="relative group bg-gray-900/85 border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Car size={18} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
           <div className="flex-1 min-h-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -260,7 +260,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
           </div>
         </div>
 
-        <div className="relative group bg-gray-900/40 backdrop-blur-md border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-cyan-500/30 hover:shadow-cyan-500/10 anim-fade-in-up" style={{ animationDelay: '380ms' }}>
+        <div className="relative group bg-gray-900/85 border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-cyan-500/30 hover:shadow-cyan-500/10 anim-fade-in-up" style={{ animationDelay: '380ms' }}>
           <h3 className="text-cyan-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Shield size={18} className="anim-float"/> สถิติภารกิจแต่ละสังกัด</h3>
           <div className="flex-1 min-h-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -297,38 +297,38 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       {/* Top 10 Lists (Flex-[1.2] เพื่อให้สมมาตรและมีพื้นที่บรรทัดมากขึ้น) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-[1.2] min-h-0 lists-grid-container">
         
-        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-purple-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '460ms' }}>
+        <div className={`relative group bg-gray-900/85 border border-purple-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '460ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Trophy size={16} className="text-yellow-500 anim-pulse-glow" /> TOP 10 VEHICLES</h3>
           <ul className={`space-y-1.5 pb-1 custom-scrollbar pr-1 flex-1 ${isExporting ? 'overflow-visible' : 'overflow-y-auto min-h-0'}`}>
             {topVehicles.length === 0 && <li className="text-gray-500 text-xs text-center py-4">NO DATA</li>}
             {topVehicles.map((v: any, i: number) => (
-              <li key={i} className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md py-1.5 px-2.5 rounded-xl border border-purple-500/10 hover:border-purple-400/50 hover:bg-purple-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${600 + i * 50}ms` }}>
+              <li key={i} className="flex justify-between items-center bg-gray-800/85 py-1.5 px-2.5 rounded-xl border border-purple-500/10 hover:border-purple-400/50 hover:bg-purple-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${600 + i * 50}ms` }}>
                 <span className="text-gray-200 font-bold text-[13px] flex items-center gap-2.5"><span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-inner ${i === 0 ? 'bg-linear-to-br from-yellow-300 to-yellow-600 text-black shadow-yellow-500/50' : i === 1 ? 'bg-linear-to-br from-gray-200 to-gray-500 text-black' : i === 2 ? 'bg-linear-to-br from-orange-300 to-orange-600 text-black' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{i + 1}</span>{v.name.split(' ')[1] || v.name}</span><span className="text-purple-300 font-mono text-[11px] bg-purple-900/50 border border-purple-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{v.count} งาน</span>
               </li>
             ))}
           </ul>
         </div>
         
-        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-cyan-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-cyan-500/40 hover:shadow-[0_10px_30px_rgba(6,182,212,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '520ms' }}>
+        <div className={`relative group bg-gray-900/85 border border-cyan-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-cyan-500/40 hover:shadow-[0_10px_30px_rgba(6,182,212,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '520ms' }}>
           <h3 className="text-cyan-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Map size={16} className="text-cyan-500 anim-pulse-glow" /> TOP 10 LOCATIONS</h3>
           <ul className={`space-y-1.5 pb-1 custom-scrollbar pr-1 flex-1 ${isExporting ? 'overflow-visible' : 'overflow-y-auto min-h-0'}`}>
             {topProvinces.length === 0 && <li className="text-gray-500 text-xs text-center py-4">NO DATA</li>}
             {topProvinces.map((p: any, i: number) => (
-              <li key={i} className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md py-1.5 px-2.5 rounded-xl border border-cyan-500/10 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${640 + i * 50}ms` }}>
+              <li key={i} className="flex justify-between items-center bg-gray-800/85 py-1.5 px-2.5 rounded-xl border border-cyan-500/10 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${640 + i * 50}ms` }}>
                 <span className="text-gray-200 font-bold text-[13px] flex items-center gap-2.5"><span className="text-cyan-400 font-black text-[11px] font-mono shrink-0 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">{i + 1}.</span> <span className="truncate max-w-32.5">{p.name}</span></span><span className="text-cyan-300 font-mono text-[11px] bg-cyan-900/50 border border-cyan-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{p.count} ครั้ง</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className={`relative group bg-gray-900/40 backdrop-blur-md border border-red-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-red-500/40 hover:shadow-[0_10px_30px_rgba(239,68,68,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '580ms' }}>
+        <div className={`relative group bg-gray-900/85 border border-red-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-red-500/40 hover:shadow-[0_10px_30px_rgba(239,68,68,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '580ms' }}>
           <h3 className="text-red-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><AlertTriangle size={16} className="text-red-500 anim-pulse-glow" /> TOP 10 INCIDENTS</h3>
           <ul className={`space-y-1.5 pb-1 custom-scrollbar pr-1 flex-1 ${isExporting ? 'overflow-visible' : 'overflow-y-auto min-h-0'}`}>
             {topIncidents.length === 0 && <li className="text-gray-500 text-xs text-center py-4">NO DATA</li>}
             {topIncidents.map((incident: any, i: number) => (<li key={i}
                   onClick={() => setSelectedIncident(incident.name)}
                   style={{ animationDelay: `${680 + i * 50}ms` }}
-                  className="flex justify-between items-center bg-gray-800/40 backdrop-blur-md py-1.5 px-2.5 rounded-xl border border-red-500/10 hover:border-red-400/50 hover:bg-red-900/40 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm gap-2 cursor-pointer anim-fade-in-left">                <div className="flex items-start gap-2 overflow-hidden"><span className="text-red-500 font-black text-[11px] font-mono mt-0.5 shrink-0 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">-</span><span className="text-gray-200 text-[12px] font-medium line-clamp-2 leading-snug" title={incident.name}>{incident.name}</span></div><span className="text-red-300 font-mono text-[11px] bg-red-900/50 border border-red-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{incident.count} เคส</span>
+                  className="flex justify-between items-center bg-gray-800/85 py-1.5 px-2.5 rounded-xl border border-red-500/10 hover:border-red-400/50 hover:bg-red-900/40 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm gap-2 cursor-pointer anim-fade-in-left">                <div className="flex items-start gap-2 overflow-hidden"><span className="text-red-500 font-black text-[11px] font-mono mt-0.5 shrink-0 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">-</span><span className="text-gray-200 text-[12px] font-medium line-clamp-2 leading-snug" title={incident.name}>{incident.name}</span></div><span className="text-red-300 font-mono text-[11px] bg-red-900/50 border border-red-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{incident.count} เคส</span>
               </li>
             ))}
           </ul>
