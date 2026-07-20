@@ -29,8 +29,14 @@ export async function POST(request: NextRequest) {
       body: formData,
     });
 
-    const data = await upstream.json();
-    return Response.json(data, { status: upstream.status });
+    const text = await upstream.text();
+    try {
+      const data = JSON.parse(text);
+      return Response.json(data, { status: upstream.status });
+    } catch (parseErr) {
+      console.error('[Proxy] POST upload JSON parse failed. Raw response was:', text.substring(0, 500));
+      return Response.json({ error: 'Invalid response from Photo Server during upload', raw: text.substring(0, 200) }, { status: 502 });
+    }
   } catch (err) {
     console.error('[Proxy] POST upload error:', err);
     return Response.json({ error: 'Photo server unreachable' }, { status: 502 });

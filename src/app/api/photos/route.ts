@@ -28,8 +28,14 @@ export async function GET(request: NextRequest) {
       cache: 'no-store',
     });
 
-    const data = await upstream.json();
-    return Response.json(data, { status: upstream.status });
+    const text = await upstream.text();
+    try {
+      const data = JSON.parse(text);
+      return Response.json(data, { status: upstream.status });
+    } catch (parseErr) {
+      console.error('[Proxy] GET /api/photos JSON parse failed. Raw response was:', text.substring(0, 500));
+      return Response.json({ error: 'Invalid response from Photo Server', raw: text.substring(0, 200) }, { status: 502 });
+    }
   } catch (err) {
     console.error('[Proxy] GET /api/photos error:', err);
     return Response.json({ error: 'Photo server unreachable' }, { status: 502 });
