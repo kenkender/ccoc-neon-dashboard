@@ -14,7 +14,10 @@ type Context = { params: Promise<{ id: string }> };
 async function proxyImageGet(photoId: string, size: 'thumb' | 'full', apiKey: string) {
   const url = `${PHOTO_API_URL}/api/photos/${photoId}/${size}`;
   const upstream = await fetch(url, {
-    headers: { 'x-api-key': apiKey },
+    headers: { 
+      'x-api-key': apiKey,
+      'ngrok-skip-browser-warning': 'true',
+    },
     cache: 'no-store',
   });
 
@@ -67,6 +70,7 @@ export async function DELETE(request: NextRequest, { params }: Context) {
       headers: {
         'x-api-key':    PHOTO_API_KEY, // USER key → Photo Server ตรวจ ownership เอง
         'x-vehicle-id': vehicleId,
+        'ngrok-skip-browser-warning': 'true',
       },
     });
 

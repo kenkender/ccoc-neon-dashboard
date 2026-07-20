@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'x-api-key':     PHOTO_API_KEY,
         'x-vehicle-id':  vehicleId,
+        'ngrok-skip-browser-warning': 'true',
       },
       cache: 'no-store',
     });

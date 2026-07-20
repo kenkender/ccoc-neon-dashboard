@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key':    PHOTO_API_KEY,
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify(body),
     });

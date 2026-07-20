@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'x-api-key':    PHOTO_API_KEY,
         'x-vehicle-id': vehicleId,
+        'ngrok-skip-browser-warning': 'true',
         // ไม่ต้องส่ง x-user-role — Photo Server กำหนด role จาก API Key เอง
       },
       body: formData,

@@ -17,7 +17,10 @@ export async function GET(_request: NextRequest, { params }: Context) {
 
   try {
     const upstream = await fetch(`${PHOTO_API_URL}/api/download/${id}`, {
-      headers: { 'x-api-key': PHOTO_API_KEY },
+      headers: { 
+        'x-api-key': PHOTO_API_KEY,
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
 
     if (!upstream.ok) {
