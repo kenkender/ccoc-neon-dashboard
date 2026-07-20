@@ -125,7 +125,7 @@ export default function Home() {
     return () => clearInterval(dataInterval);
   }, []);
 
-  // 💓 Heartbeat System: ส่งสัญญาณออนไลน์รักษาสถานะ ACTIVE ทุกๆ 4 นาทีตราบที่ยังล็อกอินอยู่
+  // 💓 Heartbeat System: ส่งสัญญาณออนไลน์เฉพาะฝั่ง UI (ลบการส่งไปหลังบ้านออกเพื่อป้องกันชีตบวม)
   useEffect(() => {
     if (!currentUser) return;
 
@@ -138,26 +138,13 @@ export default function Home() {
         timestamp: currentTimestamp
       };
 
-      // อัปเดต UI ฝั่งตัวเองทันที
+      // อัปเดต UI ฝั่งตัวเองเท่านั้น ไม่ส่งไปบันทึกซ้ำบน Google Sheets แล้ว
       setLoginLogs(prev => {
-        // เอา log เก่าของตัวเองออกก่อน แล้วเอาอันใหม่ต่อท้าย เพื่อไม่ให้บวมในหน้าเว็บ
         const filtered = prev.filter(log => log.username !== currentUser.username);
         return [...filtered, newLog];
       });
-
-      // ส่งไปอัปเดตบน Google Sheets API หลังบ้าน
-      fetch(API_URL, { 
-        method: "POST", 
-        body: JSON.stringify({ 
-          action: "login", 
-          timestamp: currentTimestamp, 
-          data: { username: currentUser.username, affiliation: currentUser.affiliation, role: currentUser.role } 
-        }), 
-        mode: "no-cors" 
-      }).catch(err => console.error("Heartbeat failed", err));
     };
 
-    // ส่งทันทีที่ล็อกอิน และตั้งรอบทุก 4 นาที
     const heartbeatInterval = setInterval(sendHeartbeat, 240000);
     return () => clearInterval(heartbeatInterval);
   }, [currentUser]);
