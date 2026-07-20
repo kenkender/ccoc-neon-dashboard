@@ -64,6 +64,11 @@ export default function MissionPhotoView({
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // 6x2 layout
+
+
   // ไม่มี API Key ใน client — ใช้ Next.js API proxy แทน
 
 
@@ -90,6 +95,12 @@ export default function MissionPhotoView({
   useEffect(() => {
     fetchAllPhotos();
   }, []);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterVehicle, filterAffiliation, filterStartDate, filterEndDate, searchQuery]);
+
 
   // Filter logic on client side (mapping to mission details)
   const getEnrichedPhotoDetails = (photo: Photo) => {
@@ -238,6 +249,11 @@ export default function MissionPhotoView({
     return currentUser?.vehicle_id === photo.vehicle_id;
   };
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredPhotos.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPhotos = filteredPhotos.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${
       isDarkMode ? "plate-3d-dark" : "plate-3d-light"
@@ -365,7 +381,7 @@ export default function MissionPhotoView({
           <p className="text-cyan-400 font-mono tracking-widest animate-pulse text-sm">กำลังโหลดคลังภาพ...</p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pr-2 pb-6 custom-scrollbar">
           {filteredPhotos.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 border border-dashed border-gray-700/50 rounded-2xl p-6">
               <ImageIcon size={32} className="text-gray-500 mb-2" />
@@ -373,14 +389,14 @@ export default function MissionPhotoView({
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-              {filteredPhotos.map((photo, index) => {
+              {paginatedPhotos.map((photo, index) => {
                 const details = getEnrichedPhotoDetails(photo);
                 const isSelected = selectedPhotoIds.includes(photo.id);
 
                 return (
                   <div
                     key={photo.id}
-                    onClick={() => setLightboxIndex(index)}
+                    onClick={() => setLightboxIndex(startIndex + index)}
                     className={`relative rounded-2xl overflow-hidden cursor-pointer border group flex flex-col transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 ${
                       isSelected
                         ? "border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] bg-purple-950/10"
@@ -402,8 +418,8 @@ export default function MissionPhotoView({
                       )}
                     </button>
 
-                    {/* Image */}
-                    <div className="aspect-square relative overflow-hidden bg-black/10">
+                    {/* Image using landscape 4:3 aspect ratio to prevent vertical overflow */}
+                    <div className="aspect-[4/3] relative overflow-hidden bg-black/10">
                       <img
                         src={`/api/photos/${photo.id}?size=thumb`}
                         alt={photo.original_name}
@@ -430,6 +446,52 @@ export default function MissionPhotoView({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-white/10 shrink-0">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold btn-3d transition-all ${
+              currentPage === 1 
+                ? "opacity-40 cursor-not-allowed text-gray-500 bg-gray-800/10" 
+                : isDarkMode ? "btn-menu-dark text-cyan-400" : "btn-menu-light text-cyan-600"
+            }`}
+          >
+            ก่อนหน้า
+          </button>
+          
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+            const isCurrent = page === currentPage;
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold btn-3d flex items-center justify-center transition-all ${
+                  isCurrent
+                    ? "bg-linear-to-r from-cyan-500 to-blue-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]"
+                    : isDarkMode ? "btn-menu-dark text-gray-300" : "btn-menu-light text-gray-700"
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
+
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold btn-3d transition-all ${
+              currentPage === totalPages
+                ? "opacity-40 cursor-not-allowed text-gray-500 bg-gray-800/10"
+                : isDarkMode ? "btn-menu-dark text-cyan-400" : "btn-menu-light text-cyan-600"
+            }`}
+          >
+            ถัดไป
+          </button>
         </div>
       )}
 
