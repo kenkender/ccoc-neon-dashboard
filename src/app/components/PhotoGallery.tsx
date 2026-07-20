@@ -32,11 +32,10 @@ export default function PhotoGallery({
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_PHOTO_API_URL;
-  const API_KEY = process.env.NEXT_PUBLIC_PHOTO_API_KEY;
+  // ไม่มี API Key ใน client — ใช้ Next.js API proxy แทน
 
   const fetchPhotos = async () => {
-    if (!API_URL || !missionTimestamp) {
+    if (!missionTimestamp) {
       setLoading(false);
       return;
     }
@@ -44,12 +43,10 @@ export default function PhotoGallery({
     try {
       setLoading(true);
       const res = await fetch(
-        `${API_URL}/api/photos?mission_timestamp=${encodeURIComponent(missionTimestamp)}`,
+        `/api/photos${missionTimestamp ? `?mission_timestamp=${encodeURIComponent(missionTimestamp)}` : ''}`,
         {
           headers: {
-            "x-api-key": API_KEY || "",
             "x-vehicle-id": currentUser?.vehicle_id || "",
-            "x-user-role": currentUser?.role || "",
           },
         }
       );
@@ -74,12 +71,10 @@ export default function PhotoGallery({
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/photos/${photo.id}`, {
+      const res = await fetch(`/api/photos/${photo.id}`, {
         method: "DELETE",
         headers: {
-          "x-api-key": API_KEY || "",
           "x-vehicle-id": currentUser?.vehicle_id || "",
-          "x-user-role": currentUser?.role || "",
         },
       });
       const result = await res.json();
@@ -101,11 +96,7 @@ export default function PhotoGallery({
   const handleDownload = async (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const response = await fetch(`${API_URL}/api/download/${photo.id}`, {
-        headers: {
-          "x-api-key": API_KEY || "",
-        },
-      });
+      const response = await fetch(`/api/photos/download/${photo.id}`);
       if (!response.ok) throw new Error("Network response was not ok");
       
       const blob = await response.blob();
@@ -169,7 +160,7 @@ export default function PhotoGallery({
             }`}
           >
             <img
-              src={`${API_URL}/api/photos/${photo.id}/thumb?key=${API_KEY}`}
+            src={`/api/photos/${photo.id}?size=thumb`}
               alt={photo.original_name}
               className="w-full h-full object-cover"
               loading="lazy"
@@ -222,7 +213,7 @@ export default function PhotoGallery({
           {/* Content container */}
           <div className="relative max-w-4xl max-h-[80vh] w-full flex flex-col items-center justify-center z-40">
             <img
-              src={`${API_URL}/api/photos/${photos[lightboxIndex].id}/full?key=${API_KEY}`}
+              src={`/api/photos/${photos[lightboxIndex].id}?size=full`}
               alt={photos[lightboxIndex].original_name}
               className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl border border-gray-800"
             />

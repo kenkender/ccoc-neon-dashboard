@@ -26,11 +26,8 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
     e.preventDefault();
     setError("");
 
-    // 1. ตรวจสอบ Master Admin (Hardcode ไว้ให้เผื่อฉุกเฉิน)
-    if (username === "admin" && password === "11551155") {
-      onLogin({ role: "admin", username: "admin", affiliation: "ALL", vehicle_id: "ALL" });
-      return;
-    }
+    // ⚠️ Master Admin แบบ Hardcode ถูกลบออกแล้ว เพราะ password จะถูกเห็นได้จาก DevTools
+    // ทุก user รวมถึง admin ต้องล็อคอินผ่านฐานข้อมูล Google Sheets เท่านั้น
 
     // 2. ตรวจสอบ User จากฐานข้อมูล Google Sheets
     const foundUser = usersList.find((u: any) => String(u.username).trim() === username.trim() && String(u.password).trim() === password.trim());

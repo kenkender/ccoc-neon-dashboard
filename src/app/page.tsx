@@ -207,17 +207,15 @@ export default function Home() {
         formDataUpload.append("mission_timestamp", payload.timestamp);
         formDataUpload.append("mission_name", payloadData.mission_name || "");
 
-        const photoApiUrl = process.env.NEXT_PUBLIC_PHOTO_API_URL;
-        const photoApiKey = process.env.NEXT_PUBLIC_PHOTO_API_KEY;
 
-        if (photoApiUrl) {
+        // ใช้ Next.js proxy เสมอ — API Key ถูกจัดการ server-side
+        {
           try {
-            await fetch(`${photoApiUrl}/api/upload`, {
+            await fetch(`/api/photos/upload`, {
               method: "POST",
               headers: {
-                "x-api-key": photoApiKey || "",
                 "x-vehicle-id": payloadData.vehicle_id,
-                "x-user-role": currentUser.role,
+                // ไม่ต้องส่ง x-api-key หรือ x-user-role — proxy จัดการเอง
               },
               body: formDataUpload,
             });

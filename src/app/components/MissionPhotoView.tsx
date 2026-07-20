@@ -64,22 +64,16 @@ export default function MissionPhotoView({
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_PHOTO_API_URL;
-  const API_KEY = process.env.NEXT_PUBLIC_PHOTO_API_KEY;
+  // ไม่มี API Key ใน client — ใช้ Next.js API proxy แทน
+
 
   const fetchAllPhotos = async () => {
-    if (!API_URL) {
-      setLoading(false);
-      return;
-    }
 
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/photos`, {
+      const res = await fetch(`/api/photos`, {
         headers: {
-          "x-api-key": API_KEY || "",
           "x-vehicle-id": currentUser?.vehicle_id || "",
-          "x-user-role": currentUser?.role || "",
         },
       });
       const result = await res.json();
@@ -164,11 +158,10 @@ export default function MissionPhotoView({
     if (selectedPhotoIds.length === 0) return;
     try {
       setIsDownloadingZip(true);
-      const response = await fetch(`${API_URL}/api/download/bulk`, {
+      const response = await fetch(`/api/photos/download`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": API_KEY || "",
         },
         body: JSON.stringify({ ids: selectedPhotoIds }),
       });
@@ -196,11 +189,7 @@ export default function MissionPhotoView({
   const handleDownload = async (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const response = await fetch(`${API_URL}/api/download/${photo.id}`, {
-        headers: {
-          "x-api-key": API_KEY || "",
-        },
-      });
+      const response = await fetch(`/api/photos/download/${photo.id}`);
       if (!response.ok) throw new Error("Download failed");
 
       const blob = await response.blob();
@@ -224,12 +213,10 @@ export default function MissionPhotoView({
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/photos/${photo.id}`, {
+      const res = await fetch(`/api/photos/${photo.id}`, {
         method: "DELETE",
         headers: {
-          "x-api-key": API_KEY || "",
           "x-vehicle-id": currentUser?.vehicle_id || "",
-          "x-user-role": currentUser?.role || "",
         },
       });
       const result = await res.json();
@@ -418,7 +405,7 @@ export default function MissionPhotoView({
                     {/* Image */}
                     <div className="aspect-square relative overflow-hidden bg-black/10">
                       <img
-                        src={`${API_URL}/api/photos/${photo.id}/thumb?key=${API_KEY}`}
+                        src={`/api/photos/${photo.id}?size=thumb`}
                         alt={photo.original_name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="lazy"
@@ -477,7 +464,7 @@ export default function MissionPhotoView({
 
           <div className="relative max-w-4xl max-h-[80vh] w-full flex flex-col items-center justify-center z-40">
             <img
-              src={`${API_URL}/api/photos/${filteredPhotos[lightboxIndex].id}/full?key=${API_KEY}`}
+              src={`/api/photos/${filteredPhotos[lightboxIndex].id}?size=full`}
               alt={filteredPhotos[lightboxIndex].original_name}
               className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl border border-gray-800"
             />
