@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Filter, Calendar, Car, Shield, Search, Download, Trash2, ChevronLeft, ChevronRight, X, Image as ImageIcon, Loader2, CheckSquare, Square } from "lucide-react";
+import { usePopup } from "./PopupContext";
 
 interface Photo {
   id: string;
@@ -32,15 +33,16 @@ const VEHICLE_AFFILIATIONS: Record<string, string> = {
   "stc05": "บก.ทท.2",
   "stc06": "บก.ทท.2",
   "stc07": "บก.ทท.2",
-  "stc08": "บก.ทท.3",
+  "stc08": "บก.ทท.1",
   "stc09": "บก.ทท.1",
   "stc10": "บก.ทท.3",
+  "uav mobile": "บช.ทท.",
   "UAV Mobile": "บช.ทท.",
 };
 
 interface MissionPhotoViewProps {
   missions: any[];
-  currentUser: any;
+  currentUser: { role: string; vehicle_id?: string; affiliation?: string };
   isDarkMode: boolean;
 }
 
@@ -52,6 +54,7 @@ export default function MissionPhotoView({
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const { showNotification, showConfirm } = usePopup();
 
   // Filters State
   const [filterVehicle, setFilterVehicle] = useState("ALL");
@@ -67,7 +70,6 @@ export default function MissionPhotoView({
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; // 6x2 layout
-
 
   // ไม่มี API Key ใน client — ใช้ Next.js API proxy แทน
 
@@ -189,7 +191,11 @@ export default function MissionPhotoView({
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      alert("❌ เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ ZIP");
+      showNotification({
+        type: "error",
+        title: "ดาวน์โหลด ZIP ไม่สำเร็จ",
+        message: "เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ ZIP",
+      });
       console.error(err);
     } finally {
       setIsDownloadingZip(false);
@@ -213,35 +219,56 @@ export default function MissionPhotoView({
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      alert("❌ ไม่สามารถดาวน์โหลดรูปภาพได้");
+      showNotification({
+        type: "error",
+        title: "ดาวน์โหลดไม่สำเร็จ",
+        message: "ไม่สามารถดาวน์โหลดรูปภาพได้",
+      });
     }
   };
 
   // Delete handler
-  const handleDelete = async (photo: Photo, e: React.MouseEvent) => {
+  const handleDelete = (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
-    const confirmDelete = window.confirm("⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบรูปภาพนี้?");
-    if (!confirmDelete) return;
-
-    try {
-      const res = await fetch(`/api/photos/${photo.id}`, {
-        method: "DELETE",
-        headers: {
-          "x-vehicle-id": currentUser?.vehicle_id || "",
-        },
-      });
-      const result = await res.json();
-      if (result.success) {
-        setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-        setSelectedPhotoIds((prev) => prev.filter((id) => id !== photo.id));
-        if (lightboxIndex !== null) setLightboxIndex(null);
-        alert("✅ ลบรูปภาพสำเร็จ");
-      } else {
-        alert(`❌ ${result.error || "เกิดข้อผิดพลาดในการลบ"}`);
-      }
-    } catch (err) {
-      alert("❌ เกิดข้อผิดพลาดในการลบรูปภาพ");
-    }
+    showConfirm({
+      title: "ยืนยันการลบรูปภาพ",
+      message: "คุณแน่ใจหรือไม่ว่าต้องการลบรูปภาพนี้ออกจากระบบ?\n(การลบจะไม่สามารถกู้คืนได้)",
+      isDanger: true,
+      confirmText: "ยืนยันลบรูปภาพ",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/photos/${photo.id}`, {
+            method: "DELETE",
+            headers: {
+              "x-vehicle-id": currentUser?.vehicle_id || "",
+            },
+          });
+          const result = await res.json();
+          if (result.success) {
+            setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+            setSelectedPhotoIds((prev) => prev.filter((id) => id !== photo.id));
+            if (lightboxIndex !== null) setLightboxIndex(null);
+            showNotification({
+              type: "success",
+              title: "ลบรูปภาพสำเร็จ",
+              message: "ลบรูปภาพออกจากระบบเรียบร้อยแล้ว",
+            });
+          } else {
+            showNotification({
+              type: "error",
+              title: "ลบรูปภาพไม่สำเร็จ",
+              message: result.error || "เกิดข้อผิดพลาดในการลบรูปภาพ",
+            });
+          }
+        } catch (err) {
+          showNotification({
+            type: "error",
+            title: "เกิดข้อผิดพลาด",
+            message: "เกิดข้อผิดพลาดในการลบรูปภาพ",
+          });
+        }
+      },
+    });
   };
 
   const canDelete = (photo: Photo) => {

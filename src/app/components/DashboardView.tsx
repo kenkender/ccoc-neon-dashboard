@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Activity, Filter, List, MapPin, Users, Car, Trophy, AlertTriangle, Map, Download, Shield, RefreshCw} from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import IncidentModal from "./IncidentModal";
+import { usePopup } from "./PopupContext";
 
 
 const VEHICLE_NAMES: Record<string, string> = {
@@ -21,6 +22,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const [isExporting, setIsExporting] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { showNotification } = usePopup();
 
   const handleLocalRefresh = async () => { 
     setIsRefreshing(true);
@@ -75,7 +77,11 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       link.click();
     } catch (err) {
       console.error('Export Failed:', err);
-      alert('❌ ไม่สามารถแคปภาพได้');
+      showNotification({
+        type: "error",
+        title: "แคปภาพไม่สำเร็จ",
+        message: "ไม่สามารถบันทึกรูปภาพ Dashboard ได้",
+      });
     } finally {
       // 4. ทำความสะอาด คืนค่า UI กลับสู่สภาวะปกติ
       if (element) {

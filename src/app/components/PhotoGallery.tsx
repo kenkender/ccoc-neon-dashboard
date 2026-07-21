@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, X, Download, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
+import { usePopup } from "./PopupContext";
 
 interface Photo {
   id: string;
@@ -31,6 +32,7 @@ export default function PhotoGallery({
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const { showConfirm, showNotification } = usePopup();
 
   // ไม่มี API Key ใน client — ใช้ Next.js API proxy แทน
 
@@ -67,30 +69,47 @@ export default function PhotoGallery({
 
   const handleDelete = async (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
-    const confirmDelete = window.confirm("⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบรูปภาพนี้?");
-    if (!confirmDelete) return;
-
-    try {
-      const res = await fetch(`/api/photos/${photo.id}`, {
-        method: "DELETE",
-        headers: {
-          "x-vehicle-id": currentUser?.vehicle_id || "",
-        },
-      });
-      const result = await res.json();
-      if (result.success) {
-        setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-        if (lightboxIndex !== null) {
-          setLightboxIndex(null);
+    showConfirm({
+      title: "ยืนยันการลบรูปภาพ",
+      message: "คุณแน่ใจหรือไม่ว่าต้องการลบรูปภาพนี้ออกจากระบบ?\n(การลบจะไม่สามารถกู้คืนได้)",
+      isDanger: true,
+      confirmText: "ยืนยันลบรูปภาพ",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/photos/${photo.id}`, {
+            method: "DELETE",
+            headers: {
+              "x-vehicle-id": currentUser?.vehicle_id || "",
+            },
+          });
+          const result = await res.json();
+          if (result.success) {
+            setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+            if (lightboxIndex !== null) {
+              setLightboxIndex(null);
+            }
+            showNotification({
+              type: "success",
+              title: "ลบรูปภาพสำเร็จ",
+              message: "ลบรูปภาพออกจากระบบเรียบร้อยแล้ว",
+            });
+          } else {
+            showNotification({
+              type: "error",
+              title: "ลบรูปภาพไม่สำเร็จ",
+              message: result.error || "เกิดข้อผิดพลาดในการลบรูปภาพ",
+            });
+          }
+        } catch (err) {
+          showNotification({
+            type: "error",
+            title: "การเชื่อมต่อล้มเหลว",
+            message: "เกิดข้อผิดพลาดในการเชื่อมต่อเพื่อลบรูปภาพ",
+          });
+          console.error(err);
         }
-        alert("✅ ลบรูปภาพสำเร็จ");
-      } else {
-        alert(`❌ ${result.error || "เกิดข้อผิดพลาดในการลบรูปภาพ"}`);
-      }
-    } catch (err) {
-      alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเพื่อลบรูปภาพ");
-      console.error(err);
-    }
+      },
+    });
   };
 
   const handleDownload = async (photo: Photo, e: React.MouseEvent) => {
@@ -109,7 +128,11 @@ export default function PhotoGallery({
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      alert("❌ ไม่สามารถดาวน์โหลดรูปภาพได้");
+      showNotification({
+        type: "error",
+        title: "ดาวน์โหลดไม่สำเร็จ",
+        message: "ไม่สามารถดาวน์โหลดรูปภาพได้",
+      });
       console.error(err);
     }
   };

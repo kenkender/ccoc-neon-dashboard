@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { UploadCloud, X, FileImage } from "lucide-react";
+import { usePopup } from "./PopupContext";
 
 interface PhotoUploadZoneProps {
   files: File[];
@@ -18,6 +19,7 @@ export default function PhotoUploadZone({
 }: PhotoUploadZoneProps) {
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showNotification } = usePopup();
 
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"];
   const maxSizeBytes = 20 * 1024 * 1024; // 20MB
@@ -41,13 +43,23 @@ export default function PhotoUploadZone({
         [".heic", ".heif", ".jpg", ".jpeg", ".png", ".webp"].includes(fileExtension);
 
       if (!isAllowedType) {
-        alert(`❌ ไฟล์ "${file.name}" ไม่ใช่รูปภาพที่รองรับ (รองรับ JPG, JPEG, PNG, WEBP, HEIC)`);
+        showNotification({
+          type: "warning",
+          title: "รูปแบบไฟล์ไม่รองรับ",
+          message: `ไฟล์ "${file.name}" ไม่ใช่รูปภาพที่รองรับ`,
+          details: ["ชนิดไฟล์ที่รองรับ: JPG, JPEG, PNG, WEBP, HEIC"],
+        });
         return;
       }
 
       // Check file size
       if (file.size > maxSizeBytes) {
-        alert(`❌ ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 20MB)`);
+        showNotification({
+          type: "warning",
+          title: "ไฟล์มีขนาดใหญ่เกินกำหนด",
+          message: `ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป (${(file.size / 1024 / 1024).toFixed(1)}MB)`,
+          details: ["จำกัดขนาดไฟล์ไม่เกิน 20MB ต่อรูปภาพ"],
+        });
         return;
       }
 
@@ -59,7 +71,11 @@ export default function PhotoUploadZone({
     }
 
     if (limitExceeded) {
-      alert(`⚠️ อัปโหลดได้สูงสุดไม่เกิน ${maxFiles} รูปภาพครับ`);
+      showNotification({
+        type: "warning",
+        title: "จำนวนไฟล์เกินกำหนด",
+        message: `อัปโหลดรูปภาพได้สูงสุดไม่เกิน ${maxFiles} รูปภาพต่อภารกิจ`,
+      });
     }
   };
 

@@ -8,6 +8,7 @@ import ThailandMap from "./components/ThailandMap";
 import PhotoUploadZone from "./components/PhotoUploadZone";
 import PhotoGallery from "./components/PhotoGallery";
 import MissionPhotoView from "./components/MissionPhotoView";
+import { usePopup } from "./components/PopupContext";
 
 const VEHICLE_NAMES: Record<string, string> = {
   "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
@@ -28,6 +29,7 @@ const getAffiliationColor = (affiliation: string, isDark: boolean) => {
 };
 
 export default function Home() {
+  const { showNotification, showConfirm, showUploadProgress, updateUploadProgress, closeUploadProgress } = usePopup();
   const [currentUser, setCurrentUser] = useState<any>(null); 
   const [usersList, setUsersList] = useState<any[]>([]); 
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -164,11 +166,20 @@ export default function Home() {
   const handleSubmit = async (e: any, action: "add" | "edit" = "add") => {
     if (e && e.preventDefault) e.preventDefault();
     if (uploadedFiles.length < 2) {
-      alert("⚠️ กรุณาอัปโหลดรูปภาพประกอบภารกิจอย่างน้อย 2 รูปครับ");
+      showNotification({
+        type: "warning",
+        title: "อัปโหลดรูปภาพไม่ครบถ้วน",
+        message: "กรุณาอัปโหลดรูปภาพประกอบภารกิจอย่างน้อย 2 รูปครับ",
+        details: ["ระบบต้องการรูปภาพอย่างน้อย 2 ถึง 5 รูปในการบันทึกภารกิจ"],
+      });
       return;
     }
     if (uploadedFiles.length > 5) {
-      alert("⚠️ สามารถอัปโหลดรูปภาพได้สูงสุดไม่เกิน 5 รูปครับ");
+      showNotification({
+        type: "warning",
+        title: "จำนวนรูปภาพเกินกำหนด",
+        message: "สามารถอัปโหลดรูปภาพได้สูงสุดไม่เกิน 5 รูปครับ",
+      });
       return;
     }
     setIsSubmitting(true);
@@ -182,10 +193,23 @@ export default function Home() {
       timestamp: action === "edit" ? selectedMission.timestamp : new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' }), 
       data: payloadData 
     };
+
+    // 🟢 แสดง Upload Progress Animated Modal ภายในโปรเจค
+    showUploadProgress({
+      stage: "sending_data",
+      progress: 25,
+      missionName: payloadData.mission_name || "ภารกิจ CCOC",
+      files: uploadedFiles,
+      totalFiles: uploadedFiles.length,
+    });
+
     try {
       await fetch(API_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, mode: "no-cors" });
       
+      updateUploadProgress({ stage: "uploading_photos", progress: 55 });
+
       // Upload photos if any
+      let isPhotoUploadFailed = false;
       if (uploadedFiles.length > 0) {
         const formDataUpload = new FormData();
         uploadedFiles.forEach(file => {
@@ -194,33 +218,51 @@ export default function Home() {
         formDataUpload.append("mission_timestamp", payload.timestamp);
         formDataUpload.append("mission_name", payloadData.mission_name || "");
 
-
-        // ใช้ Next.js proxy เสมอ — API Key ถูกจัดการ server-side
-        {
-          try {
-            await fetch(`/api/photos/upload`, {
-              method: "POST",
-              headers: {
-                "x-vehicle-id": payloadData.vehicle_id,
-                // ไม่ต้องส่ง x-api-key หรือ x-user-role — proxy จัดการเอง
-              },
-              body: formDataUpload,
-            });
-          } catch (uploadErr) {
-            console.error("❌ Failed to upload photos:", uploadErr);
-            alert("⚠️ บันทึกข้อมูลสำเร็จ แต่ไม่สามารถอัปโหลดรูปภาพได้");
-          }
+        try {
+          await fetch(`/api/photos/upload`, {
+            method: "POST",
+            headers: {
+              "x-vehicle-id": payloadData.vehicle_id,
+            },
+            body: formDataUpload,
+          });
+          updateUploadProgress({ progress: 95 });
+        } catch (uploadErr) {
+          console.error("❌ Failed to upload photos:", uploadErr);
+          isPhotoUploadFailed = true;
         }
       }
 
-      alert(action === "add" ? "✅ ข้อมูลถูกส่งเข้าระบบ Google Sheet เรียบร้อย!" : "✅ อัปเดตข้อมูลสำเร็จ!");
+      // Complete progress animation
+      updateUploadProgress({ stage: "success", progress: 100 });
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      closeUploadProgress();
+
+      // แสดง Notification Popup สรุปความสำเร็จ
+      showNotification({
+        type: isPhotoUploadFailed ? "warning" : "success",
+        title: action === "add" ? "บันทึกภารกิจสำเร็จ!" : "อัปเดตข้อมูลสำเร็จ!",
+        message: isPhotoUploadFailed
+          ? "บันทึกรายละเอียดภารกิจสำเร็จ แต่ไม่สามารถอัปโหลดรูปภาพได้"
+          : action === "add"
+          ? "ข้อมูลถูกส่งเข้าระบบ Google Sheets และรูปภาพบันทึกเรียบร้อยแล้ว"
+          : "อัปเดตข้อมูลภารกิจเรียบร้อยแล้ว",
+        details: [
+          `ชื่อภารกิจ: ${payloadData.mission_name || "-"}`,
+          `พิกัด/จังหวัด: ${payloadData.province || "-"}`,
+          `จำนวนรูปภาพ: ${uploadedFiles.length} รูป`,
+        ],
+      });
+
       let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: ""};
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
       setUploadedFiles([]);
       if (action === "edit") { setIsEditing(false); setSelectedMission(null); } else { setActiveMenu(2); setShowMapOverlay(true); }
       setLoading(true); fetchData(); 
-    } catch (error) { alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล"); }
+    } catch (error) { 
+      updateUploadProgress({ stage: "error", errorMessage: "เกิดข้อผิดพลาดในการส่งข้อมูล" });
+    }
     setIsSubmitting(false);
     setShowConfirmModal(false);
   };
@@ -235,25 +277,40 @@ export default function Home() {
     setIsEditing(true);
   };
 
-  const handleDelete = async () => {
-    const confirmDelete = window.confirm("⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?\n(การลบจะไม่สามารถกู้คืนได้)");
-    if (!confirmDelete) return;
-    setIsDeleting(true); 
-    const payload = { action: "delete", timestamp: selectedMission.timestamp };
-    try {
-      await fetch(API_URL, { 
-        method: "POST", 
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        mode: "no-cors" 
-      });
-      setSelectedMission(null); 
-      setLoading(true); 
-      fetchData(); 
-    } catch (error) { 
-      alert("❌ เกิดข้อผิดพลาดในการลบข้อมูล"); 
-    }
-    setIsDeleting(false); 
+  const handleDelete = () => {
+    showConfirm({
+      title: "ยืนยันการลบภารกิจ",
+      message: `คุณแน่ใจหรือไม่ว่าต้องการลบภารกิจ "${selectedMission?.mission_name || ""}" ?\n(การลบจะไม่สามารถกู้คืนได้)`,
+      isDanger: true,
+      confirmText: "ยืนยันลบภารกิจ",
+      onConfirm: async () => {
+        setIsDeleting(true); 
+        const payload = { action: "delete", timestamp: selectedMission.timestamp };
+        try {
+          await fetch(API_URL, { 
+            method: "POST", 
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            mode: "no-cors" 
+          });
+          setSelectedMission(null); 
+          setLoading(true); 
+          fetchData(); 
+          showNotification({
+            type: "success",
+            title: "ลบภารกิจสำเร็จ",
+            message: "ลบข้อมูลภารกิจออกจากระบบเรียบร้อยแล้ว",
+          });
+        } catch (error) { 
+          showNotification({
+            type: "error",
+            title: "ลบข้อมูลไม่สำเร็จ",
+            message: "เกิดข้อผิดพลาดในการลบข้อมูลภารกิจ",
+          });
+        }
+        setIsDeleting(false); 
+      },
+    });
   };
 
   const allowedMissions = data?.missions || [];
@@ -684,11 +741,20 @@ export default function Home() {
                 <form id="mission-form" onSubmit={(e) => { 
                   e.preventDefault(); 
                   if (uploadedFiles.length < 2) {
-                    alert("⚠️ กรุณาอัปโหลดรูปภาพประกอบภารกิจอย่างน้อย 2 รูปครับ");
+                    showNotification({
+                      type: "warning",
+                      title: "อัปโหลดรูปภาพไม่ครบถ้วน",
+                      message: "กรุณาอัปโหลดรูปภาพประกอบภารกิจอย่างน้อย 2 รูปครับ",
+                      details: ["ระบบต้องการรูปภาพอย่างน้อย 2 ถึง 5 รูปในการบันทึกภารกิจ"],
+                    });
                     return;
                   }
                   if (uploadedFiles.length > 5) {
-                    alert("⚠️ สามารถอัปโหลดรูปภาพได้สูงสุดไม่เกิน 5 รูปครับ");
+                    showNotification({
+                      type: "warning",
+                      title: "จำนวนรูปภาพเกินกำหนด",
+                      message: "สามารถอัปโหลดรูปภาพได้สูงสุดไม่เกิน 5 รูปครับ",
+                    });
                     return;
                   }
                   setShowConfirmModal(true); 
