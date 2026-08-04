@@ -640,7 +640,7 @@ export default function Home() {
       </div>
 
       {/* แถบ Sidebar (แผงควบคุม 3D ด้านซ้าย) */}
-      <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-72 flex-col z-20 shrink-0 transition-colors duration-500 md:m-4 md:rounded-3xl ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+      <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-72 flex-col z-20 shrink-0 transition-colors duration-500 md:m-3 lg:m-4 md:rounded-3xl ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
         <div className="p-6 border-b border-white/5 flex flex-col items-center justify-center relative">
           <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-1 rounded shadow-inner ${currentUser.role === 'admin' ? 'bg-red-900/30 text-red-500 border border-red-500/30' : 'bg-cyan-900/30 text-cyan-500 border border-cyan-500/30'}`}>
             {currentUser.role === 'admin' ? 'ADMIN' : 'USER'}
@@ -694,11 +694,11 @@ export default function Home() {
       </div>
 
       {/* พื้นที่แสดงผลหลัก (Main Content) */}
-      <div className="flex-1 w-full p-4 md:h-screen flex flex-col overflow-hidden relative z-10" onClick={() => { if(isMobileMenuOpen) setIsMobileMenuOpen(false); }}>
+      <div className="flex-1 w-full p-2 sm:p-4 min-h-screen flex flex-col overflow-y-auto relative z-10" onClick={() => { if(isMobileMenuOpen) setIsMobileMenuOpen(false); }}>
         
         {/* หน้า 1: ฟอร์มบันทึกข้อมูล (อัปเดต Layout เป็น 2 คอลัมน์) */}
         {activeMenu === 1 && (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 flex flex-col">
           {showMapOverlay ? (
             <div className="w-full max-w-8xl mx-auto anim-fade-in flex-1">
               <ThailandMap 
@@ -717,10 +717,10 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-7 flex-1 min-h-0 anim-fade-in">
+            <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-7 anim-fade-in">
               
               {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (จัดขนาดแบบ One Page) */}
-              <div className={`lg:col-span-3 p-4 md:p-5 rounded-3xl flex flex-col overflow-hidden ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`} style={{height: 'calc(100vh - 2rem)'}}>
+              <div className={`lg:col-span-2 xl:col-span-3 p-3 sm:p-4 md:p-5 rounded-3xl flex flex-col ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
                  <h2 className={`text-xl font-bold mb-4 flex items-center justify-between pb-3 border-b border-white/10 ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
                    <div className="flex items-center gap-2.5">
                      <div className={`p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><PenTool size={18} /></div> 
@@ -758,98 +758,98 @@ export default function Home() {
                     return;
                   }
                   setShowConfirmModal(true); 
-                }} className="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-x-5 gap-y-5 content-start">
+                }} className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4 content-start">
                  
-                 <div className="flex flex-col gap-2 md:col-span-2">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>สังกัดของรถโมบาย (Affiliation)</label>
-                   <select required disabled={currentUser.role === "user"} name="affiliation" value={formData.affiliation} onChange={handleChange} className={`py-4 px-4 rounded-xl text-base focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
+                 <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>สังกัดของรถโมบาย (Affiliation)</label>
+                   <select required disabled={currentUser.role === "user"} name="affiliation" value={formData.affiliation} onChange={handleChange} className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
                      <option value="" disabled>-- โปรดเลือกสังกัดท่าน --</option><option value="บช.ทท.">1. กองบัญชาการตำรวจท่องเที่ยว (บช.ทท.)</option><option value="บก.ทท.1">2. กองบังคับการตำรวจท่องเที่ยว 1</option><option value="บก.ทท.2">3. กองบังคับการตำรวจท่องเที่ยว 2</option><option value="บก.ทท.3">4. กองบังคับการตำรวจท่องเที่ยว 3</option>
                    </select>
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-2">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ใส่รหัสรถโมบายในสังกัดท่าน</label>
-                   <select required disabled={currentUser.role === "user"} name="vehicle_id" value={formData.vehicle_id} onChange={handleChange} className={`py-4 px-4 rounded-xl text-base focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
+                 <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ใส่รหัสรถโมบายในสังกัดท่าน</label>
+                   <select required disabled={currentUser.role === "user"} name="vehicle_id" value={formData.vehicle_id} onChange={handleChange} className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
                      <option value="" disabled>-- เลือกรหัสรถ --</option><option value="stc01">1. stc01 บช.ทท.</option><option value="stc02">2. stc02 ภูเก็ต</option><option value="stc03">3. stc03 อยุธยา</option><option value="stc04">4. stc04 ชลบุรี</option><option value="stc05">5. stc05 โคราช</option><option value="stc06">6. stc06 เชียงใหม่</option><option value="stc07">7. stc07 พิษณุโลก</option><option value="stc08">8. stc08 หัวหิน</option><option value="stc09">9. stc09 สนามศุภชลาศัย</option><option value="stc10">10. stc10 หาดใหญ่</option><option value="UAV Mobile">11. UAV Mobile</option>
                    </select>
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>1. หน่วยที่ออกภารกิจ</label>
-                   <input required type="text" name="unit_name" value={formData.unit_name} onChange={handleChange} placeholder="เช่น ฝอ.6 บก.อก.บช.ทท." className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>1. หน่วยที่ออกภารกิจ</label>
+                   <input required type="text" name="unit_name" value={formData.unit_name} onChange={handleChange} placeholder="เช่น ฝอ.6 บก.อก.บช.ทท." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-2">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>2. ชื่อภารกิจ</label>
-                   <input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ..." className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>2. ชื่อภารกิจ</label>
+                   <input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ..." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>พิกัด/จังหวัด</label>
-                   <input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="เช่น สวนเบญ จ.กทม." className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>พิกัด/จังหวัด</label>
+                   <input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="เช่น สวนเบญ จ.กทม." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>3. วันที่เริ่มภารกิจ</label>
-                   <input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>3. วันที่เริ่มภารกิจ</label>
+                   <input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>4. วันที่สิ้นสุดภารกิจ</label>
-                   <input required type="date" name="end_date" value={formData.end_date} onChange={handleChange} className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>4. วันที่สิ้นสุดภารกิจ</label>
+                   <input required type="date" name="end_date" value={formData.end_date} onChange={handleChange} className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>รวมระยะเวลา (วัน)</label>
-                   <input readOnly type="text" name="total_days" value={formData.total_days} placeholder="คำนวณอัตโนมัติ" className={`py-4 px-4 rounded-xl text-base focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-cyan-400' : 'input-3d-light text-cyan-600'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>รวมระยะเวลา (วัน)</label>
+                   <input readOnly type="text" name="total_days" value={formData.total_days} placeholder="คำนวณอัตโนมัติ" className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-cyan-400' : 'input-3d-light text-cyan-600'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>5. ระยะทาง (ไป-กลับ กม.)</label>
-                   <input type="number" name="distance_km" value={formData.distance_km} onChange={handleChange} placeholder="ระบุระยะทาง" className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>5. ระยะทาง (ไป-กลับ กม.)</label>
+                   <input type="number" name="distance_km" value={formData.distance_km} onChange={handleChange} placeholder="ระบุระยะทาง" className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>6. จำนวนคน (ต่อวัน)</label>
-                   <input type="number" name="people_per_day" value={formData.people_per_day} onChange={handleChange} placeholder="จำนวนคน" className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>6. จำนวนคน (ต่อวัน)</label>
+                   <input type="number" name="people_per_day" value={formData.people_per_day} onChange={handleChange} placeholder="จำนวนคน" className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-1">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>รวมผู้ร่วมงานทั้งหมด</label>
-                   <input readOnly type="text" name="people_total" value={formData.people_total} placeholder="คำนวณอัตโนมัติ" className={`py-4 px-4 rounded-xl text-base focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>รวมผู้ร่วมงานทั้งหมด</label>
+                   <input readOnly type="text" name="people_total" value={formData.people_total} placeholder="คำนวณอัตโนมัติ" className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none cursor-not-allowed font-bold ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-2 md:col-span-2">
-                   <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>7. เหตุสำคัญ / รับแจ้ง</label>
-                   <input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} placeholder="เช่น เหตุการณ์ปกติ..." className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                 <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
+                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>7. เหตุสำคัญ / รับแจ้ง</label>
+                   <input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} placeholder="เช่น เหตุการณ์ปกติ..." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
                  </div> {/* end of grid */}
 
-                 {/* กรอบสี่เหลี่ยมจัดกลุ่ม หมายเหตุ และ อัปโหลดรูปภาพ (2 คอลัมน์) - ขนาดย่อลง */}
-                 <div className={`flex-1 min-h-0 p-4 rounded-2xl border transition-all flex flex-col ${
+                 {/* กรอบสี่เหลี่ยมจัดกลุ่ม หมายเหตุ และ อัปโหลดรูปภาพ (2 คอลัมน์) */}
+                 <div className={`p-3 sm:p-4 rounded-2xl border transition-all ${
                    isDarkMode 
                      ? 'bg-gray-950/40 border-purple-900/30 shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_0_15px_rgba(168,85,247,0.05)]' 
                      : 'bg-gray-50/50 border-gray-200 shadow-sm'
                  }`}>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      
                      {/* คอลัมน์ที่ 1: 8. หมายเหตุ */}
-                     <div className="flex flex-col gap-2 h-full">
-                       <label className={`text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>8. หมายเหตุ</label>
+                     <div className="flex flex-col gap-1.5">
+                       <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>8. หมายเหตุ</label>
                        <textarea 
                          name="remark" 
                          value={formData.remark} 
                          onChange={handleChange} 
                          placeholder="ระบุเพิ่มเติม (ถ้ามี)..." 
-                         className={`py-4 px-4 rounded-xl text-base focus:outline-none transition-all flex-1 min-h-0 resize-none ${
+                         className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all min-h-[100px] resize-none ${
                            isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'
                          }`} 
                        />
                      </div>
 
                      {/* คอลัมน์ที่ 2: 9. อัปโหลดรูปภาพ */}
-                     <div className="h-full flex flex-col min-h-0">
+                     <div className="flex flex-col min-h-[140px]">
                        <PhotoUploadZone
                          files={uploadedFiles}
                          setFiles={setUploadedFiles}
@@ -861,11 +861,11 @@ export default function Home() {
                  </div>
                  
                  {/* ปุ่มบันทึกเข้าฐานข้อมูล ตรงกลาง ด้านล่าง */}
-                 <div className="mt-4 flex justify-center">
+                 <div className="mt-3 flex justify-center">
                    <button 
                      disabled={isSubmitting} 
                      type="submit" 
-                     className="btn-3d btn-primary-3d px-14 py-5 rounded-2xl font-bold text-xl tracking-widest w-full md:w-auto shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:scale-[1.02] active:scale-95 transition-all"
+                     className="btn-3d btn-primary-3d px-10 sm:px-14 py-4 sm:py-5 rounded-2xl font-bold text-lg sm:text-xl tracking-widest w-full md:w-auto shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:scale-[1.02] active:scale-95 transition-all"
                    > 
                      {isSubmitting ? "กำลังส่งเข้าฐานข้อมูล..." : "บันทึกเข้าฐานข้อมูล"} 
                    </button>
@@ -873,8 +873,8 @@ export default function Home() {
                 </form>
              </div>
           {/* ฝั่งขวา: กรอบ Log (ใส่เอฟเฟกต์เลื่อนเข้าและเด้งขึ้น) */}
-          <div className={`lg:col-span-1 flex flex-col p-6 rounded-3xl anim-fade-in-right ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`} style={{height: 'calc(100vh - 2rem)'}}>
-            <h3 className={`text-xl font-bold mb-6 flex items-center gap-2 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
+          <div className={`lg:col-span-1 flex flex-col p-4 sm:p-6 rounded-3xl anim-fade-in-right max-h-[500px] lg:max-h-[calc(100vh-2rem)] lg:sticky lg:top-4 ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+            <h3 className={`text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
               <Shield size={20} /> ผู้เข้าใช้งานล่าสุด (log)
             </h3>
             
@@ -916,37 +916,37 @@ export default function Home() {
           </div>
         )}
         {activeMenu === 2 && (
-          <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
-              <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
-                <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={24} /></div>
+          <div className={`w-full max-w-[98%] lg:max-w-[96%] mx-auto min-h-[80vh] flex flex-col p-4 sm:p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
+              <h2 className={`text-2xl sm:text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
+                <div className={`p-2.5 sm:p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={24} /></div>
                 รายการบันทึกข้อมูล
               </h2>
               
-              <div className="flex flex-wrap items-center gap-3 mt-4 lg:mt-0">
-                <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 lg:mt-0">
+                <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
                   <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรชข้อมูล
                 </button>
-                <button onClick={handleExportPDF} className={`flex items-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
+                <button onClick={handleExportPDF} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
                   <Printer size={16} /> ดึงไฟล์ PDF
                 </button>
 
                 <div 
                   onClick={(e) => e.stopPropagation()} 
-                  className={`flex items-center gap-3 p-3 px-5 rounded-xl ml-2 transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
+                  className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl ml-0 sm:ml-2 transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
                 >
                   <Calendar className={isDarkMode ? "text-cyan-500" : "text-cyan-600"} size={18} />
-                  <input type="date" value={logFilterStartDate} onChange={(e) => setLogFilterStartDate(e.target.value)} className="bg-transparent text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                  <input type="date" value={logFilterStartDate} onChange={(e) => setLogFilterStartDate(e.target.value)} className="bg-transparent text-xs sm:text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
                   <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>-</span>
-                  <input type="date" value={logFilterEndDate} onChange={(e) => setLogFilterEndDate(e.target.value)} className="bg-transparent text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                  <input type="date" value={logFilterEndDate} onChange={(e) => setLogFilterEndDate(e.target.value)} className="bg-transparent text-xs sm:text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
                 </div>
 
                 <div 
                   onClick={(e) => e.stopPropagation()} 
-                  className={`flex items-center gap-3 p-3 px-5 rounded-xl transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
+                  className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
                 >
                   <Filter className={isDarkMode ? "text-orange-500" : "text-orange-600"} size={18} />
-                  <select value={logFilterAffiliation} onChange={(e) => setLogFilterAffiliation(e.target.value)} className={`bg-transparent text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                  <select value={logFilterAffiliation} onChange={(e) => setLogFilterAffiliation(e.target.value)} className={`bg-transparent text-xs sm:text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
                     <option value="ALL">ทุกสังกัด</option><option value="บช.ทท.">บช.ทท.</option><option value="บก.ทท.1">บก.ทท.1</option><option value="บก.ทท.2">บก.ทท.2</option><option value="บก.ทท.3">บก.ทท.3</option>
                   </select>
                 </div>
@@ -954,15 +954,15 @@ export default function Home() {
             </div>
 
             {loading ? ( <div className="flex justify-center items-center h-40"><p className="text-cyan-400 font-mono animate-pulse text-lg">&gt; กำลังดึงฐานข้อมูลอยู่จ้า!!</p></div> ) : (
-              <div className={`rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                <div className="overflow-x-auto flex-1 flex flex-col min-h-0 w-full custom-scrollbar p-2">
-                  <div className="min-w-200 flex flex-col flex-1 min-h-0">
+              <div className={`rounded-2xl overflow-hidden min-h-[400px] ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                <div className="overflow-x-auto overflow-y-auto max-h-[60vh] w-full custom-scrollbar p-2">
+                  <div className="min-w-[900px] flex flex-col">
                     
                     <div className={`grid grid-cols-12 gap-4 p-4 rounded-xl mb-2 text-sm tracking-wider shrink-0 font-bold ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-700'}`}>
                       <div className="col-span-1 text-center">ลำดับ.</div><div className="col-span-4">MISSION NAME / ชื่อภารกิจ</div><div className="col-span-2 text-center">หน่วยงานที่ออกภารกิจ</div><div className="col-span-2">พิกัด / จังหวัด</div><div className="col-span-3 text-right">DATE RECORDED</div>
                     </div>
                     
-                    <div className="overflow-y-auto flex-1 custom-scrollbar space-y-2 pr-2">
+                    <div className="space-y-2 pr-2">
                       {filteredLogs.map((mission: any, index: number) => (
                         <div key={index} onClick={() => { setSelectedMission(mission); setIsEditing(false); }} style={{ animationDelay: `${Math.min(index, 15) * 30}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center cursor-pointer btn-3d anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light hover:brightness-95'}`}>
                           <div className={`col-span-1 text-center font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{(index + 1).toString().padStart(3, '0')}</div>
@@ -985,14 +985,14 @@ export default function Home() {
         {activeMenu === 3 && ( 
           loading ? 
           <div className="flex justify-center items-center h-40"><p className="text-purple-400 font-mono animate-pulse text-lg">&gt; Loading Dashboard...</p></div> : 
-          <div className={`p-9 md:p-4 rounded-[30px] anim-fade-in-up h-[94vh] flex flex-col overflow-hidden ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+          <div className={`p-4 sm:p-6 md:p-4 rounded-[30px] anim-fade-in-up min-h-[85vh] flex flex-col overflow-y-auto ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             <DashboardView missions={allowedMissions} refreshData={fetchData} /> 
           </div> 
         )}
 
         {/* หน้า 4: ประวัติการเข้าใช้งาน (Admin เท่านั้น) */}
         {activeMenu === 4 && currentUser?.role === "admin" && (
-          <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+          <div className={`w-full max-w-[98%] lg:max-w-[96%] mx-auto min-h-[80vh] flex flex-col p-4 sm:p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
               <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
@@ -1023,9 +1023,9 @@ export default function Home() {
                 <p className={`font-mono animate-pulse text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>&gt; กำลังดึงข้อมูล...</p>
               </div>
             ) : (
-              <div className={`rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                <div className="overflow-x-auto flex-1 flex flex-col min-h-0 w-full custom-scrollbar p-2">
-                  <div className="min-w-[600px] flex flex-col flex-1 min-h-0">
+              <div className={`rounded-2xl overflow-hidden min-h-[400px] ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                <div className="overflow-x-auto overflow-y-auto max-h-[60vh] w-full custom-scrollbar p-2">
+                  <div className="min-w-[600px]">
                     {/* Header ตาราง */}
                     <div className={`grid grid-cols-12 gap-4 p-4 rounded-xl mb-2 text-sm tracking-wider shrink-0 font-bold ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-700'}`}>
                       <div className="col-span-1 text-center">#</div>
@@ -1035,7 +1035,7 @@ export default function Home() {
                       <div className="col-span-3 text-right">วันเวลาเข้าใช้งาน</div>
                     </div>
                     {/* รายการ */}
-                    <div className="overflow-y-auto flex-1 custom-scrollbar space-y-2 pr-2">
+                    <div className="space-y-2 pr-2">
                       {loginLogs.slice().reverse().map((log: any, index: number) => {
                         const displayName = VEHICLE_NAMES[log.username] || log.username;
                         const formattedTime = log.timestamp

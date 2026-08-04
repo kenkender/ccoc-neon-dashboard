@@ -152,7 +152,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const topIncidents = Object.keys(incidentStats).map(key => ({ name: key, count: incidentStats[key] })).sort((a, b) => b.count - a.count).slice(0, 10);
 
   return (
-    <div id="dashboard-content" className={`w-full mx-auto relative transition-all p-3 md:p-4 bg-[#0f151f] flex flex-col rounded-2xl ${isExporting ? 'h-auto overflow-visible shrink-0' : 'h-full overflow-hidden'}`}>
+    <div id="dashboard-content" className={`w-full mx-auto relative transition-all p-3 md:p-4 bg-[#0f151f] flex flex-col rounded-2xl ${isExporting ? 'h-auto overflow-visible shrink-0' : 'h-full min-h-[700px] overflow-y-auto lg:overflow-hidden'}`}>
 
       {isExporting && (
         <style>{`
@@ -230,11 +230,11 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       </div>
 
       {/* Chart Panels (Flex-1) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 flex-1 min-h-0 chart-grid-container">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 flex-1 min-h-[280px] chart-grid-container">
         <div className="relative group bg-gray-900/85 border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Car size={18} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
-          <div className="flex-1 min-h-0 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="flex-1 min-h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
               <BarChart data={chartDataVehicle} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorVehicle" x1="0" y1="0" x2="0" y2="1">
@@ -268,8 +268,8 @@ export default function DashboardView({ missions, refreshData }: { missions: any
 
         <div className="relative group bg-gray-900/85 border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-cyan-500/30 hover:shadow-cyan-500/10 anim-fade-in-up" style={{ animationDelay: '380ms' }}>
           <h3 className="text-cyan-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Shield size={18} className="anim-float"/> สถิติภารกิจแต่ละสังกัด</h3>
-          <div className="flex-1 min-h-0 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="flex-1 min-h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
               <BarChart 
                 data={chartDataAffiliation} 
                 layout="vertical"

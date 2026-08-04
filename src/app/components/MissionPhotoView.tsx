@@ -282,12 +282,12 @@ export default function MissionPhotoView({
   const paginatedPhotos = filteredPhotos.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className={`w-full max-w-[96%] mx-auto h-[84vh] flex flex-col p-6 rounded-3xl anim-fade-in ${
+    <div className={`w-full max-w-[98%] lg:max-w-[96%] mx-auto min-h-[80vh] h-auto lg:h-[84vh] flex flex-col p-4 sm:p-6 rounded-3xl anim-fade-in ${
       isDarkMode ? "plate-3d-dark" : "plate-3d-light"
     }`}>
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 pb-4 border-b border-white/10 shrink-0">
-        <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? "text-cyan-400" : "text-cyan-600"}`}>
+        <h2 className={`text-2xl sm:text-3xl font-bold flex items-center gap-3 ${isDarkMode ? "text-cyan-400" : "text-cyan-600"}`}>
           <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? "btn-menu-dark text-cyan-400" : "btn-menu-light text-cyan-600"}`}>
             <ImageIcon size={24} />
           </div>

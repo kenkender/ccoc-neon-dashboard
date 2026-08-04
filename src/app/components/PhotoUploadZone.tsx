@@ -39,7 +39,7 @@ export default function PhotoUploadZone({
 
       // Check file type
       const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
-      const isAllowedType = allowedTypes.includes(file.type) || 
+      const isAllowedType = allowedTypes.includes(file.type) ||
         [".heic", ".heif", ".jpg", ".jpeg", ".png", ".webp"].includes(fileExtension);
 
       if (!isAllowedType) {
@@ -114,8 +114,8 @@ export default function PhotoUploadZone({
 
   return (
     <div className="w-full h-full flex flex-col gap-1.5 min-h-0">
-      <label className={`text-base font-mono font-bold shrink-0 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-        9. อัปโหลดรูปภาพประกอบภารกิจ (อย่างน้อย 2 รูป ไม่เกิน 5 รูปครับ)
+      <label className={`text-[16px] font-mono font-bold shrink-0 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+        9. อัปโหลดรูปภาพประกอบภารกิจ (อย่างน้อย 2 รูปครับ)
       </label>
 
       {/* Drag & Drop Area */}
@@ -125,13 +125,12 @@ export default function PhotoUploadZone({
         onDragLeave={handleDrag}
         onDrop={handleDrop}
         onClick={triggerFileInput}
-        className={`border-2 border-dashed rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 flex-1 min-h-0 ${
-          isDragActive
-            ? "border-fuchsia-500 bg-fuchsia-500/10 shadow-[0_0_10px_rgba(217,70,239,0.2)]"
-            : isDarkMode
+        className={`border-2 border-dashed rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 flex-1 min-h-[110px] ${isDragActive
+          ? "border-fuchsia-500 bg-fuchsia-500/10 shadow-[0_0_10px_rgba(217,70,239,0.2)]"
+          : isDarkMode
             ? "border-gray-700 hover:border-purple-500 hover:bg-purple-950/5 input-3d-dark"
             : "border-gray-300 hover:border-purple-500 hover:bg-purple-50 input-3d-light"
-        }`}
+          }`}
       >
         <input
           ref={fileInputRef}
@@ -156,9 +155,8 @@ export default function PhotoUploadZone({
       {/* Previews */}
       {files.length > 0 && (
         <div
-          className={`p-2 rounded-xl grid grid-cols-5 gap-2 max-h-[110px] overflow-y-auto custom-scrollbar ${
-            isDarkMode ? "bg-black/30 border border-purple-950/30" : "bg-gray-100 border border-gray-200"
-          }`}
+          className={`p-2 rounded-xl grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-[110px] overflow-y-auto custom-scrollbar ${isDarkMode ? "bg-black/30 border border-purple-950/30" : "bg-gray-100 border border-gray-200"
+            }`}
         >
           {files.map((file, idx) => {
             const url = URL.createObjectURL(file);
