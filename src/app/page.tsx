@@ -77,7 +77,15 @@ export default function Home() {
   const fetchData = async () => {
     try {
       const response = await fetch(API_URL);
-      const result = await response.json();
+      const text = await response.text();
+      let result: any;
+      try {
+        result = JSON.parse(text);
+      } catch (parseErr) {
+        console.warn("⚠️ Google Apps Script API returned non-JSON response (HTML page):", text.slice(0, 150));
+        setLoading(false);
+        return;
+      }
       
       const cleanedMissions = (result.data?.missions || []).map((m: any) => {
         let vId = String(m.vehicle_id || "").trim().toLowerCase();
@@ -96,24 +104,7 @@ export default function Home() {
       setData({ missions: cleanedMissions });
       setUsersList(result.data?.users || []); 
       setLoading(false);
-      // 🔍 Debug: แสดงชื่อ key ทั้งหมดที่ API ส่งกลับมา เพื่อตรวจสอบชื่อที่ถูกต้อง
-      console.log("📦 API result.data keys:", result.data ? Object.keys(result.data) : "result.data is null/undefined");
-      console.log("📋 login_logs:", result.data?.login_logs);
-      console.log("📋 log:", result.data?.log);
-      console.log("📋 logs:", result.data?.logs);
-      console.log("📋 loginLogs:", result.data?.loginLogs);
-      console.log("📋 login_history:", result.data?.login_history);
       const fetchedLogs = result.data?.login_logs || result.data?.log || result.data?.logs || result.data?.loginLogs || result.data?.login_history || [];
-      console.log("✅ fetchedLogs ที่ได้:", fetchedLogs);
-      if (fetchedLogs.length > 0) {
-        console.log("🔍 ตรวจสอบโครงสร้าง Login Log รายการแรก:", {
-          raw_item: fetchedLogs[0],
-          raw_timestamp: fetchedLogs[0]?.timestamp,
-          parsed_date: fetchedLogs[0]?.timestamp ? new Date(fetchedLogs[0].timestamp).toString() : 'N/A',
-          parsed_time_ms: fetchedLogs[0]?.timestamp ? new Date(fetchedLogs[0].timestamp).getTime() : 0,
-          current_time_ms: new Date().getTime()
-        });
-      }
       setLoginLogs(fetchedLogs);
     } catch (error) { console.error("Error fetching data:", error); setLoading(false); }
   };
