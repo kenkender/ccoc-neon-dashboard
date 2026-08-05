@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock, Image as ImageIcon } from "lucide-react";
+import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock, Image as ImageIcon, Truck } from "lucide-react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView"; 
 import ThailandMap from "./components/ThailandMap";
 import PhotoUploadZone from "./components/PhotoUploadZone";
 import PhotoGallery from "./components/PhotoGallery";
 import MissionPhotoView from "./components/MissionPhotoView";
+import VehicleManagementView from "./components/VehicleManagementView";
 import { usePopup } from "./components/PopupContext";
 
 const VEHICLE_NAMES: Record<string, string> = {
@@ -66,6 +67,7 @@ export default function Home() {
   const [logFilterAffiliation, setLogFilterAffiliation] = useState("ALL");
   const [logFilterStartDate, setLogFilterStartDate] = useState("");
   const [logFilterEndDate, setLogFilterEndDate] = useState("");
+  const [pdfTypeFilter, setPdfTypeFilter] = useState("ALL"); // ALL | CCOC Mobile | UAV Mobile
   const [loginLogs, setLoginLogs] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
@@ -317,7 +319,18 @@ export default function Home() {
     } else if (logFilterStartDate || logFilterEndDate) {
       passDate = false; 
     }
-    return passAffil && passDate;
+    // Filter by vehicle type (PDF Type Filter)
+    let passType = true;
+    if (pdfTypeFilter !== "ALL") {
+      const uname = String(m.vehicle_id || "").trim().toLowerCase();
+      const vtype = String(m.vehicle_type || "").toLowerCase();
+      if (pdfTypeFilter === "CCOC Mobile") {
+        passType = uname.startsWith("stc") || vtype === "ccoc mobile";
+      } else if (pdfTypeFilter === "UAV Mobile") {
+        passType = uname.startsWith("uav") || uname === "uav mobile" || vtype === "uav mobile";
+      }
+    }
+    return passAffil && passDate && passType;
   }).reverse();
 
   const getDateRangeText = () => {
@@ -664,6 +677,13 @@ export default function Home() {
             <ImageIcon size={20} /> <span>5. คลังภาพภารกิจ</span>
           </button>
 
+          {/* เมนูที่ 6: จัดการรถ/ผู้ใช้ (เฉพาะ Admin) */}
+          {currentUser?.role === "admin" && (
+            <button onClick={() => { setActiveMenu(6); setIsMobileMenuOpen(false); }} style={{ animationDelay: '380ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 6 ? (isDarkMode ? 'menu-active-dark text-emerald-400' : 'menu-active-light text-emerald-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
+              <Truck size={20} /> <span>6. จัดการรถ/ผู้ใช้</span>
+            </button>
+          )}
+
           {/* ปุ่มสลับธีม 3D */}
           <button onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d mt-4 ${isDarkMode ? 'btn-menu-dark text-yellow-500' : 'btn-menu-light text-indigo-600'}`}>
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />} <span>{isDarkMode ? 'สลับเป็นธีมสว่าง' : 'สลับเป็นธีมมืด'}</span>
@@ -762,7 +782,43 @@ export default function Home() {
                  <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
                    <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ใส่รหัสรถโมบายในสังกัดท่าน</label>
                    <select required disabled={currentUser.role === "user"} name="vehicle_id" value={formData.vehicle_id} onChange={handleChange} className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
-                     <option value="" disabled>-- เลือกรหัสรถ --</option><option value="stc01">1. stc01 บช.ทท.</option><option value="stc02">2. stc02 ภูเก็ต</option><option value="stc03">3. stc03 อยุธยา</option><option value="stc04">4. stc04 ชลบุรี</option><option value="stc05">5. stc05 โคราช</option><option value="stc06">6. stc06 เชียงใหม่</option><option value="stc07">7. stc07 พิษณุโลก</option><option value="stc08">8. stc08 หัวหิน</option><option value="stc09">9. stc09 สนามศุภชลาศัย</option><option value="stc10">10. stc10 หาดใหญ่</option><option value="UAV Mobile">11. UAV Mobile</option>
+                     <option value="" disabled>-- เลือกรหัสรถ --</option>
+                     {/* CCOC Mobile group */}
+                     {usersList.filter((u: any) => u.role !== "admin" && (String(u.username || "").toLowerCase().startsWith("stc") || String(u.vehicle_type || "").toLowerCase() === "ccoc mobile")).length > 0 && (
+                       <optgroup label="── CCOC Mobile ──">
+                         {usersList.filter((u: any) => u.role !== "admin" && (String(u.username || "").toLowerCase().startsWith("stc") || String(u.vehicle_type || "").toLowerCase() === "ccoc mobile")).map((u: any, i: number) => (
+                           <option key={`stc-${i}`} value={u.username}>{u.username} {u.unit_name ? `— ${u.unit_name}` : ""}</option>
+                         ))}
+                       </optgroup>
+                     )}
+                     {/* UAV Mobile group */}
+                     {usersList.filter((u: any) => u.role !== "admin" && (String(u.username || "").toLowerCase().startsWith("uav") || String(u.vehicle_type || "").toLowerCase() === "uav mobile" || String(u.username || "").toLowerCase() === "uav mobile")).length > 0 && (
+                       <optgroup label="── UAV Mobile ──">
+                         {usersList.filter((u: any) => u.role !== "admin" && (String(u.username || "").toLowerCase().startsWith("uav") || String(u.vehicle_type || "").toLowerCase() === "uav mobile" || String(u.username || "").toLowerCase() === "uav mobile")).map((u: any, i: number) => (
+                           <option key={`uav-${i}`} value={u.username}>{u.username} {u.unit_name ? `— ${u.unit_name}` : ""}</option>
+                         ))}
+                       </optgroup>
+                     )}
+                     {/* Fallback: หากยังโหลด usersList ไม่เสร็จ แสดง hardcode */}
+                     {usersList.filter((u: any) => u.role !== "admin").length === 0 && (
+                       <>
+                         <optgroup label="── CCOC Mobile ──">
+                           <option value="stc01">stc01 — บช.ทท.</option>
+                           <option value="stc02">stc02 — ภูเก็ต</option>
+                           <option value="stc03">stc03 — อยุธยา</option>
+                           <option value="stc04">stc04 — ชลบุรี</option>
+                           <option value="stc05">stc05 — โคราช</option>
+                           <option value="stc06">stc06 — เชียงใหม่</option>
+                           <option value="stc07">stc07 — พิษณุโลก</option>
+                           <option value="stc08">stc08 — หัวหิน</option>
+                           <option value="stc09">stc09 — สนามศุภชลาศัย</option>
+                           <option value="stc10">stc10 — หาดใหญ่</option>
+                         </optgroup>
+                         <optgroup label="── UAV Mobile ──">
+                           <option value="UAV Mobile">UAV Mobile</option>
+                         </optgroup>
+                       </>
+                     )}
                    </select>
                  </div>
 
@@ -939,6 +995,19 @@ export default function Home() {
                   <Filter className={isDarkMode ? "text-orange-500" : "text-orange-600"} size={18} />
                   <select value={logFilterAffiliation} onChange={(e) => setLogFilterAffiliation(e.target.value)} className={`bg-transparent text-xs sm:text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
                     <option value="ALL">ทุกสังกัด</option><option value="บช.ทท.">บช.ทท.</option><option value="บก.ทท.1">บก.ทท.1</option><option value="บก.ทท.2">บก.ทท.2</option><option value="บก.ทท.3">บก.ทท.3</option>
+                  </select>
+                </div>
+
+                {/* PDF Type Filter */}
+                <div 
+                  onClick={(e) => e.stopPropagation()} 
+                  className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
+                >
+                  <Truck className={isDarkMode ? "text-fuchsia-400" : "text-fuchsia-600"} size={18} />
+                  <select value={pdfTypeFilter} onChange={(e) => setPdfTypeFilter(e.target.value)} className={`bg-transparent text-xs sm:text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
+                    <option value="ALL">ทุกประเภทรถ</option>
+                    <option value="CCOC Mobile">CCOC Mobile</option>
+                    <option value="UAV Mobile">UAV Mobile</option>
                   </select>
                 </div>
               </div>
@@ -1202,6 +1271,19 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* หน้า 6: จัดการรถ/ผู้ใช้ (Admin เท่านั้น) */}
+      {activeMenu === 6 && currentUser?.role === "admin" && (
+        <div className="flex-1 flex flex-col p-2 sm:p-4">
+          <VehicleManagementView
+            isDarkMode={isDarkMode}
+            usersList={usersList}
+            fetchData={fetchData}
+            API_URL={API_URL}
+          />
+        </div>
+      )}
+
     </div>
   );
 }
