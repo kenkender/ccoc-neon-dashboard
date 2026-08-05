@@ -26,19 +26,27 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
     e.preventDefault();
     setError("");
 
-    // ⚠️ Master Admin แบบ Hardcode ถูกลบออกแล้ว เพราะ password จะถูกเห็นได้จาก DevTools
-    // ทุก user รวมถึง admin ต้องล็อคอินผ่านฐานข้อมูล Google Sheets เท่านั้น
+    // 1. ตรวจสอบ Master Admin (รหัสผ่านหลัก admin / 11551155)
+    if (username.trim() === "admin" && password.trim() === "11551155") {
+      onLogin({ 
+        role: "admin", 
+        username: "admin", 
+        affiliation: "ALL", 
+        vehicle_id: "admin" 
+      });
+      return;
+    }
 
     // 2. ตรวจสอบ User จากฐานข้อมูล Google Sheets
     const foundUser = usersList.find((u: any) => String(u.username).trim() === username.trim() && String(u.password).trim() === password.trim());
     
     if (foundUser) {
-      // ดึง affiliation (สังกัด) จากคอลัมน์ unit_name และกำหนดสิทธิ์เป็น user
+      const isAdmin = foundUser.role === "admin" || String(foundUser.username).trim().toLowerCase() === "admin";
       onLogin({ 
-        role: "user", 
+        role: isAdmin ? "admin" : (foundUser.role || "user"), 
         username: foundUser.username, 
-        affiliation: foundUser.unit_name, 
-        vehicle_id: foundUser.username // ใช้ username เป็นรหัสรถ
+        affiliation: isAdmin ? "ALL" : (foundUser.unit_name || foundUser.affiliation || "บช.ทท."), 
+        vehicle_id: foundUser.username 
       });
     } else {
       setError("ACCESS DENIED: รหัสประจำตัว หรือ รหัสผ่าน ไม่ถูกต้อง");
