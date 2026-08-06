@@ -703,7 +703,7 @@ export default function Home() {
 
           {/* เมนูที่ 5: คลังภาพภารกิจ */}
           <button onClick={() => { setActiveMenu(5); setIsMobileMenuOpen(false); }} style={{ animationDelay: '300ms' }} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${activeMenu === 5 ? (isDarkMode ? 'menu-active-dark text-cyan-400' : 'menu-active-light text-cyan-600') : (isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600')}`}>
-            <ImageIcon size={20} /> <span>5. คลังภาพภารกิจ</span>
+            <ImageIcon size={20} /> <span>{currentUser?.role === "admin" ? "5. คลังภาพภารกิจ" : "4. คลังภาพภารกิจ"}</span>
           </button>
 
           {/* เมนูที่ 6: จัดการรถ/ผู้ใช้ (เฉพาะ Admin) */}
@@ -723,7 +723,7 @@ export default function Home() {
             className={`flex items-center justify-between p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${isDarkMode ? 'btn-menu-dark text-cyan-400 hover:text-cyan-300' : 'btn-menu-light text-cyan-600 hover:text-cyan-700'}`}
           >
             <div className="flex items-center gap-3">
-              <ExternalLink size={20} /> <span>7. VR TPB</span>
+              <ExternalLink size={20} /> <span>{currentUser?.role === "admin" ? "7. VR TPB" : "5. VR TPB"}</span>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-900/40 text-cyan-300 border border-cyan-500/30">
               EXTERNAL ↗
