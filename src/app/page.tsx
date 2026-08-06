@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock, Image as ImageIcon, Truck } from "lucide-react";
+import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock, Image as ImageIcon, Truck, ExternalLink } from "lucide-react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView"; 
 import ThailandMap from "./components/ThailandMap";
@@ -712,6 +712,23 @@ export default function Home() {
               <Truck size={20} /> <span>6. จัดการรถ/ผู้ใช้</span>
             </button>
           )}
+
+          {/* เมนูที่ 7: VR TPB */}
+          <a
+            href="https://dashboard.speaklinks.co.th/"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{ animationDelay: '420ms' }}
+            className={`flex items-center justify-between p-4 rounded-xl font-bold btn-3d anim-fade-in-left ${isDarkMode ? 'btn-menu-dark text-cyan-400 hover:text-cyan-300' : 'btn-menu-light text-cyan-600 hover:text-cyan-700'}`}
+          >
+            <div className="flex items-center gap-3">
+              <ExternalLink size={20} /> <span>7. VR TPB</span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-900/40 text-cyan-300 border border-cyan-500/30">
+              EXTERNAL ↗
+            </span>
+          </a>
 
           {/* ปุ่มสลับธีม 3D */}
           <button onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d mt-4 ${isDarkMode ? 'btn-menu-dark text-yellow-500' : 'btn-menu-light text-indigo-600'}`}>
