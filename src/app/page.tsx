@@ -47,6 +47,22 @@ export default function Home() {
   useEffect(() => {
     setUploadedFiles([]);
   }, [selectedMission, isEditing]);
+
+  // 💾 Restore session from localStorage to prevent re-login on page refresh
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('ccoc_current_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        setCurrentUser(parsed);
+        if (parsed.role === "user") {
+          setFormData(prev => ({ ...prev, affiliation: parsed.affiliation, vehicle_id: parsed.vehicle_id }));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore saved user session:", e);
+    }
+  }, []);
   const [showConfirmModal, setShowConfirmModal] = useState(false); 
   const [showMapOverlay, setShowMapOverlay] = useState(true);
 
@@ -597,6 +613,9 @@ export default function Home() {
             usersList={usersList} 
             onLogin={(user) => {
               setCurrentUser(user);
+              try {
+                localStorage.setItem('ccoc_current_user', JSON.stringify(user));
+              } catch (e) {}
               setShowMapOverlay(true);
               if (user.role === "user") { 
                 setFormData(prev => ({ ...prev, affiliation: user.affiliation, vehicle_id: user.vehicle_id })); 
@@ -698,7 +717,12 @@ export default function Home() {
               <p className={`text-[10px] font-mono truncate ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{currentUser.affiliation}</p>
             </div>
           </div>
-          <button onClick={() => { setCurrentUser(null); setActiveMenu(1); setIsMobileMenuOpen(false); }} className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold tracking-wider btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-500'}`}>
+          <button onClick={() => { 
+            try { localStorage.removeItem('ccoc_current_user'); } catch (e) {}
+            setCurrentUser(null); 
+            setActiveMenu(1); 
+            setIsMobileMenuOpen(false); 
+          }} className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold tracking-wider btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-500'}`}>
             <LogOut size={16} /> LOGOUT
           </button>
         </div>
