@@ -47,7 +47,7 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
     );
     
     if (foundUser) {
-      const isAdmin = foundUser.role === "admin" || userClean === "admin" || userClean === "stc01";
+      const isAdmin = foundUser.role === "admin" || userClean === "admin";
       onLogin({ 
         role: isAdmin ? "admin" : (foundUser.role || "user"), 
         username: foundUser.username, 
@@ -55,13 +55,13 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
         vehicle_id: foundUser.username 
       });
     } else {
-      // 3. Fallback: หากยังโหลด usersList ไม่เสร็จ หรือใช้รหัสผ่านฉุกเฉิน 11551155
-      if (passClean === "11551155") {
+      // 3. Fallback: หากยังโหลด usersList ไม่เสร็จ แต่ใช้รหัสฉุกเฉินเฉพาะบัญชี admin
+      if (userClean === "admin" && (passClean === "11551155" || passClean === "admin")) {
         onLogin({ 
           role: "admin", 
-          username: userClean || "admin", 
+          username: "admin", 
           affiliation: "ALL", 
-          vehicle_id: userClean || "admin" 
+          vehicle_id: "admin" 
         });
         return;
       }
