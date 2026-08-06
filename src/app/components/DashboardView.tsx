@@ -15,6 +15,7 @@ const VEHICLE_NAMES: Record<string, string> = {
 };
 
 export default function DashboardView({ missions, refreshData }: { missions: any[], refreshData?: any }) {
+  const [selectedType, setSelectedType] = useState<"NONE" | "CCOC" | "UAV" | "ALL">("NONE");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterVehicle, setFilterVehicle] = useState("ALL");
@@ -23,6 +24,18 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { showNotification } = usePopup();
+
+  const ccocMissionsCount = missions.filter((m: any) => {
+    const uname = String(m.vehicle_id || "").trim().toLowerCase();
+    const vtype = String(m.vehicle_type || "").toLowerCase();
+    return uname.startsWith("stc") || vtype === "ccoc mobile";
+  }).length;
+
+  const uavMissionsCount = missions.filter((m: any) => {
+    const uname = String(m.vehicle_id || "").trim().toLowerCase();
+    const vtype = String(m.vehicle_type || "").toLowerCase();
+    return uname.startsWith("uav") || uname === "uav mobile" || vtype === "uav mobile";
+  }).length;
 
   const handleLocalRefresh = async () => { 
     setIsRefreshing(true);
@@ -92,7 +105,119 @@ export default function DashboardView({ missions, refreshData }: { missions: any
     }
   };
 
-  const filteredMissions = missions.filter((m: any) => {
+  // ─── 1. หน้าจอเลือกประเภทรถ (Grid Menu Selection Screen) ───
+  if (selectedType === "NONE") {
+    return (
+      <div className="w-full min-h-[75vh] flex flex-col justify-center items-center p-4 sm:p-8 anim-fade-in">
+        <div className="text-center max-w-2xl mb-8 sm:mb-12">
+          <div className="inline-flex items-center justify-center p-4 rounded-2xl bg-cyan-900/30 text-cyan-400 border border-cyan-500/30 mb-4 shadow-[0_0_20px_rgba(34,211,238,0.2)]">
+            <Activity size={36} />
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-cyan-400 via-fuchsia-400 to-yellow-400 tracking-wider">
+            เลือกประเภทรถเพื่อดูแดชบอร์ดวิเคราะห์สถิติ
+          </h2>
+          <p className="text-gray-400 text-sm sm:text-base mt-3">
+            กรุณาเลือกประเภทรถปฏิบัติการเคลื่อนที่ที่ต้องการดูรายงานและสถิติวิเคราะห์
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+          {/* Card 1: CCOC Mobile */}
+          <button
+            onClick={() => setSelectedType("CCOC")}
+            className="group relative p-6 sm:p-8 rounded-3xl text-left border-2 transition-all duration-300 btn-3d bg-linear-to-br from-fuchsia-950/40 via-gray-900/80 to-gray-950 border-fuchsia-500/40 hover:border-fuchsia-400 hover:shadow-[0_0_30px_rgba(217,70,239,0.35)] flex flex-col justify-between min-h-[260px]"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-fuchsia-900/40 border border-fuchsia-500/40 flex items-center justify-center text-fuchsia-400 group-hover:scale-110 transition-transform">
+                  <Car size={28} />
+                </div>
+                <span className="text-xs font-bold font-mono px-3 py-1.5 rounded-full bg-fuchsia-900/40 text-fuchsia-300 border border-fuchsia-500/30">
+                  {ccocMissionsCount} ภารกิจ
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold text-white group-hover:text-fuchsia-300 transition-colors">
+                รถ CCOC Mobile
+              </h3>
+              <p className="text-xs font-mono text-fuchsia-400/80 mt-1">stc01 - stc10</p>
+              <p className="text-sm text-gray-400 mt-3 leading-relaxed">
+                รายงานสถิติวิเคราะห์ภารกิจการปฏิบัติงานเฉพาะรถปฏิบัติการเคลื่อนที่ CCOC Mobile
+              </p>
+            </div>
+            <div className="mt-6 flex items-center text-fuchsia-400 font-bold text-sm group-hover:translate-x-1 transition-transform">
+              เข้าดูแดชบอร์ด →
+            </div>
+          </button>
+
+          {/* Card 2: UAV Mobile */}
+          <button
+            onClick={() => setSelectedType("UAV")}
+            className="group relative p-6 sm:p-8 rounded-3xl text-left border-2 transition-all duration-300 btn-3d bg-linear-to-br from-cyan-950/40 via-gray-900/80 to-gray-950 border-cyan-500/40 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(34,211,238,0.35)] flex flex-col justify-between min-h-[260px]"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-900/40 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                  <Shield size={28} />
+                </div>
+                <span className="text-xs font-bold font-mono px-3 py-1.5 rounded-full bg-cyan-900/40 text-cyan-300 border border-cyan-500/30">
+                  {uavMissionsCount} ภารกิจ
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold text-white group-hover:text-cyan-300 transition-colors">
+                รถ UAV Mobile
+              </h3>
+              <p className="text-xs font-mono text-cyan-400/80 mt-1">uav01, uav02...</p>
+              <p className="text-sm text-gray-400 mt-3 leading-relaxed">
+                รายงานสถิติวิเคราะห์ภารกิจการปฏิบัติงานเฉพาะรถปฏิบัติการเคลื่อนที่ UAV Mobile
+              </p>
+            </div>
+            <div className="mt-6 flex items-center text-cyan-400 font-bold text-sm group-hover:translate-x-1 transition-transform">
+              เข้าดูแดชบอร์ด →
+            </div>
+          </button>
+
+          {/* Card 3: ALL */}
+          <button
+            onClick={() => setSelectedType("ALL")}
+            className="group relative p-6 sm:p-8 rounded-3xl text-left border-2 transition-all duration-300 btn-3d bg-linear-to-br from-amber-950/40 via-gray-900/80 to-gray-950 border-amber-500/40 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(245,158,11,0.35)] flex flex-col justify-between min-h-[260px]"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-amber-900/40 border border-amber-500/40 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                  <Trophy size={28} />
+                </div>
+                <span className="text-xs font-bold font-mono px-3 py-1.5 rounded-full bg-amber-900/40 text-amber-300 border border-amber-500/30">
+                  {missions.length} ภารกิจ
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold text-white group-hover:text-amber-300 transition-colors">
+                รวมสถิติทั้งหมด
+              </h3>
+              <p className="text-xs font-mono text-amber-400/80 mt-1">ALL VEHICLES</p>
+              <p className="text-sm text-gray-400 mt-3 leading-relaxed">
+                รายงานสถิติวิเคราะห์ภาพรวมการปฏิบัติงานของรถปฏิบัติการเคลื่อนที่ทุกประเภท
+              </p>
+            </div>
+            <div className="mt-6 flex items-center text-amber-400 font-bold text-sm group-hover:translate-x-1 transition-transform">
+              เข้าดูแดชบอร์ด →
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── 2. กรองข้อมูลภารกิจตามประเภทที่เลือก ───
+  const typeFilteredMissions = missions.filter((m: any) => {
+    if (selectedType === "ALL") return true;
+    const uname = String(m.vehicle_id || "").trim().toLowerCase();
+    const vtype = String(m.vehicle_type || "").toLowerCase();
+    if (selectedType === "CCOC") return uname.startsWith("stc") || vtype === "ccoc mobile";
+    if (selectedType === "UAV") return uname.startsWith("uav") || uname === "uav mobile" || vtype === "uav mobile";
+    return true;
+  });
+
+  const filteredMissions = typeFilteredMissions.filter((m: any) => {
     let passDate = true; let passVehicle = true; let passAffiliation = true;
     if (m.start_date) {
       const mDate = new Date(m.start_date);
@@ -180,7 +305,18 @@ export default function DashboardView({ missions, refreshData }: { missions: any
 
       {/* Header Section */}
       <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-3 pb-2 border-b border-purple-900/50 gap-3 shrink-0 ${isExporting ? '' : 'anim-fade-in-down'}`}>
-        <h2 className="text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-pink-500 flex items-center gap-2 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"><Activity size={24} className="text-purple-400" /> แดชบอร์ดวิเคราะห์สถิติ</h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setSelectedType("NONE")}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl btn-3d bg-gray-900 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-900/40 transition-all"
+          >
+            ← เปลี่ยนประเภทรถ
+          </button>
+          <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-pink-500 flex items-center gap-2 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">
+            <Activity size={24} className="text-purple-400" />
+            แดชบอร์ดวิเคราะห์สถิติ — {selectedType === "CCOC" ? "รถ CCOC Mobile" : selectedType === "UAV" ? "รถ UAV Mobile" : "รวมสถิติทั้งหมด"}
+          </h2>
+        </div>
         
         <div className="flex flex-wrap items-center gap-2 bg-gray-950/95 p-1.5 rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
           <Filter className="text-purple-400 ml-2" size={16} />

@@ -65,6 +65,7 @@ export default function Home() {
   }, []);
   const [showConfirmModal, setShowConfirmModal] = useState(false); 
   const [showMapOverlay, setShowMapOverlay] = useState(true);
+  const [formVehicleTypeFilter, setFormVehicleTypeFilter] = useState("CCOC Mobile");
 
   const VEHICLE_AFFILIATIONS: Record<string, string> = {
     "stc01": "บช.ทท.",
@@ -356,13 +357,19 @@ export default function Home() {
     return `วันที่ ${sDate} ถึง ${eDate}`;
   };
 
+  const getVehicleTypeTitleText = () => {
+    if (pdfTypeFilter === "CCOC Mobile") return "รถปฏิบัติการเคลื่อนที่ CCOC Mobile";
+    if (pdfTypeFilter === "UAV Mobile") return "รถปฏิบัติการเคลื่อนที่ UAV Mobile";
+    return "รถปฏิบัติการเคลื่อนที่ CCOC Mobile และ UAV Mobile";
+  };
+
   const handleExportExcel = () => {
     const sortedLogs = [...filteredLogs].sort((a, b) => {
       const affA = String(a.affiliation || "").trim(); const affB = String(b.affiliation || "").trim();
       if (affA < affB) return -1; if (affA > affB) return 1; return new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime();
     });
     const csvRows = [];
-    csvRows.push(`ผลการปฏิบัติการใช้งานรถปฏิบัติการเคลื่อนที่ CCOC Mobile และ UAV Mobile (ประจำห้วง: ${getDateRangeText()}),,,,,,,,,,`);
+    csvRows.push(`ผลการปฏิบัติการใช้งาน${getVehicleTypeTitleText()} (ประจำห้วง: ${getDateRangeText()}),,,,,,,,,,`);
     csvRows.push(",,,,,,,,,,");
     csvRows.push("ลำดับ,หน่วย,ชื่อภารกิจ/จังหวัด,วัน เดือน ปี จัดงาน,,,ระยะทางที่ตั้งรถ ถึง จุดจัดงาน (กม.),จำนวนผู้ร่วมงาน,,เหตุการณ์สำคัญที่รับแจ้งในงาน,หมายเหตุ");
     csvRows.push(",,,เริ่มวันที่,ถึงวันที่,รวม/วัน,,ต่อวัน(คน),ตลอดงาน(คน),,");
@@ -408,7 +415,7 @@ export default function Home() {
       return new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime();
     });
 
-    let html = `<html><head><title>รายงานสถิติ</title><style>@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap'); body { font-family: 'Sarabun', sans-serif; padding: 20px; color: #000; font-size: 11px; } h2 { text-align: center; margin-bottom: 5px; font-size: 16px; } p { text-align: center; margin-top: 0; margin-bottom: 10px; } .header-meta { text-align: center; font-size: 12px; margin-bottom: 20px; color: #333; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; } th { background-color: #f0f0f0; text-align: center; } .text-center { text-align: center; } .text-right { text-align: right; } .bg-group { background-color: #e5e7eb; font-weight: bold; text-align: left !important; } @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }</style></head><body><h2>ผลการปฏิบัติการใช้งานรถปฏิบัติการเคลื่อนที่ CCOC Mobile และ UAV Mobile</h2><p style="font-size: 14px; margin-bottom: 15px;"><strong>ประจำห้วงเวลา:</strong> ${toThaiNumber(getDateRangeText())}</p><div class="header-meta"><strong>ผู้พิมพ์รายงาน:</strong> ${toThaiNumber(currentUser.role === 'admin' ? 'Master Admin' : currentUser.affiliation)} | <strong>วันที่พิมพ์:</strong> ${toThaiNumber(new Date().toLocaleString('th-TH'))}</div><table><thead><tr><th rowspan="2" width="4%">ลำดับ</th><th rowspan="2" width="15%">หน่วย</th><th rowspan="2" width="20%">ชื่อภารกิจ / จังหวัด</th><th colspan="3">วัน เดือน ปี จัดงาน</th><th rowspan="2" width="8%">ระยะทางที่ตั้งรถ ถึง จุดจัดงาน<br/>ไป-กลับ(กม.)</th><th colspan="2">จำนวนผู้ร่วมงาน</th><th rowspan="2" width="15%">เหตุการณ์สำคัญที่รับแจ้ง</th><th rowspan="2" width="10%">หมายเหตุ</th></tr><tr><th width="6%">เริ่มวันที่</th><th width="6%">ถึงวันที่</th><th width="5%">รวม/วัน</th><th width="5%">ต่อวัน</th><th width="6%">ตลอดงาน</th></tr></thead><tbody>`;
+    let html = `<html><head><title>รายงานสถิติ</title><style>@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap'); body { font-family: 'Sarabun', sans-serif; padding: 20px; color: #000; font-size: 11px; } h2 { text-align: center; margin-bottom: 5px; font-size: 16px; } p { text-align: center; margin-top: 0; margin-bottom: 10px; } .header-meta { text-align: center; font-size: 12px; margin-bottom: 20px; color: #333; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; } th { background-color: #f0f0f0; text-align: center; } .text-center { text-align: center; } .text-right { text-align: right; } .bg-group { background-color: #e5e7eb; font-weight: bold; text-align: left !important; } @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }</style></head><body><h2>ผลการปฏิบัติการใช้งาน${getVehicleTypeTitleText()}</h2><p style="font-size: 14px; margin-bottom: 15px;"><strong>ประจำห้วงเวลา:</strong> ${toThaiNumber(getDateRangeText())}</p><div class="header-meta"><strong>ผู้พิมพ์รายงาน:</strong> ${toThaiNumber(currentUser.role === 'admin' ? 'Master Admin' : currentUser.affiliation)} | <strong>วันที่พิมพ์:</strong> ${toThaiNumber(new Date().toLocaleString('th-TH'))}</div><table><thead><tr><th rowspan="2" width="4%">ลำดับ</th><th rowspan="2" width="15%">หน่วย</th><th rowspan="2" width="20%">ชื่อภารกิจ / จังหวัด</th><th colspan="3">วัน เดือน ปี จัดงาน</th><th rowspan="2" width="8%">ระยะทางที่ตั้งรถ ถึง จุดจัดงาน<br/>ไป-กลับ(กม.)</th><th colspan="2">จำนวนผู้ร่วมงาน</th><th rowspan="2" width="15%">เหตุการณ์สำคัญที่รับแจ้ง</th><th rowspan="2" width="10%">หมายเหตุ</th></tr><tr><th width="6%">เริ่มวันที่</th><th width="6%">ถึงวันที่</th><th width="5%">รวม/วัน</th><th width="5%">ต่อวัน</th><th width="6%">ตลอดงาน</th></tr></thead><tbody>`;
     
     let currentAffiliation = ""; let rowIndex = 1;
     sortedLogs.forEach((m: any) => {
@@ -618,6 +625,9 @@ export default function Home() {
               } catch (e) {}
               setShowMapOverlay(true);
               if (user.role === "user") { 
+                const isUav = String(user.vehicle_id || "").toLowerCase().startsWith("uav");
+                const defaultType = isUav ? "UAV Mobile" : "CCOC Mobile";
+                setFormVehicleTypeFilter(defaultType);
                 setFormData(prev => ({ ...prev, affiliation: user.affiliation, vehicle_id: user.vehicle_id })); 
               }
               
