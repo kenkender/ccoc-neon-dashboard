@@ -117,7 +117,7 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
   const labelClass = `text-sm font-mono font-bold ${isDarkMode ? "text-gray-400" : "text-gray-600"}`;
 
   return (
-    <div className="w-full max-w-[98%] lg:max-w-[96%] mx-auto min-h-[80vh] flex flex-col gap-5 anim-fade-in">
+    <div className="w-full min-h-[80vh] flex flex-col gap-5 anim-fade-in">
 
       {/* Header */}
       <div className={`p-4 sm:p-6 rounded-3xl ${isDarkMode ? "plate-3d-dark" : "plate-3d-light"}`}>

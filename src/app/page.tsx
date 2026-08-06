@@ -1148,6 +1148,16 @@ export default function Home() {
             isDarkMode={isDarkMode}
           />
         )}
+
+        {/* หน้า 6: จัดการรถ/ผู้ใช้ (Admin เท่านั้น) */}
+        {activeMenu === 6 && currentUser?.role === "admin" && (
+          <VehicleManagementView
+            isDarkMode={isDarkMode}
+            usersList={usersList}
+            fetchData={fetchData}
+            API_URL={API_URL}
+          />
+        )}
       </div>
 
       {/* Popup กดยืนยัน (Confirm Modal) หรือดูรายละเอียด (Details Modal) */}
@@ -1269,18 +1279,6 @@ export default function Home() {
               </>
             )}
           </div>
-        </div>
-      )}
-
-      {/* หน้า 6: จัดการรถ/ผู้ใช้ (Admin เท่านั้น) */}
-      {activeMenu === 6 && currentUser?.role === "admin" && (
-        <div className="flex-1 flex flex-col p-2 sm:p-4">
-          <VehicleManagementView
-            isDarkMode={isDarkMode}
-            usersList={usersList}
-            fetchData={fetchData}
-            API_URL={API_URL}
-          />
         </div>
       )}
 
