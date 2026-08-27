@@ -219,7 +219,7 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
                 name="unit_name"
                 value={formData.unit_name}
                 onChange={handleChange}
-                placeholder="เช่น ฝอ.6 บก.อก.บช.ทท., สภ.เมืองเชียงใหม่"
+                placeholder="เช่น บช.ทท., สภ.เมืองเชียงใหม่"
                 className={inputClass}
               />
             </div>

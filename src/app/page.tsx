@@ -9,6 +9,7 @@ import PhotoUploadZone from "./components/PhotoUploadZone";
 import PhotoGallery from "./components/PhotoGallery";
 import MissionPhotoView from "./components/MissionPhotoView";
 import VehicleManagementView from "./components/VehicleManagementView";
+import FleetRosterView from "./components/FleetRosterView";
 import { usePopup } from "./components/PopupContext";
 
 const VEHICLE_NAMES: Record<string, string> = {
@@ -405,11 +406,15 @@ export default function Home() {
       }
       return str;
     };
+    const normalizeAffiliation = (aff: string) => {
+      if (aff === "ฝ่ายอำนวยการ 6" || aff === "ฝ่ายอำนวยการ 6.") return "บช.ทท.";
+      return aff;
+    };
     const sortedLogs = [...filteredLogs].sort((a, b) => {
       const order: Record<string, number> = { 
-        "ฝ่ายอำนวยการ 6": 1, "ฝ่ายอำนวยการ 6.": 1, "บช.ทท.": 2, "บก.ทท.1": 3, "บก.ทท.2": 4, "บก.ทท.3": 5 
+        "บช.ทท.": 1, "บก.ทท.1": 2, "บก.ทท.2": 3, "บก.ทท.3": 4 
       };
-      const affA = String(a.affiliation || "").trim(); const affB = String(b.affiliation || "").trim();
+      const affA = normalizeAffiliation(String(a.affiliation || "").trim()); const affB = normalizeAffiliation(String(b.affiliation || "").trim());
       const weightA = order[affA] || 99; const weightB = order[affB] || 99;
       if (weightA !== weightB) return weightA - weightB;
       return new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime();
@@ -419,7 +424,7 @@ export default function Home() {
     
     let currentAffiliation = ""; let rowIndex = 1;
     sortedLogs.forEach((m: any) => {
-      const aff = String(m.affiliation || "ไม่ระบุสังกัด").trim();
+      const aff = normalizeAffiliation(String(m.affiliation || "ไม่ระบุสังกัด").trim());
       if (aff !== currentAffiliation) { html += `<tr><td colspan="11" class="bg-group">${toThaiNumber(aff)}</td></tr>`; currentAffiliation = aff; rowIndex = 1; }
       
       const unitName = `${m.unit_name || "-"}<br/><small>${VEHICLE_NAMES[m.vehicle_id] || m.vehicle_id}</small>`;
@@ -673,7 +678,7 @@ export default function Home() {
       </div>
 
       {/* แถบ Sidebar (แผงควบคุม 3D ด้านซ้าย) */}
-      <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-72 flex-col z-20 shrink-0 transition-colors duration-500 md:m-3 lg:m-4 md:rounded-3xl ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+      <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-72 flex-col z-20 shrink-0 transition-colors duration-500 md:m-3 lg:m-4 md:rounded-3xl md:max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
         <div className="p-6 border-b border-white/5 flex flex-col items-center justify-center relative">
           <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-1 rounded shadow-inner ${currentUser.role === 'admin' ? 'bg-red-900/30 text-red-500 border border-red-500/30' : 'bg-cyan-900/30 text-cyan-500 border border-cyan-500/30'}`}>
             {currentUser.role === 'admin' ? 'ADMIN' : 'USER'}
@@ -756,33 +761,33 @@ export default function Home() {
       </div>
 
       {/* พื้นที่แสดงผลหลัก (Main Content) */}
-      <div className="flex-1 w-full p-2 sm:p-4 min-h-screen flex flex-col overflow-y-auto relative z-10" onClick={() => { if(isMobileMenuOpen) setIsMobileMenuOpen(false); }}>
+      <div className="flex-1 w-full p-2 sm:p-4 h-screen max-h-screen flex flex-col overflow-y-auto relative z-10" onClick={() => { if(isMobileMenuOpen) setIsMobileMenuOpen(false); }}>
         
         {/* หน้า 1: ฟอร์มบันทึกข้อมูล (อัปเดต Layout เป็น 2 คอลัมน์) */}
         {activeMenu === 1 && (
           <div className="flex-1 flex flex-col">
           {showMapOverlay ? (
             <div className="w-full max-w-8xl mx-auto anim-fade-in flex-1">
-              <ThailandMap 
-                currentUser={currentUser} 
-                missions={data?.missions || []}
-                loginLogs={loginLogs}
+              <FleetRosterView
                 isDarkMode={isDarkMode}
-                onSelectVehicle={(vehicleId) => {
+                currentUser={currentUser}
+                usersList={usersList}
+                missions={data?.missions || []}
+                onRecordMission={(vehicleId, affiliation) => {
                   setFormData(prev => ({
                     ...prev,
                     vehicle_id: vehicleId,
-                    affiliation: VEHICLE_AFFILIATIONS[vehicleId] || prev.affiliation
+                    affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId] || prev.affiliation
                   }));
                   setShowMapOverlay(false);
                 }}
               />
             </div>
           ) : (
-            <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-7 anim-fade-in">
+            <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-5 lg:gap-7 anim-fade-in">
               
               {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (จัดขนาดแบบ One Page) */}
-              <div className={`lg:col-span-2 xl:col-span-3 p-3 sm:p-4 md:p-5 rounded-3xl flex flex-col ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+              <div className={`lg:col-span-2 2xl:col-span-3 p-3 sm:p-4 md:p-5 rounded-3xl flex flex-col ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
                  <h2 className={`text-xl font-bold mb-4 flex items-center justify-between pb-3 border-b border-white/10 ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
                    <div className="flex items-center gap-2.5">
                      <div className={`p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><PenTool size={18} /></div> 
@@ -795,7 +800,7 @@ export default function Home() {
                        onClick={() => setShowMapOverlay(true)} 
                        className={`text-xs font-bold px-4 py-2.5 rounded-xl btn-3d flex items-center gap-2 ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}
                      >
-                       <MapPin size={14} /> กลับหน้าแผนที่
+                       <List size={14} /> กลับรายชื่อรถ
                      </button>
                    </div>
                  </h2>
@@ -875,7 +880,7 @@ export default function Home() {
 
                  <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
                    <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>1. หน่วยที่ออกภารกิจ</label>
-                   <input required type="text" name="unit_name" value={formData.unit_name} onChange={handleChange} placeholder="เช่น ฝอ.6 บก.อก.บช.ทท." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                   <input required type="text" name="unit_name" value={formData.unit_name} onChange={handleChange} placeholder="เช่น บช.ทท." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
 
                  <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">

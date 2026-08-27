@@ -208,6 +208,20 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   }
 
   // ─── 2. กรองข้อมูลภารกิจตามประเภทที่เลือก ───
+  const normalizeAffiliation = (raw: string): string => {
+    const s = raw.trim();
+    if (!s || s === "-") return "ไม่ระบุสังกัด";
+    if (
+      s === "ฝ่ายอำนวยการ 6" ||
+      s === "ฝอ.6" ||
+      s === "ฝอ. 6" ||
+      s.includes("ฝ่ายอำนวยการ 6") ||
+      s.includes("บก.อก.บช.ทท") ||
+      s.includes("ฝอ.6 บก.อก")
+    ) return "บช.ทท.";
+    return s;
+  };
+
   const typeFilteredMissions = missions.filter((m: any) => {
     if (selectedType === "ALL") return true;
     const uname = String(m.vehicle_id || "").trim().toLowerCase();
@@ -226,7 +240,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       if (passDate && filterEndDate) passDate = mDateStr <= filterEndDate;
     }
     if (filterVehicle !== "ALL") passVehicle = String(m.vehicle_id).trim().toLowerCase() === filterVehicle.toLowerCase();
-    if (filterAffiliation !== "ALL") passAffiliation = String(m.affiliation || "").trim() === filterAffiliation;
+    if (filterAffiliation !== "ALL") passAffiliation = normalizeAffiliation(String(m.affiliation || "")) === filterAffiliation;
     return passDate && passVehicle && passAffiliation;
   });
 
@@ -243,14 +257,12 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const topProvinces = [...chartDataProvince].sort((a, b) => b.count - a.count).slice(0, 10);
   
   const affiliationStats = filteredMissions.reduce((acc: any, m: any) => { 
-    let aff = String(m.affiliation || "").trim();
-    if (!aff || aff === "-") aff = "ไม่ระบุสังกัด";
+    const aff = normalizeAffiliation(String(m.affiliation || ""));
     acc[aff] = (acc[aff] || 0) + 1; 
     return acc; 
   }, {});
 
   const orderWeight: Record<string, number> = {
-    "ฝ่ายอำนวยการ 6": 1,
     "บช.ทท.": 1,
     "บก.ทท.1": 2,
     "บก.ทท.2": 3,
@@ -277,7 +289,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const topIncidents = Object.keys(incidentStats).map(key => ({ name: key, count: incidentStats[key] })).sort((a, b) => b.count - a.count).slice(0, 10);
 
   return (
-    <div id="dashboard-content" className={`w-full mx-auto relative transition-all p-3 md:p-4 bg-[#0f151f] flex flex-col rounded-2xl ${isExporting ? 'h-auto overflow-visible shrink-0' : 'h-full min-h-[700px] overflow-y-auto lg:overflow-hidden'}`}>
+    <div id="dashboard-content" className={`w-full mx-auto relative transition-all p-3 md:p-4 bg-[#0f151f] flex flex-col rounded-2xl ${isExporting ? 'h-auto overflow-visible shrink-0' : 'w-full flex-1 overflow-y-auto'}`}>
 
       {isExporting && (
         <style>{`
