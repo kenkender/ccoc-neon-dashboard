@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
-import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock, Image as ImageIcon, Truck, ExternalLink } from "lucide-react";
+import { PenTool, List, LineChart, X, MapPin, Users, Calendar, Car, Edit3, Save, LogOut, Shield, Filter, UserCircle, FileSpreadsheet, Printer, Sun, Moon, Trash2, RefreshCw, History, Clock, Image as ImageIcon, Truck, ExternalLink, Plane } from "lucide-react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView"; 
 import ThailandMap from "./components/ThailandMap";
@@ -10,6 +10,8 @@ import PhotoGallery from "./components/PhotoGallery";
 import MissionPhotoView from "./components/MissionPhotoView";
 import VehicleManagementView from "./components/VehicleManagementView";
 import FleetRosterView from "./components/FleetRosterView";
+import UavMissionForm from "./components/UavMissionForm";
+import LineReportModal from "./components/LineReportModal";
 import { usePopup } from "./components/PopupContext";
 
 const VEHICLE_NAMES: Record<string, string> = {
@@ -87,12 +89,17 @@ export default function Home() {
   const [logFilterEndDate, setLogFilterEndDate] = useState("");
   const [pdfTypeFilter, setPdfTypeFilter] = useState("ALL"); // ALL | CCOC Mobile | UAV Mobile
   const [loginLogs, setLoginLogs] = useState<any[]>([]);
+  const [showLineReportModal, setShowLineReportModal] = useState(false);
+  const [lastSubmittedMission, setLastSubmittedMission] = useState<any>(null);
 
   const [formData, setFormData] = useState({
-    affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: ""
+    affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "",
+    location: "", start_time: "21.00", commander: "พ.ต.ท.อภิชาติ จารุรักษ์", operators: "สายตรวจอากาศยานไร้คนขับ",
+    drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", livestream_status: "🟢 ถ่ายทอดสดสัญญาณภาพ (Live Stream) เข้าศูนย์ CCOC เรียบร้อย",
+    manpower_saved: "ทดแทนกำลังพล 15 นายในการสแกนมุมสูง", tourist_density: "ปริมาณน้อย", vehicle_type: "CCOC Mobile"
   });
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbwsLqrtjt9fU7P5XOERxEqrM5QAW8MKPrsPw_F5A40LfrvtLYgkY3UnKEDH3db6C8HK/exec";
+  const API_URL = "/api/missions";
 
   const fetchData = async () => {
     try {
@@ -265,12 +272,18 @@ export default function Home() {
         ],
       });
 
-      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: ""};
+      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "21.00", commander: "พ.ต.ท.อภิชาติ จารุรักษ์", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", livestream_status: "🟢 ถ่ายทอดสดสัญญาณภาพ (Live Stream) เข้าศูนย์ CCOC เรียบร้อย", manpower_saved: "ทดแทนกำลังพล 15 นายในการสแกนมุมสูง", tourist_density: "ปริมาณน้อย", vehicle_type: formVehicleTypeFilter };
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
       setUploadedFiles([]);
       if (action === "edit") { setIsEditing(false); setSelectedMission(null); } else { setActiveMenu(2); setShowMapOverlay(true); }
       setLoading(true); fetchData(); 
+
+      // 🟢 เปิดแสดง Modal LINE Report สำหรับคัดลอกส่งผู้บังคับบัญชา
+      if (action === "add") {
+        setLastSubmittedMission(payloadData);
+        setShowLineReportModal(true);
+      } 
     } catch (error) { 
       updateUploadProgress({ stage: "error", errorMessage: "เกิดข้อผิดพลาดในการส่งข้อมูล" });
     }
@@ -278,12 +291,45 @@ export default function Home() {
     setShowConfirmModal(false);
   };
 
-  const handleChange = (e: any) => { setFormData({ ...formData, [e.target.name]: e.target.value }); };
+  const handleChange = (e: any) => { 
+    const { name, value } = e.target;
+    if (name === "vehicle_id") {
+      const isUav = String(value || "").toLowerCase().includes("uav");
+      setFormVehicleTypeFilter(isUav ? "UAV Mobile" : "CCOC Mobile");
+      setFormData(prev => ({ ...prev, vehicle_id: value, vehicle_type: isUav ? "UAV Mobile" : "CCOC Mobile" }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
 
   const handleEditClick = () => {
     const formatDate = (dateStr: string) => dateStr ? new Date(dateStr).toISOString().split('T')[0] : "";
     setFormData({
-      affiliation: selectedMission.affiliation || "", unit_name: selectedMission.unit_name, vehicle_id: selectedMission.vehicle_id, mission_name: selectedMission.mission_name, province: selectedMission.province, start_date: formatDate(selectedMission.start_date), end_date: formatDate(selectedMission.end_date), total_days: selectedMission.total_days, distance_km: selectedMission.distance_km, people_per_day: selectedMission.people_per_day, people_total: selectedMission.people_total, incident_report: selectedMission.incident_report, remark: selectedMission.remark
+      affiliation: selectedMission.affiliation || "",
+      unit_name: selectedMission.unit_name || "",
+      vehicle_id: selectedMission.vehicle_id || "",
+      mission_name: selectedMission.mission_name || "",
+      province: selectedMission.province || "",
+      start_date: formatDate(selectedMission.start_date),
+      end_date: formatDate(selectedMission.end_date),
+      total_days: selectedMission.total_days || "",
+      distance_km: selectedMission.distance_km || "",
+      people_per_day: selectedMission.people_per_day || "",
+      people_total: selectedMission.people_total || "",
+      incident_report: selectedMission.incident_report || "",
+      remark: selectedMission.remark || "",
+      location: selectedMission.location || "",
+      start_time: selectedMission.start_time || "21.00",
+      commander: selectedMission.commander || "",
+      operators: selectedMission.operators || "",
+      drone_id: selectedMission.drone_id || "Drone-01",
+      sorties: selectedMission.sorties || 1,
+      flight_duration_min: selectedMission.flight_duration_min || 45,
+      coverage_detail: selectedMission.coverage_detail || "",
+      livestream_status: selectedMission.livestream_status || "",
+      manpower_saved: selectedMission.manpower_saved || "",
+      tourist_density: selectedMission.tourist_density || "",
+      vehicle_type: selectedMission.vehicle_type || (String(selectedMission.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile")
     });
     setIsEditing(true);
   };
@@ -678,7 +724,7 @@ export default function Home() {
       </div>
 
       {/* แถบ Sidebar (แผงควบคุม 3D ด้านซ้าย) */}
-      <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-72 flex-col z-20 shrink-0 transition-colors duration-500 md:m-3 lg:m-4 md:rounded-3xl md:max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+      <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-56 lg:w-60 xl:w-72 flex-col z-20 shrink-0 transition-colors duration-500 md:m-2 lg:m-3 xl:m-4 md:rounded-3xl md:max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
         <div className="p-6 border-b border-white/5 flex flex-col items-center justify-center relative">
           <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-1 rounded shadow-inner ${currentUser.role === 'admin' ? 'bg-red-900/30 text-red-500 border border-red-500/30' : 'bg-cyan-900/30 text-cyan-500 border border-cyan-500/30'}`}>
             {currentUser.role === 'admin' ? 'ADMIN' : 'USER'}
@@ -774,9 +820,12 @@ export default function Home() {
                 usersList={usersList}
                 missions={data?.missions || []}
                 onRecordMission={(vehicleId, affiliation) => {
+                  const isUav = String(vehicleId || "").toLowerCase().includes("uav");
+                  setFormVehicleTypeFilter(isUav ? "UAV Mobile" : "CCOC Mobile");
                   setFormData(prev => ({
                     ...prev,
                     vehicle_id: vehicleId,
+                    vehicle_type: isUav ? "UAV Mobile" : "CCOC Mobile",
                     affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId] || prev.affiliation
                   }));
                   setShowMapOverlay(false);
@@ -784,10 +833,84 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="w-full max-w-8xl mx-auto grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-5 lg:gap-7 anim-fade-in">
+            <div className="w-full max-w-8xl mx-auto flex flex-col gap-4 anim-fade-in">
+              {formVehicleTypeFilter === "UAV Mobile" || String(formData.vehicle_id || "").toLowerCase().includes("uav") ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+                  <div className="lg:col-span-2 xl:col-span-3">
+                    <UavMissionForm
+                      isDarkMode={isDarkMode}
+                      currentUser={currentUser}
+                      usersList={usersList}
+                      formData={formData}
+                      handleChange={handleChange}
+                      setFormData={setFormData}
+                      uploadedFiles={uploadedFiles}
+                      setUploadedFiles={setUploadedFiles}
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (uploadedFiles.length < 2) {
+                          showNotification({
+                            type: "warning",
+                            title: "อัปโหลดรูปภาพไม่ครบถ้วน",
+                            message: "กรุณาอัปโหลดรูปภาพประกอบภารกิจอย่างน้อย 2 รูปครับ",
+                            details: ["ระบบต้องการรูปภาพอย่างน้อย 2 ถึง 5 รูปในการบันทึกภารกิจ"],
+                          });
+                          return;
+                        }
+                        if (uploadedFiles.length > 5) {
+                          showNotification({
+                            type: "warning",
+                            title: "จำนวนรูปภาพเกินกำหนด",
+                            message: "สามารถอัปโหลดรูปภาพได้สูงสุดไม่เกิน 5 รูปครับ",
+                          });
+                          return;
+                        }
+                        setShowConfirmModal(true);
+                      }}
+                      isSubmitting={isSubmitting}
+                      setShowMapOverlay={setShowMapOverlay}
+                      onSwitchFormType={(type) => setFormVehicleTypeFilter(type)}
+                    />
+                  </div>
+
+                  {/* ฝั่งขวา: กรอบ Log */}
+                  <div className={`lg:col-span-1 flex flex-col p-4 sm:p-6 rounded-3xl anim-fade-in-right max-h-[500px] lg:max-h-[calc(100vh-2rem)] lg:sticky lg:top-4 ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+                    <h3 className={`text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
+                      <Shield size={20} /> ผู้เข้าใช้งานล่าสุด (log)
+                    </h3>
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-3">
+                      {loginLogs.slice().reverse().map((log: any, index: number) => {
+                        const displayName = VEHICLE_NAMES[log.username] || log.username;
+                        const formattedTime = log.timestamp 
+                          ? new Date(log.timestamp).toLocaleString('th-TH', { 
+                              day: '2-digit', month: 'short', year: 'numeric', 
+                              hour: '2-digit', minute: '2-digit' 
+                            }) 
+                          : "ไม่ระบุเวลา";
+
+                        return (
+                          <div 
+                            key={index} 
+                            style={{ animationDelay: `${index * 50}ms` }} 
+                            className={`p-4 rounded-xl btn-3d anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light'}`}
+                          >
+                            <p className={`font-bold text-sm ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{displayName}</p>
+                            <p className={`text-[11px] font-mono mt-1 ${isDarkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>{log.affiliation}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Calendar size={10} className={isDarkMode ? 'text-gray-600' : 'text-gray-400'} />
+                              <p className={`text-[10px] ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{formattedTime}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               
-              {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (จัดขนาดแบบ One Page) */}
-              <div className={`lg:col-span-2 2xl:col-span-3 p-3 sm:p-4 md:p-5 rounded-3xl flex flex-col ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+              {/* ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล CCOC Mobile */}
+              <div className={`lg:col-span-2 xl:col-span-3 p-3 sm:p-4 md:p-5 rounded-3xl flex flex-col ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
                  <h2 className={`text-xl font-bold mb-4 flex items-center justify-between pb-3 border-b border-white/10 ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
                    <div className="flex items-center gap-2.5">
                      <div className={`p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><PenTool size={18} /></div> 
@@ -828,16 +951,16 @@ export default function Home() {
                 }} className="flex flex-col gap-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4 content-start">
                  
-                 <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
-                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>สังกัดของรถโมบาย (Affiliation)</label>
-                   <select required disabled={currentUser.role === "user"} name="affiliation" value={formData.affiliation} onChange={handleChange} className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
+                 <div className="flex flex-col gap-1 min-w-0 sm:col-span-2 lg:col-span-2">
+                   <label className={`text-xs sm:text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>สังกัดของรถโมบาย (Affiliation)</label>
+                   <select required disabled={currentUser.role === "user"} name="affiliation" value={formData.affiliation} onChange={handleChange} className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none disabled:opacity-50 transition-all cursor-pointer w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
                      <option value="" disabled>-- โปรดเลือกสังกัดท่าน --</option><option value="บช.ทท.">1. กองบัญชาการตำรวจท่องเที่ยว (บช.ทท.)</option><option value="บก.ทท.1">2. กองบังคับการตำรวจท่องเที่ยว 1</option><option value="บก.ทท.2">3. กองบังคับการตำรวจท่องเที่ยว 2</option><option value="บก.ทท.3">4. กองบังคับการตำรวจท่องเที่ยว 3</option>
                    </select>
                  </div>
 
-                 <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
-                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ใส่รหัสรถโมบายในสังกัดท่าน</label>
-                   <select required disabled={currentUser.role === "user"} name="vehicle_id" value={formData.vehicle_id} onChange={handleChange} className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none disabled:opacity-50 transition-all cursor-pointer ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
+                 <div className="flex flex-col gap-1 min-w-0 sm:col-span-2 lg:col-span-2">
+                   <label className={`text-xs sm:text-sm font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ใส่รหัสรถโมบายในสังกัดท่าน</label>
+                   <select required disabled={currentUser.role === "user"} name="vehicle_id" value={formData.vehicle_id} onChange={handleChange} className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none disabled:opacity-50 transition-all cursor-pointer w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}>
                      <option value="" disabled>-- เลือกรหัสรถ --</option>
                      {/* CCOC Mobile group */}
                      {usersList.filter((u: any) => u.role !== "admin" && (String(u.username || "").toLowerCase().startsWith("stc") || String(u.vehicle_type || "").toLowerCase() === "ccoc mobile")).length > 0 && (
@@ -1017,12 +1140,14 @@ export default function Home() {
           </div>
           )}
           </div>
+          )}
+          </div>
         )}
         {activeMenu === 2 && (
-          <div className={`w-full max-w-[98%] lg:max-w-[96%] mx-auto min-h-[80vh] flex flex-col p-4 sm:p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
-              <h2 className={`text-2xl sm:text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
-                <div className={`p-2.5 sm:p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={24} /></div>
+          <div className={`w-full mx-auto min-h-[80vh] flex flex-col p-3.5 sm:p-5 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 pb-4 border-b border-white/10 shrink-0 anim-fade-in-down gap-3">
+              <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2.5 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
+                <div className={`p-2 sm:p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={22} /></div>
                 รายการบันทึกข้อมูล
               </h2>
               
@@ -1108,11 +1233,11 @@ export default function Home() {
 
         {/* หน้า 4: ประวัติการเข้าใช้งาน (Admin เท่านั้น) */}
         {activeMenu === 4 && currentUser?.role === "admin" && (
-          <div className={`w-full max-w-[98%] lg:max-w-[96%] mx-auto min-h-[80vh] flex flex-col p-4 sm:p-6 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+          <div className={`w-full mx-auto min-h-[80vh] flex flex-col p-3.5 sm:p-5 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
             {/* Header */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-6 border-b border-white/10 shrink-0 anim-fade-in-down">
-              <h2 className={`text-3xl font-bold flex items-center gap-3 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                <div className={`p-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-600'}`}><History size={24} /></div>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 pb-4 border-b border-white/10 shrink-0 anim-fade-in-down gap-3">
+              <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                <div className={`p-2 sm:p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-green-400' : 'btn-menu-light text-green-600'}`}><History size={22} /></div>
                 ประวัติการเข้าใช้งานระบบ
               </h2>
               <div className="flex items-center gap-3 mt-4 lg:mt-0">
@@ -1337,6 +1462,14 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* LINE Report Modal Popup */}
+      <LineReportModal
+        isOpen={showLineReportModal}
+        onClose={() => setShowLineReportModal(false)}
+        missionData={lastSubmittedMission}
+        isDarkMode={isDarkMode}
+      />
 
     </div>
   );

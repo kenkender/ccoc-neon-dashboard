@@ -121,7 +121,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-5xl">
           {/* Card 1: CCOC Mobile */}
           <button
             onClick={() => setSelectedType("CCOC")}
@@ -357,7 +357,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3 shrink-0">
         <div className="relative group bg-gray-900/90 p-3 md:p-4 rounded-2xl border border-purple-500/20 shadow-[0_15px_40px_rgba(168,85,247,0.15)] flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-purple-500/30 hover:border-purple-500/50 overflow-hidden anim-fade-in-up" style={{ animationDelay: '60ms' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-linear-to-b from-purple-500 to-transparent opacity-70 group-hover:from-purple-400 group-hover:to-purple-600 transition-colors"></div>
           <div className="bg-purple-900/40 p-3 rounded-xl text-purple-400 border border-purple-500/20 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)] relative z-10"><List size={24}/></div>
@@ -378,7 +378,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       </div>
 
       {/* Chart Panels (Flex-1) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3 flex-1 min-h-[280px] chart-grid-container">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 mb-3 flex-1 min-h-[260px] chart-grid-container">
         <div className="relative group bg-gray-900/85 border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Car size={18} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
           <div className="flex-1 min-h-[220px] w-full">
@@ -448,8 +448,8 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       </div>
 
       
-      {/* Top 10 Lists (Flex-[1.2] เพื่อให้สมมาตรและมีพื้นที่บรรทัดมากขึ้น) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-[1.2] min-h-0 lists-grid-container">
+      {/* Top 10 Lists */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 flex-[1.2] min-h-0 lists-grid-container">
         
         <div className={`relative group bg-gray-900/85 border border-purple-900/30 p-3 md:p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col transition-all hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] anim-fade-in-up ${isExporting ? 'h-auto' : 'flex-1 min-h-0'}`} style={{ animationDelay: '460ms' }}>
           <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Trophy size={16} className="text-yellow-500 anim-pulse-glow" /> TOP 10 VEHICLES</h3>
