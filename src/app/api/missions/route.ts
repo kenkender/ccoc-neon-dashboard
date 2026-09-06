@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { SYSTEM_USERS } from "@/app/data/users";
 
-// ✅ Vercel: ขยาย timeout สำหรับ Pro plan (ถ้าใช้ Hobby จะถูก cap ที่ 10 วินาที)
-export const maxDuration = 60;
-
-// ✅ ห้าม Vercel cache response ของ API นี้
+// ✅ ห้าม Vercel cache response ของ API นี้ (Hobby plan compatible)
 export const dynamic = "force-dynamic";
 
 const GOOGLE_SCRIPT_URL =
@@ -240,10 +237,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // ✅ ถ้า GAS สำเร็จ → invalidate cache เพื่อบังคับดึงข้อมูลใหม่จาก GAS ครั้งหน้า
-    if (gasResult.success) {
-      lastFetchTime = 0; // force re-fetch on next GET
-    }
+    // ✅ ไม่ invalidate cache หลัง POST เพราะจะทำให้ GET ครั้งต่อไป fetch ใหม่จาก GAS แล้วอาจได้ข้อมูลไม่ครบ
+    // cache จะ expire เองตาม CACHE_TTL_MS (2 นาที) ตามปกติ
 
     return NextResponse.json({
       status: gasResult.success ? "success" : "warning",
