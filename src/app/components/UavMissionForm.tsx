@@ -245,15 +245,17 @@ function UavMissionForm({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          <button
-            type="button"
-            onClick={() => onSwitchFormType("CCOC Mobile")}
-            className={`text-xs font-bold px-3 py-2 rounded-xl btn-3d flex items-center gap-1.5 ${
-              isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'
-            }`}
-          >
-            <PenTool size={13} /> <span className="hidden sm:inline">สลับไป</span>ฟอร์ม CCOC
-          </button>
+          {(currentUser?.role === "admin" || String(currentUser?.vehicle_type || "").toUpperCase() === "ALL") && (
+            <button
+              type="button"
+              onClick={() => onSwitchFormType("CCOC Mobile")}
+              className={`text-xs font-bold px-3 py-2 rounded-xl btn-3d flex items-center gap-1.5 ${
+                isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'
+              }`}
+            >
+              <PenTool size={13} /> <span className="hidden sm:inline">สลับไป</span>ฟอร์ม CCOC
+            </button>
+          )}
           
           <button
             type="button"

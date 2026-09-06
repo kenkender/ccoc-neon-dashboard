@@ -85,11 +85,16 @@ export default function Home() {
         const enriched = enrichUserData(parsed);
         setCurrentUser(enriched);
         if (enriched.role === "user") {
+          const isUav = String(enriched.vehicle_type || "").toLowerCase().includes("uav") || 
+                        String(enriched.vehicle_id || "").toLowerCase().includes("uav");
+          const defaultType = isUav ? "UAV Mobile" : "CCOC Mobile";
+          setFormVehicleTypeFilter(defaultType);
           setFormData(prev => ({ 
             ...prev, 
             affiliation: enriched.affiliation, 
             vehicle_id: enriched.vehicle_id,
-            unit_name: enriched.unit_name 
+            unit_name: enriched.unit_name,
+            vehicle_type: defaultType,
           }));
         }
       }
@@ -409,39 +414,14 @@ export default function Home() {
     });
 
     try {
-      // ✅ PRIMARY: ส่งตรงไปยัง Google Apps Script จาก Browser (ไม่มี Vercel timeout issue!)
-      // mode: "no-cors" หมายความว่าเราไม่สามารถอ่าน response ได้ แต่ GAS จะได้รับข้อมูลแน่นอน
-      const GOOGLE_SCRIPT_DIRECT_URL = "https://script.google.com/macros/s/AKfycbwsLqrtjt9fU7P5XOERxEqrM5QAW8MKPrsPw_F5A40LfrvtLYgkY3UnKEDH3db6C8HK/exec";
-      const directGasSendPromise = fetch(GOOGLE_SCRIPT_DIRECT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
+      // ✅ ส่ง POST ผ่าน Vercel API Proxy เส้นเดียวเพื่อป้องกันการบันทึกซ้ำบน Google Sheets
+      const apiRes = await fetch(API_URL, { 
+        method: "POST", 
+        body: JSON.stringify(payload), 
+        headers: { "Content-Type": "application/json" } 
       });
-
-      // ✅ SECONDARY: อัปเดต Vercel API cache (timeout 8 วินาที เพื่อไม่ให้ค้างนาน)
-      const vercelApiTimeout = new Promise<Response>((_, reject) => 
-        setTimeout(() => reject(new Error("Vercel API timeout")), 8000)
-      );
-      let isGasSuccess = true; // assume success เพราะ direct send สำเร็จ
-      try {
-        const apiRes = await Promise.race([
-          fetch(API_URL, { 
-            method: "POST", 
-            body: JSON.stringify(payload), 
-            headers: { "Content-Type": "application/json" } 
-          }),
-          vercelApiTimeout
-        ]) as Response;
-        const result = await apiRes.json();
-        isGasSuccess = result?.gasSuccess !== false;
-      } catch (vercelErr: any) {
-        console.warn("⚠️ Vercel API cache update skipped:", vercelErr?.message);
-        // ไม่เป็นไร เพราะ direct send สำเร็จแล้ว
-      }
-
-      // รอ direct GAS send เสร็จ (ส่วนใหญ่จะเสร็จก่อน Vercel timeout แล้ว)
-      await directGasSendPromise.catch((err) => console.warn("Direct GAS notice:", err));
+      const result = await apiRes.json().catch(() => ({ gasSuccess: true }));
+      const isGasSuccess = result?.gasSuccess !== false;
       
       updateUploadProgress({ stage: "uploading_photos", progress: 55 });
 
@@ -1030,10 +1010,16 @@ export default function Home() {
               } catch (e) {}
               setShowMapOverlay(true);
               if (user.role === "user") { 
-                const isUav = String(user.vehicle_id || "").toLowerCase().startsWith("uav");
+                const isUav = String(user.vehicle_type || "").toLowerCase().includes("uav") || String(user.vehicle_id || "").toLowerCase().includes("uav");
                 const defaultType = isUav ? "UAV Mobile" : "CCOC Mobile";
                 setFormVehicleTypeFilter(defaultType);
-                setFormData(prev => ({ ...prev, affiliation: user.affiliation, vehicle_id: user.vehicle_id })); 
+                setFormData(prev => ({ 
+                  ...prev, 
+                  affiliation: user.affiliation, 
+                  vehicle_id: user.vehicle_id,
+                  unit_name: user.unit_name,
+                  vehicle_type: defaultType,
+                })); 
               }
               
               // 1. สร้าง Object สำหรับ Log ใหม่

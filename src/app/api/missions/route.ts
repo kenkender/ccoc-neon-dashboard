@@ -16,6 +16,51 @@ const CACHE_TTL_MS = 120000; // แคชไว้ 2 นาที
 
 let isFetching = false;
 
+function combineAllMissions(data: any) {
+  if (!data || !data.data) return data;
+
+  const ccocMissions = Array.isArray(data.data.missions) ? data.data.missions : 
+                       Array.isArray(data.data.ccoc_missions) ? data.data.ccoc_missions : [];
+  const uavMissions = Array.isArray(data.data.uav_missions) ? data.data.uav_missions : [];
+
+  const missionMap = new Map<string, any>();
+
+  ccocMissions.forEach((m: any) => {
+    if (m && m.timestamp) {
+      const key = String(m.timestamp).trim();
+      missionMap.set(key, {
+        ...m,
+        vehicle_type: m.vehicle_type || (String(m.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile")
+      });
+    }
+  });
+
+  uavMissions.forEach((u: any) => {
+    if (u && u.timestamp) {
+      const key = String(u.timestamp).trim();
+      missionMap.set(key, {
+        ...u,
+        vehicle_type: u.vehicle_type || "UAV Mobile"
+      });
+    }
+  });
+
+  const mergedList = Array.from(missionMap.values());
+  mergedList.sort((a: any, b: any) => {
+    const timeA = new Date(a.timestamp || 0).getTime();
+    const timeB = new Date(b.timestamp || 0).getTime();
+    return timeB - timeA;
+  });
+
+  return {
+    ...data,
+    data: {
+      ...data.data,
+      missions: mergedList,
+    },
+  };
+}
+
 async function fetchFromGAS(timeoutMs = 25000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -36,7 +81,7 @@ async function fetchFromGAS(timeoutMs = 25000) {
 
     const text = await response.text();
     const data = JSON.parse(text);
-    return data;
+    return combineAllMissions(data);
   } catch (err) {
     clearTimeout(timeoutId);
     throw err;
