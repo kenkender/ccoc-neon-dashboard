@@ -590,12 +590,55 @@ export default function Home() {
 
   const allowedMissions = data?.missions || [];
 
+  const parseMissionDateStr = (dateVal: any) => {
+    if (!dateVal) return "";
+    const str = String(dateVal).trim();
+    const thaiMatch = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (thaiMatch) {
+      const d = thaiMatch[1].padStart(2, '0');
+      const m = thaiMatch[2].padStart(2, '0');
+      let y = parseInt(thaiMatch[3], 10);
+      if (y > 2500) y -= 543;
+      return `${y}-${m}-${d}`;
+    }
+    const dt = new Date(str);
+    if (!isNaN(dt.getTime())) {
+      let y = dt.getFullYear();
+      if (y > 2500) y -= 543;
+      return `${y}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+    return str;
+  };
+
+  const parseMissionTimeMs = (mission: any) => {
+    const tsStr = String(mission.timestamp || mission.start_date || "").trim();
+    if (!tsStr) return 0;
+    const thaiMatch = tsStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (thaiMatch) {
+      const d = parseInt(thaiMatch[1], 10);
+      const m = parseInt(thaiMatch[2], 10) - 1;
+      let y = parseInt(thaiMatch[3], 10);
+      if (y > 2500) y -= 543;
+      const hh = parseInt(thaiMatch[4] || "0", 10);
+      const mm = parseInt(thaiMatch[5] || "0", 10);
+      const ss = parseInt(thaiMatch[6] || "0", 10);
+      return new Date(y, m, d, hh, mm, ss).getTime();
+    }
+    const dt = new Date(tsStr);
+    let time = dt.getTime();
+    if (isNaN(time)) return 0;
+    if (dt.getFullYear() > 2500) {
+      dt.setFullYear(dt.getFullYear() - 543);
+      time = dt.getTime();
+    }
+    return time;
+  };
+
   const filteredLogs = allowedMissions.filter((m: any) => {
     let passAffil = logFilterAffiliation === "ALL" || String(m.affiliation || "").trim() === logFilterAffiliation;
     let passDate = true;
-    if (m.start_date) {
-      const mDate = new Date(m.start_date);
-      const mDateStr = `${mDate.getFullYear()}-${String(mDate.getMonth() + 1).padStart(2, '0')}-${String(mDate.getDate()).padStart(2, '0')}`;
+    const mDateStr = parseMissionDateStr(m.start_date || m.timestamp);
+    if (mDateStr) {
       if (logFilterStartDate) passDate = mDateStr >= logFilterStartDate;
       if (passDate && logFilterEndDate) passDate = mDateStr <= logFilterEndDate;
     } else if (logFilterStartDate || logFilterEndDate) {
@@ -614,8 +657,8 @@ export default function Home() {
     }
     return passAffil && passDate && passType;
   }).sort((a: any, b: any) => {
-    const timeA = new Date(a.timestamp || a.start_date || 0).getTime();
-    const timeB = new Date(b.timestamp || b.start_date || 0).getTime();
+    const timeA = parseMissionTimeMs(a);
+    const timeB = parseMissionTimeMs(b);
     return timeB - timeA;
   });
 

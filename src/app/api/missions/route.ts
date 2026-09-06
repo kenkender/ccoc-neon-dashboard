@@ -251,12 +251,20 @@ export async function POST(req: Request) {
     // 1. ส่งข้อมูลไปยัง Google Apps Script
     const gasResult = await postToGAS(body, 2, 25000);
 
-    // 2. อัปเดต in-memory cache เสมอ (ไม่ว่า GAS จะสำเร็จหรือไม่)
-    if (!cachedData) {
-      cachedData = {
-        status: "success",
-        data: { missions: [], users: SYSTEM_USERS, login_logs: [] },
-      };
+    // 2. ถ้า cachedData ยังไม่มี (เช่น Vercel instance เพิ่งขึ้นใหม่) ให้ดึงข้อมูลเต็มจาก GAS ก่อน
+    if (!cachedData || !cachedData.data || !Array.isArray(cachedData.data.missions)) {
+      try {
+        const fullData = await fetchFromGAS(15000);
+        if (fullData && fullData.data?.missions) {
+          cachedData = fullData;
+        }
+      } catch (err) {
+        console.warn("⚠️ Failed to pre-fetch cache during POST:", err);
+        cachedData = {
+          status: "success",
+          data: { missions: [], users: SYSTEM_USERS, login_logs: [] },
+        };
+      }
     }
 
     if (cachedData && cachedData.data && Array.isArray(cachedData.data.missions)) {
@@ -264,6 +272,9 @@ export async function POST(req: Request) {
         const newRecord = {
           ...body.data,
           timestamp: body.timestamp || new Date().toISOString(),
+          vehicle_type: (body.sheet === "uav_missions" || String(body.data.vehicle_id || "").toLowerCase().includes("uav") || Boolean(body.data.drone_id))
+            ? "UAV Mobile"
+            : (body.data.vehicle_type || "CCOC Mobile")
         };
         const exists = cachedData.data.missions.some(
           (m: any) => m.timestamp === newRecord.timestamp
