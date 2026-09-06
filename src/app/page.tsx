@@ -312,7 +312,8 @@ export default function Home() {
     const currentTimestamp = action === "edit" ? selectedMission.timestamp : new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' });
     const isUav = String(payloadData.vehicle_type || "").toLowerCase().includes("uav") || 
                   String(payloadData.vehicle_id || "").toLowerCase().includes("uav") ||
-                  Boolean(payloadData.drone_id);
+                  Boolean(payloadData.drone_id) ||
+                  formVehicleTypeFilter === "UAV Mobile"; // ✅ ใช้ formVehicleTypeFilter detect UAV สำหรับ ALL-type user เช่น stc01
 
     // 🛠️ FIX COLUMN MISALIGNMENT FOR GOOGLE SHEETS:
     // Strictly match Row 1 Header columns A to R:
@@ -365,6 +366,7 @@ export default function Home() {
     const payload = { 
       action: action, 
       timestamp: currentTimestamp, 
+      sheet: isUav ? "uav_missions" : "missions",
       data: payloadData 
     };
 
