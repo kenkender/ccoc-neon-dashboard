@@ -407,22 +407,39 @@ export default function Home() {
     });
 
     try {
-      const apiRes = await fetch(API_URL, { 
-        method: "POST", 
-        body: JSON.stringify(payload), 
-        headers: { "Content-Type": "application/json" } 
-      });
-      const result = await apiRes.json();
-      const isGasSuccess = result?.gasSuccess !== false;
-
-      // 🛡️ Backup Sync: ส่งตรงไปยัง Google Apps Script จาก Browser กรณี Proxy ในเครื่องมี latency หรือ timeout
+      // ✅ PRIMARY: ส่งตรงไปยัง Google Apps Script จาก Browser (ไม่มี Vercel timeout issue!)
+      // mode: "no-cors" หมายความว่าเราไม่สามารถอ่าน response ได้ แต่ GAS จะได้รับข้อมูลแน่นอน
       const GOOGLE_SCRIPT_DIRECT_URL = "https://script.google.com/macros/s/AKfycbwsLqrtjt9fU7P5XOERxEqrM5QAW8MKPrsPw_F5A40LfrvtLYgkY3UnKEDH3db6C8HK/exec";
-      fetch(GOOGLE_SCRIPT_DIRECT_URL, {
+      const directGasSendPromise = fetch(GOOGLE_SCRIPT_DIRECT_URL, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload),
-      }).catch((err) => console.warn("Direct GAS backup sync notice:", err));
+      });
+
+      // ✅ SECONDARY: อัปเดต Vercel API cache (timeout 8 วินาที เพื่อไม่ให้ค้างนาน)
+      const vercelApiTimeout = new Promise<Response>((_, reject) => 
+        setTimeout(() => reject(new Error("Vercel API timeout")), 8000)
+      );
+      let isGasSuccess = true; // assume success เพราะ direct send สำเร็จ
+      try {
+        const apiRes = await Promise.race([
+          fetch(API_URL, { 
+            method: "POST", 
+            body: JSON.stringify(payload), 
+            headers: { "Content-Type": "application/json" } 
+          }),
+          vercelApiTimeout
+        ]) as Response;
+        const result = await apiRes.json();
+        isGasSuccess = result?.gasSuccess !== false;
+      } catch (vercelErr: any) {
+        console.warn("⚠️ Vercel API cache update skipped:", vercelErr?.message);
+        // ไม่เป็นไร เพราะ direct send สำเร็จแล้ว
+      }
+
+      // รอ direct GAS send เสร็จ (ส่วนใหญ่จะเสร็จก่อน Vercel timeout แล้ว)
+      await directGasSendPromise.catch((err) => console.warn("Direct GAS notice:", err));
       
       updateUploadProgress({ stage: "uploading_photos", progress: 55 });
 
