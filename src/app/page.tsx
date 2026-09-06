@@ -13,7 +13,7 @@ import FleetRosterView from "./components/FleetRosterView";
 import UavMissionForm from "./components/UavMissionForm";
 import LineReportModal from "./components/LineReportModal";
 import { usePopup } from "./components/PopupContext";
-import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData } from "./data/users";
+import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData, getUnifiedUsersList } from "./data/users";
 
 const getAffiliationColor = (affiliation: string, isDark: boolean) => {
   switch (affiliation) {
@@ -226,10 +226,10 @@ export default function Home() {
       });
 
       setData({ missions: cleanedMissions });
-      if (result.data.users && Array.isArray(result.data.users) && result.data.users.length > 0) {
-        setUsersList(result.data.users.map((u: any) => enrichUserData(u)));
+      if (result.data.users && Array.isArray(result.data.users)) {
+        setUsersList(getUnifiedUsersList(result.data.users));
       } else {
-        setUsersList(SYSTEM_USERS);
+        setUsersList(getUnifiedUsersList([]));
       }
       setLoading(false);
       const fetchedLogs = result.data.login_logs || result.data.log || result.data.logs || result.data.loginLogs || result.data.login_history || [];

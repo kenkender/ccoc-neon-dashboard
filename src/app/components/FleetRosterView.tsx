@@ -81,8 +81,14 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
     setExpandedGroups(prev => ({ ...prev, [aff]: !prev[aff] }));
   };
 
-  // Filter out admin users and empty username rows — only show actual vehicles
-  const vehicles = usersList.filter((u: any) => u.role !== "admin" && u.username && String(u.username).trim() !== "");
+  // Filter out admin users, empty username rows, and unspecified affiliations
+  const vehicles = usersList.filter((u: any) => 
+    u.role !== "admin" && 
+    u.username && 
+    String(u.username).trim() !== "" &&
+    u.affiliation && 
+    u.affiliation !== "ไม่ระบุ"
+  );
 
   // Build mission stats per vehicle
   const missionStatsByVehicle: Record<string, { count: number; latest: any | null }> = {};
@@ -102,15 +108,14 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
   // Group vehicles by affiliation
   const grouped: Record<string, any[]> = {};
   vehicles.forEach((v: any) => {
-    const aff = String(v.affiliation || v.unit_name || "ไม่ระบุ").trim();
-    if (!grouped[aff]) grouped[aff] = [];
-    grouped[aff].push(v);
+    const aff = String(v.affiliation || "").trim();
+    if (AFFILIATION_ORDER.includes(aff)) {
+      if (!grouped[aff]) grouped[aff] = [];
+      grouped[aff].push(v);
+    }
   });
 
-  const sortedAffs = [
-    ...AFFILIATION_ORDER.filter(a => grouped[a] && grouped[a].length > 0),
-    ...Object.keys(grouped).filter(a => !AFFILIATION_ORDER.includes(a) && grouped[a].length > 0),
-  ];
+  const sortedAffs = AFFILIATION_ORDER.filter(a => grouped[a] && grouped[a].length > 0);
 
   const isMyVehicle = (vehicle: any) => {
     return String(currentUser?.vehicle_id || "").trim().toLowerCase() === String(vehicle.username || "").trim().toLowerCase();

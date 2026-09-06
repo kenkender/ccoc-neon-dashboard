@@ -76,18 +76,35 @@ export function findSystemUser(username: string): UserAccount | undefined {
 }
 
 export function enrichUserData(rawUser: any): UserAccount {
-  if (!rawUser) return rawUser;
+  if (!rawUser) return rawUser as any;
   const username = String(rawUser.username || rawUser.vehicle_id || "").trim();
+  if (!username) return rawUser as any;
+
   const sysUser = findSystemUser(username);
 
-  const role = rawUser.role === "admin" || username.toLowerCase() === "admin" ? "admin" : (rawUser.role || sysUser?.role || "user");
-  const affiliation = role === "admin" ? "ALL" : (sysUser?.affiliation || rawUser.affiliation || "บช.ทท.");
-  const unitName = sysUser?.unit_name || rawUser.unit_name || rawUser.vehicle_name || username;
-  const vehicleType = sysUser?.vehicle_type || rawUser.vehicle_type || (username.toLowerCase().startsWith("uav") ? "UAV Mobile" : "CCOC Mobile");
+  // If user exists in pre-defined SYSTEM_USERS, strictly enforce official Thai unit names & affiliations!
+  if (sysUser) {
+    return {
+      ...rawUser,
+      username: sysUser.username,
+      password: rawUser.password || sysUser.password,
+      role: sysUser.role,
+      affiliation: sysUser.affiliation,
+      vehicle_id: sysUser.vehicle_id,
+      unit_name: sysUser.unit_name,
+      vehicle_name: sysUser.vehicle_name || sysUser.unit_name,
+      vehicle_type: sysUser.vehicle_type,
+    };
+  }
+
+  const role = rawUser.role === "admin" || username.toLowerCase() === "admin" ? "admin" : (rawUser.role || "user");
+  const affiliation = role === "admin" ? "ALL" : (rawUser.affiliation || "บช.ทท.");
+  const unitName = rawUser.unit_name || rawUser.vehicle_name || username.toUpperCase();
+  const vehicleType = rawUser.vehicle_type || (username.toLowerCase().startsWith("uav") ? "UAV Mobile" : "CCOC Mobile");
 
   return {
     ...rawUser,
-    username: sysUser?.username || username,
+    username,
     role,
     affiliation,
     vehicle_id: username,
@@ -95,4 +112,30 @@ export function enrichUserData(rawUser: any): UserAccount {
     vehicle_name: unitName,
     vehicle_type: vehicleType,
   };
+}
+
+export function getUnifiedUsersList(gasUsers?: any[]): UserAccount[] {
+  const userMap = new Map<string, UserAccount>();
+
+  // 1. Initialize with all authoritative SYSTEM_USERS
+  SYSTEM_USERS.forEach(u => {
+    userMap.set(u.username.toLowerCase(), u);
+  });
+
+  // 2. Append any valid custom dynamic users from GAS without overwriting official Thai names
+  if (Array.isArray(gasUsers)) {
+    gasUsers.forEach(u => {
+      const uname = String(u.username || u.vehicle_id || "").trim().toLowerCase();
+      if (uname && uname !== "undefined" && uname !== "null") {
+        if (!userMap.has(uname)) {
+          const enriched = enrichUserData(u);
+          if (enriched.username && enriched.affiliation && enriched.affiliation !== "ไม่ระบุ") {
+            userMap.set(uname, enriched);
+          }
+        }
+      }
+    });
+  }
+
+  return Array.from(userMap.values());
 }
