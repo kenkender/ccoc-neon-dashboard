@@ -345,7 +345,6 @@ export default function Home() {
         }
       }
 
-      // Strictly 18 keys matching Row 1 Header columns A to R (NO Col S or T):
       payloadData = {
         timestamp: currentTimestamp,
         unit_name: String(formData.unit_name || currentUser?.unit_name || currentUser?.affiliation || "-"),
@@ -361,8 +360,10 @@ export default function Home() {
         sorties: Number(formData.sorties ?? 1),
         flight_duration_min: Number(formData.flight_duration_min ?? 45),
         coverage_detail: coverageDetail,
-        tourist_density: String(combinedDensity),
-        incident_report: String(formData.incident_report || "เหตุการณ์ทั่วไปปกติ"),
+        live_stream: String(combinedDensity),
+        incident: String(formData.incident_report || "เหตุการณ์ทั่วไปปกติ"),
+        tourist_density: String(formData.remark || "-"),
+        incident_report: String(formData.affiliation || currentUser?.affiliation || "บช.ทท."),
         remark: String(formData.remark || "-"),
         status: String(formData.affiliation || currentUser?.affiliation || "บช.ทท.")
       };
@@ -586,13 +587,17 @@ export default function Home() {
       const uname = String(m.vehicle_id || "").trim().toLowerCase();
       const vtype = String(m.vehicle_type || "").toLowerCase();
       if (pdfTypeFilter === "CCOC Mobile") {
-        passType = uname.startsWith("stc") || vtype === "ccoc mobile";
+        passType = (uname.startsWith("stc") && vtype !== "uav mobile") || vtype === "ccoc mobile";
       } else if (pdfTypeFilter === "UAV Mobile") {
         passType = uname.startsWith("uav") || uname === "uav mobile" || vtype === "uav mobile";
       }
     }
     return passAffil && passDate && passType;
-  }).reverse();
+  }).sort((a: any, b: any) => {
+    const timeA = new Date(a.timestamp || a.start_date || 0).getTime();
+    const timeB = new Date(b.timestamp || b.start_date || 0).getTime();
+    return timeB - timeA;
+  });
 
   const getDateRangeText = () => {
     if (!logFilterStartDate && !logFilterEndDate) return "ทั้งหมด";
