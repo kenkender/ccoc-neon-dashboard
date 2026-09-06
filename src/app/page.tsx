@@ -345,6 +345,11 @@ export default function Home() {
         }
       }
 
+      const userRemark = String(formData.remark || "").trim();
+      const cleanRemark = (userRemark === "-" || userRemark === "ไม่ระบุ") ? "" : userRemark;
+      const userIncident = String(formData.incident_report || "").trim();
+      const cleanIncident = (userIncident && userIncident !== "-" && userIncident !== "ไม่ระบุ") ? userIncident : "เหตุการณ์ทั่วไปปกติ";
+
       payloadData = {
         timestamp: currentTimestamp,
         unit_name: String(formData.unit_name || currentUser?.unit_name || currentUser?.affiliation || "-"),
@@ -361,11 +366,9 @@ export default function Home() {
         flight_duration_min: Number(formData.flight_duration_min ?? 45),
         coverage_detail: coverageDetail,
         live_stream: String(combinedDensity),
-        incident: String(formData.incident_report || "เหตุการณ์ทั่วไปปกติ"),
-        tourist_density: String(formData.remark || "-"),
-        incident_report: String(formData.affiliation || currentUser?.affiliation || "บช.ทท."),
-        remark: String(formData.remark || "-"),
-        status: String(formData.affiliation || currentUser?.affiliation || "บช.ทท.")
+        incident: cleanIncident,
+        tourist_density: cleanRemark,
+        incident_report: String(formData.affiliation || currentUser?.affiliation || "บช.ทท.")
       };
     }
 
