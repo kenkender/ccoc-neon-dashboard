@@ -101,7 +101,7 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
     setIsSubmitting(false);
   };
 
-  const vehicleList = usersList.filter((u: any) => u.role !== "admin");
+  const vehicleList = usersList.filter((u: any) => u.role !== "admin" && u.username && String(u.username).trim() !== "");
   const ccocVehicles = vehicleList.filter((u: any) => {
     const uname = String(u.username || "").toLowerCase();
     const vtype = String(u.vehicle_type || "").toLowerCase();
@@ -280,7 +280,7 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`font-bold font-mono text-xs sm:text-sm ${isDarkMode ? "text-white" : "text-gray-800"}`}>{u.username}</p>
-                        <p className={`text-[11px] truncate ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>{u.unit_name || "-"}</p>
+                        <p className={`text-[11px] truncate ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>{u.vehicle_name || u.unit_name || "-"}</p>
                       </div>
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${isDarkMode ? "bg-fuchsia-900/30 text-fuchsia-400 border border-fuchsia-500/30" : "bg-fuchsia-100 text-fuchsia-600"}`}>
                         {u.affiliation || "-"}
@@ -308,7 +308,7 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`font-bold font-mono text-xs sm:text-sm ${isDarkMode ? "text-white" : "text-gray-800"}`}>{u.username}</p>
-                        <p className={`text-[11px] truncate ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>{u.unit_name || "-"}</p>
+                        <p className={`text-[11px] truncate ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>{u.vehicle_name || u.unit_name || "-"}</p>
                       </div>
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${isDarkMode ? "bg-cyan-900/30 text-cyan-400 border border-cyan-500/30" : "bg-cyan-100 text-cyan-600"}`}>
                         {u.affiliation || "-"}

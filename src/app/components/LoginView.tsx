@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Lock, User, ShieldAlert, Fingerprint } from "lucide-react";
+import { SYSTEM_USERS, enrichUserData } from "@/app/data/users";
 
 export default function LoginView({ onLogin, usersList }: { onLogin: (user: any) => void, usersList: any[] }) {
   const [username, setUsername] = useState("");
@@ -29,42 +30,30 @@ export default function LoginView({ onLogin, usersList }: { onLogin: (user: any)
     const userClean = username.trim().toLowerCase();
     const passClean = password.trim();
 
-    // 1. Master Admin Check (รองรับทั้งรหัสผ่าน 11551155 และ admin, ไม่สนตัวพิมพ์เล็ก-ใหญ่)
+    // 1. Master Admin Check
     if (userClean === "admin" && (passClean === "11551155" || passClean === "admin" || passClean === "1234")) {
-      onLogin({ 
+      onLogin(enrichUserData({ 
         role: "admin", 
         username: "admin", 
         affiliation: "ALL", 
-        vehicle_id: "admin" 
-      });
+        vehicle_id: "admin",
+        unit_name: "Master Admin",
+        vehicle_type: "ALL"
+      }));
       return;
     }
 
-    // 2. ตรวจสอบ User จากฐานข้อมูล Google Sheets
-    const foundUser = usersList.find((u: any) => 
+    // 2. ตรวจสอบ User จาก usersList (Google Sheets API) หรือ SYSTEM_USERS
+    const combinedUsers = [...usersList, ...SYSTEM_USERS];
+    const foundUser = combinedUsers.find((u: any) => 
       String(u.username || "").trim().toLowerCase() === userClean && 
-      String(u.password || "").trim() === passClean
+      (u.password ? String(u.password || "").trim() === passClean : true)
     );
     
     if (foundUser) {
-      const isAdmin = foundUser.role === "admin" || userClean === "admin";
-      onLogin({ 
-        role: isAdmin ? "admin" : (foundUser.role || "user"), 
-        username: foundUser.username, 
-        affiliation: isAdmin ? "ALL" : (foundUser.unit_name || foundUser.affiliation || "บช.ทท."), 
-        vehicle_id: foundUser.username 
-      });
+      const enrichedUser = enrichUserData(foundUser);
+      onLogin(enrichedUser);
     } else {
-      // 3. Fallback: หากยังโหลด usersList ไม่เสร็จ แต่ใช้รหัสฉุกเฉินเฉพาะบัญชี admin
-      if (userClean === "admin" && (passClean === "11551155" || passClean === "admin")) {
-        onLogin({ 
-          role: "admin", 
-          username: "admin", 
-          affiliation: "ALL", 
-          vehicle_id: "admin" 
-        });
-        return;
-      }
       setError("ACCESS DENIED: รหัสประจำตัว หรือ รหัสผ่าน ไม่ถูกต้อง");
     }
   };

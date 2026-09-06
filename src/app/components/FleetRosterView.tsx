@@ -1,14 +1,14 @@
 "use client";
 
-import { ChevronDown, ChevronRight, PenTool, Shield, Truck, Calendar, Users, MapPin, ClipboardList } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ChevronRight, PenTool, Shield, Truck, Calendar, Users, MapPin, ClipboardList, Plane } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface FleetRosterViewProps {
   isDarkMode: boolean;
   currentUser: any;
   usersList: any[];
   missions: any[];
-  onRecordMission: (vehicleId: string, affiliation: string) => void;
+  onRecordMission: (vehicleId: string, affiliation: string, targetVehicleType?: "CCOC Mobile" | "UAV Mobile") => void;
 }
 
 const AFFILIATION_ORDER = ["บช.ทท.", "บก.ทท.1", "บก.ทท.2", "บก.ทท.3"];
@@ -50,7 +50,7 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
       AFFILIATION_ORDER.forEach(a => { init[a] = true; });
     } else {
       // User: หาสังกัดของรถตัวเองจาก usersList
-      const myVehicleId = String(currentUser?.vehicle_id || "").trim().toLowerCase();
+      const myVehicleId = String(currentUser?.vehicle_id || currentUser?.username || "").trim().toLowerCase();
       const myVehicle = usersList.find((u: any) =>
         String(u.username || "").trim().toLowerCase() === myVehicleId
       );
@@ -61,12 +61,28 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
     return init;
   });
 
+  // 🚀 Auto-scroll to logged-in user's vehicle card after mount
+  useEffect(() => {
+    if (!currentUser || currentUser.role === "admin") return;
+    const myVehicleId = String(currentUser.vehicle_id || currentUser.username || "").trim().toLowerCase();
+    if (!myVehicleId) return;
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`vehicle-card-${myVehicleId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [currentUser]);
+
   const toggleGroup = (aff: string) => {
     setExpandedGroups(prev => ({ ...prev, [aff]: !prev[aff] }));
   };
 
-  // Filter out admin users — only show actual vehicles
-  const vehicles = usersList.filter((u: any) => u.role !== "admin");
+  // Filter out admin users and empty username rows — only show actual vehicles
+  const vehicles = usersList.filter((u: any) => u.role !== "admin" && u.username && String(u.username).trim() !== "");
 
   // Build mission stats per vehicle
   const missionStatsByVehicle: Record<string, { count: number; latest: any | null }> = {};
@@ -100,8 +116,18 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
     return String(currentUser?.vehicle_id || "").trim().toLowerCase() === String(vehicle.username || "").trim().toLowerCase();
   };
 
+  // canRecord = true ถ้า:
+  // 1. เป็น Admin
+  // 2. เป็นรถของตัวเอง (vehicle_id ตรงกัน)
+  // 3. มี vehicle_type = "ALL" และอยู่ unit_name เดียวกัน (สถานีเดียวกัน มีทั้ง CCOC + UAV)
   const canRecord = (vehicle: any) => {
-    return currentUser?.role === "admin" || isMyVehicle(vehicle);
+    if (currentUser?.role === "admin") return true;
+    if (isMyVehicle(vehicle)) return true;
+    const myVehicleType = String(currentUser?.vehicle_type || "").trim().toUpperCase();
+    const myUnitName = String(currentUser?.unit_name || currentUser?.affiliation || "").trim();
+    const vehicleUnitName = String(vehicle.unit_name || "").trim();
+    if (myVehicleType === "ALL" && myUnitName && vehicleUnitName && myUnitName === vehicleUnitName) return true;
+    return false;
   };
 
   const formatDate = (dateStr: string) => {
@@ -189,12 +215,13 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
                   return (
                     <div
                       key={idx}
+                      id={`vehicle-card-${vid}`}
                       className={`relative flex flex-col rounded-2xl border overflow-hidden transition-all duration-300 btn-3d
                         ${isDarkMode
                           ? `${affStyle?.darkBg ?? "bg-gray-900/20"} ${affStyle?.darkBorder ?? "border-gray-500/40"} list-item-3d-dark`
                           : `${affStyle?.lightBg ?? "bg-gray-50"}  ${affStyle?.lightBorder ?? "border-gray-300"} btn-menu-light`
                         }
-                        ${isMine ? (isDarkMode ? "ring-2 ring-fuchsia-400/60 shadow-[0_0_20px_rgba(217,70,239,0.25)]" : "ring-2 ring-fuchsia-400/60") : ""}
+                        ${isMine ? (isDarkMode ? "ring-2 ring-fuchsia-400 shadow-[0_0_30px_rgba(217,70,239,0.35)]" : "ring-2 ring-fuchsia-500 shadow-[0_0_20px_rgba(217,70,239,0.3)]") : ""}
                       `}
                     >
                       {/* MY VEHICLE Badge */}
@@ -207,25 +234,27 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
                       {/* Card Body */}
                       <div className="flex-1 p-4 flex flex-col gap-3">
 
-                        {/* Header: Vehicle ID + Type */}
+                        {/* Header: Station Name (Vehicle ID) + Type */}
                         <div className="flex items-start gap-3">
                           <div className={`p-2.5 rounded-xl shrink-0 ${isDarkMode ? "btn-menu-dark" : "btn-menu-light"} ${badgeColor.includes("fuchsia") ? "text-fuchsia-400" : badgeColor.includes("cyan") ? "text-cyan-400" : badgeColor.includes("green") ? "text-green-400" : "text-orange-400"}`}>
                             {isUav ? <Shield size={18} /> : <Truck size={18} />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`font-black font-mono text-lg leading-tight ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-                              {vehicle.username?.toUpperCase()}
+                            <p className={`font-black text-sm sm:text-base leading-snug ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                              {(vehicle.vehicle_name || vehicle.unit_name)
+                                ? `${vehicle.vehicle_name || vehicle.unit_name} (${vehicle.username?.toUpperCase()})`
+                                : vehicle.username?.toUpperCase()}
                             </p>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${badgeColor}`}>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1 inline-block ${badgeColor}`}>
                               {isUav ? "UAV Mobile" : "CCOC Mobile"}
                             </span>
                           </div>
                         </div>
 
-                        {/* Unit Name */}
-                        {vehicle.unit_name && (
+                        {/* Affiliation Subtitle */}
+                        {(vehicle.vehicle_name || vehicle.unit_name) && vehicle.affiliation && (
                           <p className={`text-xs font-mono truncate ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                            {vehicle.unit_name}
+                            {vehicle.affiliation}
                           </p>
                         )}
 
@@ -282,18 +311,35 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
 
                       {/* Record Button — only shown if canRecord */}
                       {canRec && (
-                        <button
-                          onClick={() => onRecordMission(
-                            vehicle.username,
-                            aff
-                          )}
-                          className={`w-full py-3 px-4 font-black text-sm text-white flex items-center justify-center gap-2 transition-all duration-300 ${btnColor}`}
-                        >
-                          <PenTool size={15} />
-                          {currentUser?.role === "admin" && !isMine
-                            ? `บันทึกภารกิจ (${vehicle.username?.toUpperCase()})`
-                            : "➕ บันทึกภารกิจใหม่"}
-                        </button>
+                        (String(vehicle.vehicle_type || "").toUpperCase() === "ALL" || String(vehicle.username || "").toLowerCase().startsWith("stc")) ? (
+                          <div className="grid grid-cols-2 gap-1.5 p-2 bg-black/40 border-t border-white/10">
+                            <button
+                              type="button"
+                              onClick={() => onRecordMission(vehicle.username, aff, "CCOC Mobile")}
+                              className="py-2.5 px-2 font-bold text-xs text-white bg-fuchsia-600 hover:bg-fuchsia-500 rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(217,70,239,0.3)] transition-all active:scale-95 cursor-pointer"
+                            >
+                              <Truck size={14} /> บันทึก CCOC
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onRecordMission(vehicle.username, aff, "UAV Mobile")}
+                              className="py-2.5 px-2 font-bold text-xs text-white bg-cyan-600 hover:bg-cyan-500 rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(34,211,238,0.3)] transition-all active:scale-95 cursor-pointer"
+                            >
+                              <Plane size={14} /> บันทึก UAV
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onRecordMission(vehicle.username, aff, isUav ? "UAV Mobile" : "CCOC Mobile")}
+                            className={`w-full py-3 px-4 font-black text-sm text-white flex items-center justify-center gap-2 transition-all duration-300 ${btnColor}`}
+                          >
+                            {isUav ? <Plane size={15} /> : <PenTool size={15} />}
+                            {currentUser?.role === "admin" && !isMine
+                              ? `บันทึกภารกิจ (${vehicle.username?.toUpperCase()})`
+                              : `➕ บันทึกภารกิจ ${isUav ? "UAV Mobile" : "ใหม่"}`}
+                          </button>
+                        )
                       )}
 
                       {/* Read-only indicator for non-own vehicles */}

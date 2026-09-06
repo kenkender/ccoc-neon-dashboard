@@ -13,13 +13,7 @@ import FleetRosterView from "./components/FleetRosterView";
 import UavMissionForm from "./components/UavMissionForm";
 import LineReportModal from "./components/LineReportModal";
 import { usePopup } from "./components/PopupContext";
-
-const VEHICLE_NAMES: Record<string, string> = {
-  "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
-  "stc04": "4. stc04 ชลบุรี", "stc05": "5. stc05 โคราช", "stc06": "6. stc06 เชียงใหม่",
-  "stc07": "7. stc07 พิษณุโลก", "stc08": "8. stc08 หัวหิน", "stc09": "9. stc09 สนามศุภชลาศัย",
-  "stc10": "10. stc10 หาดใหญ่", "uav mobile": "11. UAV Mobile", "UAV Mobile": "11. UAV Mobile"
-};
+import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData } from "./data/users";
 
 const getAffiliationColor = (affiliation: string, isDark: boolean) => {
   switch (affiliation) {
@@ -30,6 +24,37 @@ const getAffiliationColor = (affiliation: string, isDark: boolean) => {
     case "บก.ทท.3": return isDark ? "text-orange-400 bg-orange-900/20 border-orange-500/40" : "text-orange-700 bg-orange-100 border-orange-300";
     default: return isDark ? "text-gray-400 bg-gray-900/20 border-gray-500/40" : "text-gray-600 bg-gray-200 border-gray-300";
   }
+};
+
+const formatRecordedDate = (timestampStr: string) => {
+  if (!timestampStr) return "-";
+  
+  const cleanStr = String(timestampStr).trim().replace('T', ' ').split('.')[0];
+  const parts = cleanStr.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):(\d{2}))?/);
+  
+  if (parts) {
+    const [_, year, month, day, hours, minutes, seconds] = parts;
+    const thaiYear = Number(year) + 543;
+    if (hours !== undefined) {
+      return `${day}/${month}/${thaiYear} ${hours}:${minutes}:${seconds}`;
+    }
+    return `${day}/${month}/${thaiYear}`;
+  }
+
+  try {
+    const d = new Date(timestampStr);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const thaiYear = d.getFullYear() + 543;
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const seconds = String(d.getSeconds()).padStart(2, '0');
+      return `${day}/${month}/${thaiYear} ${hours}:${minutes}:${seconds}`;
+    }
+  } catch {}
+  
+  return timestampStr;
 };
 
 export default function Home() {
@@ -57,9 +82,15 @@ export default function Home() {
       const savedUser = localStorage.getItem('ccoc_current_user');
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
-        setCurrentUser(parsed);
-        if (parsed.role === "user") {
-          setFormData(prev => ({ ...prev, affiliation: parsed.affiliation, vehicle_id: parsed.vehicle_id }));
+        const enriched = enrichUserData(parsed);
+        setCurrentUser(enriched);
+        if (enriched.role === "user") {
+          setFormData(prev => ({ 
+            ...prev, 
+            affiliation: enriched.affiliation, 
+            vehicle_id: enriched.vehicle_id,
+            unit_name: enriched.unit_name 
+          }));
         }
       }
     } catch (e) {
@@ -69,20 +100,6 @@ export default function Home() {
   const [showConfirmModal, setShowConfirmModal] = useState(false); 
   const [showMapOverlay, setShowMapOverlay] = useState(true);
   const [formVehicleTypeFilter, setFormVehicleTypeFilter] = useState("CCOC Mobile");
-
-  const VEHICLE_AFFILIATIONS: Record<string, string> = {
-    "stc01": "บช.ทท.",
-    "stc02": "บก.ทท.3",
-    "stc03": "บก.ทท.1",
-    "stc04": "บก.ทท.1",
-    "stc05": "บก.ทท.2",
-    "stc06": "บก.ทท.2",
-    "stc07": "บก.ทท.2",
-    "stc08": "บก.ทท.3",
-    "stc09": "บก.ทท.1",
-    "stc10": "บก.ทท.3",
-    "UAV Mobile": "บช.ทท.",
-  };
   
   const [logFilterAffiliation, setLogFilterAffiliation] = useState("ALL");
   const [logFilterStartDate, setLogFilterStartDate] = useState("");
@@ -91,12 +108,12 @@ export default function Home() {
   const [loginLogs, setLoginLogs] = useState<any[]>([]);
   const [showLineReportModal, setShowLineReportModal] = useState(false);
   const [lastSubmittedMission, setLastSubmittedMission] = useState<any>(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   const [formData, setFormData] = useState({
     affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "",
-    location: "", start_time: "21.00", commander: "พ.ต.ท.อภิชาติ จารุรักษ์", operators: "สายตรวจอากาศยานไร้คนขับ",
-    drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", livestream_status: "🟢 ถ่ายทอดสดสัญญาณภาพ (Live Stream) เข้าศูนย์ CCOC เรียบร้อย",
-    manpower_saved: "ทดแทนกำลังพล 15 นายในการสแกนมุมสูง", tourist_density: "ปริมาณน้อย", vehicle_type: "CCOC Mobile"
+    location: "", start_time: "21.00", operators: "สายตรวจอากาศยานไร้คนขับ",
+    drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", vehicle_type: "CCOC Mobile"
   });
 
   const API_URL = "/api/missions";
@@ -113,36 +130,116 @@ export default function Home() {
         setLoading(false);
         return;
       }
-      
-      const cleanedMissions = (result.data?.missions || []).map((m: any) => {
-        let vId = String(m.vehicle_id || "").trim().toLowerCase();
-        let uName = String(m.unit_name || "").trim().toLowerCase();
-        let affil = String(m.affiliation || "").trim();
 
-        if (vId.includes("uav")) { vId = "UAV Mobile"; if (!affil) affil = "บช.ทท."; } 
-        else if (vId.includes("อยุธยา") || uName.includes("อยุธยา")) { vId = "stc03"; if (!affil) affil = "บก.ทท.1"; } 
-        else if (vId.includes("สนามศุภ") || uName.includes("สนามศุภ")) { vId = "stc09"; if (!affil) affil = "บก.ทท.1"; } 
-        else if (vId.includes("ฝอ.6") || uName.includes("ฝอ.6") || vId === "stc01") { vId = "stc01"; if (!affil) affil = "บช.ทท."; } 
-        else { vId = String(m.vehicle_id || "").trim(); }
-        
-        return { ...m, vehicle_id: vId, affiliation: affil };
+      if (!response.ok || result.status === "error" || !result.data) {
+        console.warn("⚠️ API returned error or empty data (keeping current state):", result);
+        setLoading(false);
+        return;
+      }
+      
+      const cleanedMissions = (result.data.missions || []).map((m: any) => {
+        let isUav = String(m.vehicle_type || "").toLowerCase().includes("uav") || 
+                    String(m.vehicle_id || "").toLowerCase().includes("uav") ||
+                    Boolean(m.drone_id);
+
+        let missionName = m.mission_name;
+        let vehicleId = m.vehicle_id;
+        let unitName = m.unit_name;
+        let province = m.province;
+        let location = m.location;
+        let startDate = m.start_date;
+        let startTime = m.start_time;
+        let distanceKm = m.distance_km || m.distance || m.km;
+        let affil = m.affiliation || m.status || m.affil;
+
+        // Extract count of tourists if embedded in tourist_density e.g. "ปริมาณปานกลาง (200 คน)"
+        let touristCountEst = m.tourist_count_est || "";
+        let density = m.tourist_density || "";
+        if (!touristCountEst && density) {
+          const match = String(density).match(/\(([^)]+)\)/);
+          if (match && match[1]) {
+            touristCountEst = match[1];
+          } else if (/^\d+/.test(String(density).trim())) {
+            touristCountEst = density;
+          }
+        }
+        if (!touristCountEst) {
+          touristCountEst = m.people_total || m.people_per_day || "";
+        }
+
+        // 🛠️ Auto-Fix: แก้ไขปัญหาคอลัมน์ใน Google Sheet UAV เคลื่อนสลับตำแหน่งอัตโนมัติ
+        if (isUav) {
+          const startTimeStr = String(startTime || "");
+          if (startTimeStr && (startTimeStr.includes("พ.ต.ท.") || startTimeStr.includes("สายตรวจ") || startTimeStr.length > 12)) {
+            startTime = "21.00";
+          }
+          const provinceStr = String(province || "");
+          if (provinceStr && /^\d{4}-\d{2}-\d{2}/.test(provinceStr.trim())) {
+            startDate = province;
+            province = (location && !/^\d+/.test(String(location))) ? location : (m.mission_type || "กทม.");
+          }
+          if (!distanceKm || distanceKm === "-" || distanceKm === "0") {
+            if (m.coverage_detail) {
+              const matchDist = String(m.coverage_detail).match(/(?:ระยะทาง(?:รวม)?(?:ไป-กลับ)?|ความยาว)\s*:?\s*([\d.]+)/i) || String(m.coverage_detail).match(/([\d.]+)\s*กม/i);
+              if (matchDist && matchDist[1]) {
+                distanceKm = matchDist[1];
+              }
+            }
+          }
+        }
+
+        let vId = String(vehicleId || "").trim().toLowerCase();
+        let uName = String(unitName || "").trim().toLowerCase();
+        let finalAffil = String(affil || "").trim();
+
+        if (vId.includes("uav")) {
+          vId = "UAV Mobile";
+          if (!finalAffil || finalAffil === "-") finalAffil = "บช.ทท.";
+        } else if (vId.includes("อยุธยา") || uName.includes("อยุธยา")) {
+          vId = "stc03";
+          if (!finalAffil) finalAffil = "บก.ทท.1";
+        } else if (vId.includes("สนามศุภ") || uName.includes("สนามศุภ")) {
+          vId = "stc09";
+          if (!finalAffil) finalAffil = "บก.ทท.1";
+        } else if (vId.includes("ฝอ.6") || uName.includes("ฝอ.6") || vId === "stc01") {
+          vId = "stc01";
+          if (!finalAffil) finalAffil = "บช.ทท.";
+        } else {
+          vId = String(vehicleId || "").trim();
+        }
+
+        return {
+          ...m,
+          mission_name: missionName || "ว.43 สายตรวจโดรนมุมสูง",
+          vehicle_id: vId,
+          raw_vehicle_id: vehicleId || "UAV Mobile",
+          unit_name: unitName,
+          province: province || "-",
+          start_date: startDate,
+          start_time: startTime || "21.00 น.",
+          distance_km: distanceKm,
+          tourist_count_est: touristCountEst,
+          tourist_density: density,
+          affiliation: finalAffil,
+          vehicle_type: isUav ? "UAV Mobile" : (m.vehicle_type || "CCOC Mobile")
+        };
       });
 
       setData({ missions: cleanedMissions });
-      setUsersList(result.data?.users || []); 
+      if (result.data.users && Array.isArray(result.data.users) && result.data.users.length > 0) {
+        setUsersList(result.data.users.map((u: any) => enrichUserData(u)));
+      } else {
+        setUsersList(SYSTEM_USERS);
+      }
       setLoading(false);
-      const fetchedLogs = result.data?.login_logs || result.data?.log || result.data?.logs || result.data?.loginLogs || result.data?.login_history || [];
-      setLoginLogs(fetchedLogs);
+      const fetchedLogs = result.data.login_logs || result.data.log || result.data.logs || result.data.loginLogs || result.data.login_history || [];
+      if (fetchedLogs.length > 0) setLoginLogs(fetchedLogs);
     } catch (error) { console.error("Error fetching data:", error); setLoading(false); }
   };
 
   useEffect(() => { 
+    // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ
     fetchData(); 
-    // 🔄 Auto-polling: ดึงข้อมูลฐานข้อมูลภารกิจและ log ใหม่ทุกๆ 30 วินาที เพื่ออัปเดตสถานะบนแผนที่แบบเรียลไทม์
-    const dataInterval = setInterval(() => {
-      fetchData();
-    }, 30000);
-    return () => clearInterval(dataInterval);
   }, []);
 
   // 💓 Heartbeat System: ส่งสัญญาณออนไลน์เฉพาะฝั่ง UI (ลบการส่งไปหลังบ้านออกเพื่อป้องกันชีตบวม)
@@ -201,14 +298,73 @@ export default function Home() {
       return;
     }
     setIsSubmitting(true);
-    let payloadData = { ...formData };
+    let payloadData: any = { ...formData };
     if (currentUser.role === "user") {
       payloadData.affiliation = currentUser.affiliation;
-      payloadData.vehicle_id = currentUser.vehicle_id;
+      // ถ้า vehicle_type = ALL (สถานีมีทั้ง CCOC + UAV) ให้ใช้ vehicle_id จาก form ที่ถูกเลือกไว้
+      // ถ้าเป็น user ปกติ (ไม่ใช่ ALL) ให้ lock vehicle_id เป็นของตัวเอง
+      const isAllType = String(currentUser.vehicle_type || "").trim().toUpperCase() === "ALL";
+      if (!isAllType) {
+        payloadData.vehicle_id = currentUser.vehicle_id;
+      }
     }
+
+    const currentTimestamp = action === "edit" ? selectedMission.timestamp : new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' });
+    const isUav = String(payloadData.vehicle_type || "").toLowerCase().includes("uav") || 
+                  String(payloadData.vehicle_id || "").toLowerCase().includes("uav") ||
+                  Boolean(payloadData.drone_id);
+
+    // 🛠️ FIX COLUMN MISALIGNMENT FOR GOOGLE SHEETS:
+    // Strictly match Row 1 Header columns A to R:
+    // 1: timestamp, 2: unit_name, 3: vehicle_id, 4: mission_name, 5: location, 6: province,
+    // 7: start_date, 8: start_time, 9: commander, 10: operators, 11: drone_id, 12: sorties,
+    // 13: flight_duration_min, 14: coverage_detail, 15: tourist_density, 16: incident_report, 17: remark, 18: status
+    if (isUav) {
+      const touristCountEst = (formData as any).tourist_count_est;
+      const baseDensity = formData.tourist_density || "ปริมาณน้อย";
+      let combinedDensity = baseDensity;
+      if (touristCountEst) {
+        const countStr = String(touristCountEst).trim();
+        const formattedCount = countStr.includes("คน") ? countStr : `${countStr} คน`;
+        combinedDensity = `${baseDensity} (${formattedCount})`;
+      }
+
+      let coverageDetail = String(formData.coverage_detail || "-");
+      const userDist = String((formData as any).distance_km || "").trim();
+      if (userDist && userDist !== "-" && userDist !== "0" && !coverageDetail.includes(userDist)) {
+        if (coverageDetail === "-") {
+          coverageDetail = `ระยะทางรวมไป-กลับ ${userDist} กม.`;
+        } else {
+          coverageDetail = `${coverageDetail} (ระยะทางไป-กลับ ${userDist} กม.)`;
+        }
+      }
+
+      // Strictly 18 keys matching Row 1 Header columns A to R (NO Col S or T):
+      payloadData = {
+        timestamp: currentTimestamp,
+        unit_name: String(formData.unit_name || currentUser?.unit_name || currentUser?.affiliation || "-"),
+        vehicle_id: String(formData.vehicle_id || "stc01"),
+        mission_name: String(formData.mission_name || "ว.43 สายตรวจโดรนมุมสูง"),
+        location: String(formData.location || formData.province || "-"),
+        province: String(formData.province || "-"),
+        start_date: String(formData.start_date || new Date().toISOString().split('T')[0]),
+        start_time: String(formData.start_time || "21.00"),
+        commander: "-",
+        operators: String(formData.operators || "สายตรวจอากาศยานไร้คนขับ"),
+        drone_id: String(formData.drone_id || "DJI Matrice 4T"),
+        sorties: Number(formData.sorties ?? 1),
+        flight_duration_min: Number(formData.flight_duration_min ?? 45),
+        coverage_detail: coverageDetail,
+        tourist_density: String(combinedDensity),
+        incident_report: String(formData.incident_report || "เหตุการณ์ทั่วไปปกติ"),
+        remark: String(formData.remark || "-"),
+        status: String(formData.affiliation || currentUser?.affiliation || "บช.ทท.")
+      };
+    }
+
     const payload = { 
       action: action, 
-      timestamp: action === "edit" ? selectedMission.timestamp : new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' }), 
+      timestamp: currentTimestamp, 
       data: payloadData 
     };
 
@@ -221,8 +377,52 @@ export default function Home() {
       totalFiles: uploadedFiles.length,
     });
 
+    const userDistance = String((formData as any).distance_km || "").trim();
+    const newMissionFormatted = {
+      ...payloadData,
+      tourist_count_est: (formData as any).tourist_count_est || "",
+      timestamp: payload.timestamp,
+      mission_name: payloadData.mission_name || "ว.43 สายตรวจโดรนมุมสูง",
+      vehicle_id: payloadData.vehicle_id || "UAV Mobile",
+      raw_vehicle_id: payloadData.vehicle_id || "UAV Mobile",
+      unit_name: payloadData.unit_name || currentUser.unit_name || currentUser.affiliation || "-",
+      province: payloadData.province || "-",
+      start_date: payloadData.start_date || new Date().toISOString().split('T')[0],
+      start_time: payloadData.start_time || "21.00 น.",
+      distance_km: userDistance || payloadData.distance_km || "-",
+      affiliation: String(formData.affiliation || currentUser?.affiliation || "บช.ทท."),
+      vehicle_type: isUav ? "UAV Mobile" : (payloadData.vehicle_type || "CCOC Mobile")
+    };
+
+    setData((prev: any) => {
+      const currentMissions = prev?.missions || [];
+      if (action === "edit") {
+        const updated = currentMissions.map((m: any) => 
+          m.timestamp === selectedMission?.timestamp ? { ...m, ...newMissionFormatted } : m
+        );
+        return { ...prev, missions: updated };
+      } else {
+        return { ...prev, missions: [newMissionFormatted, ...currentMissions] };
+      }
+    });
+
     try {
-      await fetch(API_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, mode: "no-cors" });
+      const apiRes = await fetch(API_URL, { 
+        method: "POST", 
+        body: JSON.stringify(payload), 
+        headers: { "Content-Type": "application/json" } 
+      });
+      const result = await apiRes.json();
+      const isGasSuccess = result?.gasSuccess !== false;
+
+      // 🛡️ Backup Sync: ส่งตรงไปยัง Google Apps Script จาก Browser กรณี Proxy ในเครื่องมี latency หรือ timeout
+      const GOOGLE_SCRIPT_DIRECT_URL = "https://script.google.com/macros/s/AKfycbwsLqrtjt9fU7P5XOERxEqrM5QAW8MKPrsPw_F5A40LfrvtLYgkY3UnKEDH3db6C8HK/exec";
+      fetch(GOOGLE_SCRIPT_DIRECT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+      }).catch((err) => console.warn("Direct GAS backup sync notice:", err));
       
       updateUploadProgress({ stage: "uploading_photos", progress: 55 });
 
@@ -237,13 +437,14 @@ export default function Home() {
         formDataUpload.append("mission_name", payloadData.mission_name || "");
 
         try {
-          await fetch(`/api/photos/upload`, {
+          const photoRes = await fetch(`/api/photos/upload`, {
             method: "POST",
             headers: {
               "x-vehicle-id": payloadData.vehicle_id,
             },
             body: formDataUpload,
           });
+          if (!photoRes.ok) isPhotoUploadFailed = true;
           updateUploadProgress({ progress: 95 });
         } catch (uploadErr) {
           console.error("❌ Failed to upload photos:", uploadErr);
@@ -258,13 +459,15 @@ export default function Home() {
 
       // แสดง Notification Popup สรุปความสำเร็จ
       showNotification({
-        type: isPhotoUploadFailed ? "warning" : "success",
-        title: action === "add" ? "บันทึกภารกิจสำเร็จ!" : "อัปเดตข้อมูลสำเร็จ!",
-        message: isPhotoUploadFailed
-          ? "บันทึกรายละเอียดภารกิจสำเร็จ แต่ไม่สามารถอัปโหลดรูปภาพได้"
-          : action === "add"
-          ? "ข้อมูลถูกส่งเข้าระบบ Google Sheets และรูปภาพบันทึกเรียบร้อยแล้ว"
-          : "อัปเดตข้อมูลภารกิจเรียบร้อยแล้ว",
+        type: !isGasSuccess ? "warning" : (isPhotoUploadFailed ? "info" : "success"),
+        title: !isGasSuccess
+          ? "บันทึกในเว็บสำเร็จ (กำลังส่งเข้า Google Sheets)"
+          : (action === "add" ? "บันทึกภารกิจสำเร็จ!" : "อัปเดตข้อมูลสำเร็จ!"),
+        message: !isGasSuccess
+          ? "บันทึกข้อมูลบนระบบเว็บสำเร็จแล้ว แต่การส่งไปยัง Google Sheets อาจล่าช้าเนื่องจากสัญญาณเชื่อมต่อ"
+          : (isPhotoUploadFailed
+            ? "บันทึกรายละเอียดภารกิจลง Google Sheets เรียบร้อยแล้ว (เฉพาะไฟล์ภาพถ่ายยังไม่ได้อัปโหลดเนื่องจากยังไม่เปิด Photo Server)"
+            : (action === "add" ? "ข้อมูลถูกบันทึกเรียบร้อยแล้ว" : "อัปเดตข้อมูลภารกิจเรียบร้อยแล้ว")),
         details: [
           `ชื่อภารกิจ: ${payloadData.mission_name || "-"}`,
           `พิกัด/จังหวัด: ${payloadData.province || "-"}`,
@@ -272,16 +475,15 @@ export default function Home() {
         ],
       });
 
-      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "21.00", commander: "พ.ต.ท.อภิชาติ จารุรักษ์", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", livestream_status: "🟢 ถ่ายทอดสดสัญญาณภาพ (Live Stream) เข้าศูนย์ CCOC เรียบร้อย", manpower_saved: "ทดแทนกำลังพล 15 นายในการสแกนมุมสูง", tourist_density: "ปริมาณน้อย", vehicle_type: formVehicleTypeFilter };
+      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "21.00", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", vehicle_type: formVehicleTypeFilter };
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
       setUploadedFiles([]);
       if (action === "edit") { setIsEditing(false); setSelectedMission(null); } else { setActiveMenu(2); setShowMapOverlay(true); }
-      setLoading(true); fetchData(); 
 
       // 🟢 เปิดแสดง Modal LINE Report สำหรับคัดลอกส่งผู้บังคับบัญชา
       if (action === "add") {
-        setLastSubmittedMission(payloadData);
+        setLastSubmittedMission(newMissionFormatted);
         setShowLineReportModal(true);
       } 
     } catch (error) { 
@@ -320,14 +522,11 @@ export default function Home() {
       remark: selectedMission.remark || "",
       location: selectedMission.location || "",
       start_time: selectedMission.start_time || "21.00",
-      commander: selectedMission.commander || "",
       operators: selectedMission.operators || "",
       drone_id: selectedMission.drone_id || "Drone-01",
       sorties: selectedMission.sorties || 1,
       flight_duration_min: selectedMission.flight_duration_min || 45,
       coverage_detail: selectedMission.coverage_detail || "",
-      livestream_status: selectedMission.livestream_status || "",
-      manpower_saved: selectedMission.manpower_saved || "",
       tourist_density: selectedMission.tourist_density || "",
       vehicle_type: selectedMission.vehicle_type || (String(selectedMission.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile")
     });
@@ -347,8 +546,7 @@ export default function Home() {
           await fetch(API_URL, { 
             method: "POST", 
             body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            mode: "no-cors" 
+            headers: { "Content-Type": "application/json" }
           });
           setSelectedMission(null); 
           setLoading(true); 
@@ -440,69 +638,206 @@ export default function Home() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = (type: "CCOC Mobile" | "UAV Mobile" | "ALL") => {
+    setShowPdfModal(false);
     const printWindow = window.open('', '_blank'); if (!printWindow) return;
+
     const toThaiNumber = (text: any) => {
       if (text === null || text === undefined) return "";
-      const arabic = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-      const thai = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"];
+      const arabic = ["0","1","2","3","4","5","6","7","8","9"];
+      const thai = ["๐","๑","๒","๓","๔","๕","๖","๗","๘","๙"];
       let str = String(text);
-      for (let i = 0; i < 10; i++) {
-        str = str.split(arabic[i]).join(thai[i]);
-      }
+      for (let i = 0; i < 10; i++) str = str.split(arabic[i]).join(thai[i]);
       return str;
     };
+
     const normalizeAffiliation = (aff: string) => {
       if (aff === "ฝ่ายอำนวยการ 6" || aff === "ฝ่ายอำนวยการ 6.") return "บช.ทท.";
       return aff;
     };
-    const sortedLogs = [...filteredLogs].sort((a, b) => {
-      const order: Record<string, number> = { 
-        "บช.ทท.": 1, "บก.ทท.1": 2, "บก.ทท.2": 3, "บก.ทท.3": 4 
-      };
-      const affA = normalizeAffiliation(String(a.affiliation || "").trim()); const affB = normalizeAffiliation(String(b.affiliation || "").trim());
-      const weightA = order[affA] || 99; const weightB = order[affB] || 99;
-      if (weightA !== weightB) return weightA - weightB;
+
+    const affOrder: Record<string, number> = { "บช.ทท.": 1, "บก.ทท.1": 2, "บก.ทท.2": 3, "บก.ทท.3": 4 };
+    const sortByAffDate = (a: any, b: any) => {
+      const affA = normalizeAffiliation(String(a.affiliation || "").trim());
+      const affB = normalizeAffiliation(String(b.affiliation || "").trim());
+      const wA = affOrder[affA] || 99, wB = affOrder[affB] || 99;
+      if (wA !== wB) return wA - wB;
       return new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime();
-    });
+    };
 
-    let html = `<html><head><title>รายงานสถิติ</title><style>@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap'); body { font-family: 'Sarabun', sans-serif; padding: 20px; color: #000; font-size: 11px; } h2 { text-align: center; margin-bottom: 5px; font-size: 16px; } p { text-align: center; margin-top: 0; margin-bottom: 10px; } .header-meta { text-align: center; font-size: 12px; margin-bottom: 20px; color: #333; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; } th { background-color: #f0f0f0; text-align: center; } .text-center { text-align: center; } .text-right { text-align: right; } .bg-group { background-color: #e5e7eb; font-weight: bold; text-align: left !important; } @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }</style></head><body><h2>ผลการปฏิบัติการใช้งาน${getVehicleTypeTitleText()}</h2><p style="font-size: 14px; margin-bottom: 15px;"><strong>ประจำห้วงเวลา:</strong> ${toThaiNumber(getDateRangeText())}</p><div class="header-meta"><strong>ผู้พิมพ์รายงาน:</strong> ${toThaiNumber(currentUser.role === 'admin' ? 'Master Admin' : currentUser.affiliation)} | <strong>วันที่พิมพ์:</strong> ${toThaiNumber(new Date().toLocaleString('th-TH'))}</div><table><thead><tr><th rowspan="2" width="4%">ลำดับ</th><th rowspan="2" width="15%">หน่วย</th><th rowspan="2" width="20%">ชื่อภารกิจ / จังหวัด</th><th colspan="3">วัน เดือน ปี จัดงาน</th><th rowspan="2" width="8%">ระยะทางที่ตั้งรถ ถึง จุดจัดงาน<br/>ไป-กลับ(กม.)</th><th colspan="2">จำนวนผู้ร่วมงาน</th><th rowspan="2" width="15%">เหตุการณ์สำคัญที่รับแจ้ง</th><th rowspan="2" width="10%">หมายเหตุ</th></tr><tr><th width="6%">เริ่มวันที่</th><th width="6%">ถึงวันที่</th><th width="5%">รวม/วัน</th><th width="5%">ต่อวัน</th><th width="6%">ตลอดงาน</th></tr></thead><tbody>`;
-    
-    let currentAffiliation = ""; let rowIndex = 1;
-    sortedLogs.forEach((m: any) => {
-      const aff = normalizeAffiliation(String(m.affiliation || "ไม่ระบุสังกัด").trim());
-      if (aff !== currentAffiliation) { html += `<tr><td colspan="11" class="bg-group">${toThaiNumber(aff)}</td></tr>`; currentAffiliation = aff; rowIndex = 1; }
-      
-      const unitName = `${m.unit_name || "-"}<br/><small>${VEHICLE_NAMES[m.vehicle_id] || m.vehicle_id}</small>`;
-      const missionAndProv = `${m.mission_name || "-"}<br/><b>${m.province || "-"}</b>`;
-      const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
-      const eDate = m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
-      
-      html += `<tr><td class="text-center">${toThaiNumber(rowIndex++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndProv)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(eDate)}</td><td class="text-center">${toThaiNumber(m.total_days || 0)}</td><td class="text-center">${toThaiNumber(m.distance_km || 0)}</td><td class="text-right">${toThaiNumber(Number(m.people_per_day || 0).toLocaleString())}</td><td class="text-right">${toThaiNumber(Number(m.people_total || 0).toLocaleString())}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
-    });
+    // แยกข้อมูล CCOC และ UAV
+    const ccocLogs = [...filteredLogs].filter(m => {
+      const vt = String(m.vehicle_type || "").toLowerCase();
+      const vid = String(m.vehicle_id || "").toLowerCase();
+      return vt === "ccoc mobile" || vid.startsWith("stc");
+    }).sort(sortByAffDate);
 
-    const totalMissions = sortedLogs.length;
-    const totalDistance = sortedLogs.reduce((sum, m) => sum + Number(m.distance_km || 0), 0);
-    const totalPeoplePerDay = sortedLogs.reduce((sum, m) => sum + Number(m.people_per_day || 0), 0);
-    const totalPeopleAll = sortedLogs.reduce((sum, m) => sum + Number(m.people_total || 0), 0);
+    const uavLogs = [...filteredLogs].filter(m => {
+      const vt = String(m.vehicle_type || "").toLowerCase();
+      const vid = String(m.vehicle_id || "").toLowerCase();
+      return vt === "uav mobile" || vid.startsWith("uav") || vid === "uav mobile" || Boolean(m.drone_id);
+    }).sort(sortByAffDate);
 
-    html += `
-        <tr style="background-color: #d1d5db; font-weight: bold; font-size: 12px;">
-          <td colspan="6" class="text-right">รวมสถิติในห้วงเวลานี้ทั้งหมด ${toThaiNumber(totalMissions.toLocaleString())} ภารกิจ :</td>
-          <td class="text-center">${toThaiNumber(totalDistance.toLocaleString())}</td>
-          <td class="text-right">${toThaiNumber(totalPeoplePerDay.toLocaleString())}</td>
-          <td class="text-right">${toThaiNumber(totalPeopleAll.toLocaleString())}</td>
-          <td colspan="2"></td>
-        </tr>
-      </tbody>
-    </table>
-    </body>
-    </html>
-    `;
-    
-    printWindow.document.write(html); printWindow.document.close();
+    const titleType = type === "CCOC Mobile" ? "รถปฏิบัติการเคลื่อนที่ CCOC Mobile"
+      : type === "UAV Mobile" ? "สายตรวจอากาศยานไร้คนขับ (UAV Mobile)"
+      : "รถปฏิบัติการเคลื่อนที่ CCOC Mobile และ UAV Mobile";
+
+    const commonCSS = `@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
+      body { font-family: 'Sarabun', sans-serif; padding: 20px; color: #000; font-size: 11px; }
+      h2 { text-align: center; margin-bottom: 5px; font-size: 16px; }
+      h3 { text-align: center; margin: 20px 0 8px; font-size: 14px; color: #1d4ed8; border-bottom: 2px solid #1d4ed8; padding-bottom: 4px; }
+      p { text-align: center; margin-top: 0; margin-bottom: 10px; }
+      .header-meta { text-align: center; font-size: 12px; margin-bottom: 20px; color: #333; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+      th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; }
+      th { background-color: #f0f0f0; text-align: center; }
+      .text-center { text-align: center; } .text-right { text-align: right; }
+      .bg-group { background-color: #e5e7eb; font-weight: bold; text-align: left !important; }
+      .section-uav th { background-color: #dbeafe; }
+      @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }`;
+
+    // ─── ฟังก์ชัน build ตาราง CCOC ────────────────────────────────────────────
+    const buildCCOCTable = (logs: any[]) => {
+      if (logs.length === 0) return `<p style="color:#6b7280;">ไม่มีข้อมูล CCOC Mobile ในช่วงเวลาที่เลือก</p>`;
+      let html = `<table><thead><tr>
+        <th rowspan="2" width="4%">ลำดับ</th>
+        <th rowspan="2" width="15%">หน่วย</th>
+        <th rowspan="2" width="20%">ชื่อภารกิจ / จังหวัด</th>
+        <th colspan="3">วัน เดือน ปี จัดงาน</th>
+        <th rowspan="2" width="8%">ระยะทางที่ตั้งรถ ถึง จุดจัดงาน<br/>ไป-กลับ(กม.)</th>
+        <th colspan="2">จำนวนผู้ร่วมงาน</th>
+        <th rowspan="2" width="15%">เหตุการณ์สำคัญที่รับแจ้ง</th>
+        <th rowspan="2" width="10%">หมายเหตุ</th>
+      </tr><tr>
+        <th width="6%">เริ่มวันที่</th><th width="6%">ถึงวันที่</th><th width="5%">รวม/วัน</th>
+        <th width="5%">ต่อวัน</th><th width="6%">ตลอดงาน</th>
+      </tr></thead><tbody>`;
+      let curAff = ""; let rowIdx = 1;
+      logs.forEach((m: any) => {
+        const aff = normalizeAffiliation(String(m.affiliation || "ไม่ระบุสังกัด").trim());
+        if (aff !== curAff) { html += `<tr><td colspan="11" class="bg-group">${toThaiNumber(aff)}</td></tr>`; curAff = aff; rowIdx = 1; }
+        const unitName = `${m.unit_name || "-"}<br/><small>${VEHICLE_NAMES[m.vehicle_id] || m.vehicle_id}</small>`;
+        const missionAndProv = `${m.mission_name || "-"}<br/><b>${m.province || "-"}</b>`;
+        const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
+        const eDate = m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
+        html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndProv)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(eDate)}</td><td class="text-center">${toThaiNumber(m.total_days || 0)}</td><td class="text-center">${toThaiNumber(m.distance_km || 0)}</td><td class="text-right">${toThaiNumber(Number(m.people_per_day || 0).toLocaleString())}</td><td class="text-right">${toThaiNumber(Number(m.people_total || 0).toLocaleString())}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+      });
+      const totDist = logs.reduce((s, m) => s + Number(m.distance_km || 0), 0);
+      const totPplDay = logs.reduce((s, m) => s + Number(m.people_per_day || 0), 0);
+      const totPplAll = logs.reduce((s, m) => s + Number(m.people_total || 0), 0);
+      html += `<tr style="background-color:#d1d5db;font-weight:bold;font-size:12px;"><td colspan="6" class="text-right">รวมสถิติทั้งหมด ${toThaiNumber(logs.length.toLocaleString())} ภารกิจ :</td><td class="text-center">${toThaiNumber(totDist.toLocaleString())}</td><td class="text-right">${toThaiNumber(totPplDay.toLocaleString())}</td><td class="text-right">${toThaiNumber(totPplAll.toLocaleString())}</td><td colspan="2"></td></tr>`;
+      html += `</tbody></table>`;
+      return html;
+    };
+
+    // ─── ฟังก์ชัน build ตาราง UAV ─────────────────────────────────────────────
+    const buildUAVTable = (logs: any[]) => {
+      if (logs.length === 0) return `<p style="color:#6b7280;">ไม่มีข้อมูล UAV Mobile ในช่วงเวลาที่เลือก</p>`;
+
+      const getFlightDuration = (m: any): number => {
+        const val = m.flight_duration_min;
+        if (val !== undefined && val !== null && val !== "") {
+          const num = Number(String(val).replace(/[^0-9.]/g, ""));
+          if (!isNaN(num) && num > 0) return num;
+        }
+        return 45; // ค่ามาตรฐานหากไม่ได้ระบุ
+      };
+
+      const getTouristNumber = (m: any): number => {
+        const fields = [m.tourist_count_est, m.people_per_day, m.people_total];
+        for (const f of fields) {
+          if (f !== null && f !== undefined && f !== "") {
+            const numStr = String(f).replace(/[^0-9]/g, "");
+            if (numStr && !isNaN(Number(numStr))) {
+              const num = Number(numStr);
+              if (num > 0) return num;
+            }
+          }
+        }
+        return 0;
+      };
+
+      let html = `<table class="section-uav"><thead><tr>
+        <th rowspan="2" width="4%">ลำดับ</th>
+        <th rowspan="2" width="14%">หน่วย</th>
+        <th rowspan="2" width="18%">ชื่อภารกิจ / สถานที่ / จังหวัด</th>
+        <th colspan="2">วันเวลาปฏิบัติการ</th>
+        <th colspan="3">ข้อมูลการบิน UAV</th>
+        <th rowspan="2" width="8%">ระยะทาง<br/>ปฏิบัติภารกิจ (กม.)</th>
+        <th rowspan="2" width="8%">ปริมาณ/จำนวน<br/>นักท่องเที่ยว</th>
+        <th rowspan="2" width="14%">เหตุการณ์สำคัญ</th>
+        <th rowspan="2" width="8%">หมายเหตุ</th>
+      </tr><tr>
+        <th width="7%">วันที่</th><th width="5%">เวลา</th>
+        <th width="9%">รุ่น/รหัสโดรน</th><th width="5%">รอบบิน</th><th width="6%">เวลาบิน (นาที)</th>
+      </tr></thead><tbody>`;
+      let curAff = ""; let rowIdx = 1;
+      logs.forEach((m: any) => {
+        const aff = normalizeAffiliation(String(m.affiliation || "ไม่ระบุสังกัด").trim());
+        if (aff !== curAff) { html += `<tr><td colspan="12" class="bg-group">${toThaiNumber(aff)}</td></tr>`; curAff = aff; rowIdx = 1; }
+        const unitName = `${m.unit_name || "-"}<br/><small>${m.raw_vehicle_id || m.vehicle_id || "UAV"}</small>`;
+        const missionAndPlace = `${m.mission_name || "-"}<br/><small>${m.location || ""}</small><br/><b>${m.province || "-"}</b>`;
+        const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
+        
+        const flightMin = getFlightDuration(m);
+        const tNum = getTouristNumber(m);
+        const touristVal = tNum > 0 
+          ? `${tNum.toLocaleString()} คน`
+          : (m.tourist_count_est && m.tourist_count_est !== "ปริมาณน้อย" 
+              ? m.tourist_count_est 
+              : (m.tourist_density || "-"));
+
+        html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(m.start_time || "-")}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+      });
+
+      const totDist = logs.reduce((s, m) => s + Number(m.distance_km || 0), 0);
+      const totFlight = logs.reduce((s, m) => s + getFlightDuration(m), 0);
+      const totTourists = logs.reduce((s, m) => s + getTouristNumber(m), 0);
+
+      const formatFlightTotal = (mins: number) => {
+        if (mins >= 60) {
+          const hrs = Math.floor(mins / 60);
+          const remainingMins = mins % 60;
+          if (remainingMins > 0) {
+            return `${toThaiNumber(mins.toLocaleString())} นาที (${toThaiNumber(hrs)} ชม. ${toThaiNumber(remainingMins)} นาที)`;
+          }
+          return `${toThaiNumber(mins.toLocaleString())} นาที (${toThaiNumber(hrs)} ชม.)`;
+        }
+        return `${toThaiNumber(mins.toLocaleString())} นาที`;
+      };
+
+      const touristTotalText = totTourists > 0 ? `${toThaiNumber(totTourists.toLocaleString())} คน` : "-";
+
+      html += `<tr style="background-color:#dbeafe;font-weight:bold;font-size:12px;"><td colspan="7" class="text-right">รวมสถิติทั้งหมด ${toThaiNumber(logs.length.toLocaleString())} ภารกิจ :</td><td class="text-center">${formatFlightTotal(totFlight)}</td><td class="text-center">${toThaiNumber(totDist.toLocaleString())}</td><td class="text-center">${touristTotalText}</td><td colspan="2"></td></tr>`;
+      html += `</tbody></table>`;
+      return html;
+    };
+
+    // ─── Build final HTML ─────────────────────────────────────────────────────
+    let bodyContent = "";
+    if (type === "CCOC Mobile") {
+      bodyContent = `<h3>ผลการปฏิบัติการ — รถปฏิบัติการเคลื่อนที่ CCOC Mobile</h3>${buildCCOCTable(ccocLogs)}`;
+    } else if (type === "UAV Mobile") {
+      bodyContent = `<h3 style="color:#1e40af;">ผลการปฏิบัติการ — สายตรวจอากาศยานไร้คนขับ (UAV Mobile)</h3>${buildUAVTable(uavLogs)}`;
+    } else {
+      // ALL = Section CCOC แล้วตาม UAV
+      bodyContent = `
+        <h3>Section 1 — รถปฏิบัติการเคลื่อนที่ CCOC Mobile</h3>${buildCCOCTable(ccocLogs)}
+        <h3 style="color:#1e40af;">Section 2 — สายตรวจอากาศยานไร้คนขับ (UAV Mobile)</h3>${buildUAVTable(uavLogs)}`;
+    }
+
+    const html = `<html><head><title>รายงานสถิติ ${titleType}</title><style>${commonCSS}</style></head><body>
+      <h2>ผลการปฏิบัติการใช้งาน${titleType}</h2>
+      <p style="font-size:14px;margin-bottom:8px;"><strong>ประจำห้วงเวลา:</strong> ${toThaiNumber(getDateRangeText())}</p>
+      <div class="header-meta"><strong>ผู้พิมพ์รายงาน:</strong> ${toThaiNumber(currentUser.role === 'admin' ? 'Master Admin' : currentUser.affiliation)} | <strong>วันที่พิมพ์:</strong> ${toThaiNumber(new Date().toLocaleString('th-TH'))}</div>
+      ${bodyContent}
+    </body></html>`;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
     setTimeout(() => { printWindow.print(); }, 500);
   };
+
 
   const realistic3DUICSS = `
     /* พื้นหลังแบบไล่ระดับความลึก (Depth Screen) */
@@ -789,12 +1124,24 @@ export default function Home() {
         
         <div className="mt-auto p-4 border-t border-white/5 flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full btn-3d flex items-center justify-center ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><UserCircle size={20}/></div>
+            <div className={`w-10 h-10 rounded-full btn-3d flex items-center justify-center shrink-0 ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><UserCircle size={20}/></div>
             <div className="flex-1 overflow-hidden">
-              <p className={`text-sm font-bold truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{currentUser.role === 'admin' ? 'Master Admin' : VEHICLE_NAMES[currentUser.username] || currentUser.username}</p>
-              <p className={`text-[10px] font-mono truncate ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{currentUser.affiliation}</p>
+              <p className={`text-sm font-bold truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`} title={currentUser.role === 'admin' ? 'Master Admin' : (currentUser.unit_name || currentUser.vehicle_name || VEHICLE_UNIT_MAP[currentUser.username?.toLowerCase()] || currentUser.username)}>
+                {currentUser.role === 'admin' ? 'Master Admin' : (currentUser.unit_name || currentUser.vehicle_name || VEHICLE_UNIT_MAP[currentUser.username?.toLowerCase()] || currentUser.username)}
+              </p>
+              <p className={`text-[11px] font-mono font-bold truncate ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
+                {currentUser.role === 'admin' ? 'ALL' : `${currentUser.username} (${currentUser.affiliation || VEHICLE_AFFILIATIONS[currentUser.username?.toLowerCase()] || 'บก.ทท.'})`}
+              </p>
             </div>
           </div>
+          {/* ปุ่ม รีเฟรชข้อมูล */}
+          <button 
+            onClick={() => { setLoading(true); fetchData(); }} 
+            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold tracking-wider btn-3d transition-all ${isDarkMode ? 'btn-menu-dark text-cyan-400 hover:text-cyan-300' : 'btn-menu-light text-cyan-600 hover:text-cyan-700'}`}
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> {loading ? "กำลังรีเฟรช..." : "รีเฟรชข้อมูล"}
+          </button>
+
           <button onClick={() => { 
             try { localStorage.removeItem('ccoc_current_user'); } catch (e) {}
             setCurrentUser(null); 
@@ -819,14 +1166,17 @@ export default function Home() {
                 currentUser={currentUser}
                 usersList={usersList}
                 missions={data?.missions || []}
-                onRecordMission={(vehicleId, affiliation) => {
-                  const isUav = String(vehicleId || "").toLowerCase().includes("uav");
-                  setFormVehicleTypeFilter(isUav ? "UAV Mobile" : "CCOC Mobile");
+                onRecordMission={(vehicleId, affiliation, targetVehicleType) => {
+                  const isUav = targetVehicleType ? (targetVehicleType === "UAV Mobile") : String(vehicleId || "").toLowerCase().includes("uav");
+                  const vType = targetVehicleType || (isUav ? "UAV Mobile" : "CCOC Mobile");
+                  setFormVehicleTypeFilter(vType);
+                  const foundUser = usersList.find((u: any) => String(u.username || "").toLowerCase() === String(vehicleId || "").toLowerCase());
                   setFormData(prev => ({
                     ...prev,
                     vehicle_id: vehicleId,
-                    vehicle_type: isUav ? "UAV Mobile" : "CCOC Mobile",
-                    affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId] || prev.affiliation
+                    vehicle_type: vType,
+                    unit_name: foundUser?.unit_name || prev.unit_name,
+                    affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation
                   }));
                   setShowMapOverlay(false);
                 }}
@@ -1155,7 +1505,7 @@ export default function Home() {
                 <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
                   <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรชข้อมูล
                 </button>
-                <button onClick={handleExportPDF} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
+                <button onClick={() => setShowPdfModal(true)} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
                   <Printer size={16} /> ดึงไฟล์ PDF
                 </button>
 
@@ -1210,7 +1560,7 @@ export default function Home() {
                           <div className={`col-span-4 font-bold truncate pr-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{mission.mission_name || "ไม่ระบุชื่อภารกิจ"}</div>
                           <div className="col-span-2 text-center"><span className={`text-xs font-mono px-3 py-1.5 rounded-lg shadow-inner ${getAffiliationColor(mission.affiliation, isDarkMode)}`}>{mission.affiliation || "-"}</span></div>
                           <div className={`col-span-2 truncate pr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{mission.province}</div>
-                          <div className={`col-span-3 text-right font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{mission.timestamp ? new Date(mission.timestamp).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}</div>
+                          <div className={`col-span-3 text-right font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{formatRecordedDate(mission.timestamp)}</div>
                         </div>
                       ))}
                       {filteredLogs.length === 0 && <div className="text-center py-10"><p className={isDarkMode ? 'text-gray-500 font-mono' : 'text-gray-400 font-mono'}>NO DATA FOUND</p></div>}
@@ -1279,9 +1629,7 @@ export default function Home() {
                     <div className="space-y-2 pr-2">
                       {loginLogs.slice().reverse().map((log: any, index: number) => {
                         const displayName = VEHICLE_NAMES[log.username] || log.username;
-                        const formattedTime = log.timestamp
-                          ? new Date(log.timestamp).toLocaleString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                          : "ไม่ระบุเวลา";
+                        const formattedTime = log.timestamp ? formatRecordedDate(log.timestamp) : "ไม่ระบุเวลา";
                         const isAdmin = log.role === "admin";
                         return (
                           <div key={index} style={{ animationDelay: `${Math.min(index, 20) * 25}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light'}`}>
@@ -1401,35 +1749,151 @@ export default function Home() {
                 
                 {/* เนื้อหาด้านใน Modal */}
                 {!isEditing ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <div className="space-y-6">
-                        <div><p className={`text-xs font-bold tracking-widest mb-1 ${isDarkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>ชื่อภารกิจ</p><p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{selectedMission.mission_name}</p></div>
-                        <div className="flex items-center gap-4"><div className={`p-4 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><MapPin /></div><div><p className="text-xs font-bold text-gray-500">พิกัด / จังหวัด</p><p className={`text-lg font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{selectedMission.province}</p></div></div>
-                        <div className="flex items-center gap-4"><div className={`p-4 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><Shield /></div><div><p className="text-xs font-bold text-gray-500">สังกัด / รหัสรถ</p><p className="mt-1 font-mono font-bold text-fuchsia-500">{selectedMission.affiliation} | {VEHICLE_NAMES[selectedMission.vehicle_id] || selectedMission.vehicle_id}</p></div></div>
-                     </div>
-                     <div className="space-y-6">
-                        <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                          <p className="text-xs font-bold text-gray-500 mb-2"><Calendar className="inline mr-2" size={14}/>ห้วงเวลาปฏิบัติการ</p>
-                          <p className={`text-lg font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{selectedMission.start_date ? new Date(selectedMission.start_date).toLocaleDateString('th-TH') : '-'} ถึง {selectedMission.end_date ? new Date(selectedMission.end_date).toLocaleDateString('th-TH') : '-'}</p>
-                          <p className={`text-sm mt-2 font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>รวม: {selectedMission.total_days} วัน</p>
+                  (() => {
+                    const isSelectedUav = String(selectedMission.vehicle_type || "").toLowerCase().includes("uav") ||
+                                          String(selectedMission.vehicle_id || "").toLowerCase().includes("uav") ||
+                                          Boolean(selectedMission.drone_id);
+
+                    const formatModalDate = (dStr: string) => {
+                      if (!dStr) return "-";
+                      try {
+                        const d = new Date(dStr);
+                        if (isNaN(d.getTime())) return dStr;
+                        return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                      } catch { return dStr; }
+                    };
+
+                    return isSelectedUav ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-5">
+                          <div>
+                            <p className={`text-xs font-bold tracking-widest mb-1 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>ชื่อภารกิจ UAV</p>
+                            <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{selectedMission.mission_name || "-"}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className={`p-3 rounded-xl btn-3d shrink-0 ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><MapPin size={20} /></div>
+                            <div>
+                              <p className="text-xs font-bold text-gray-500">พิกัด / จังหวัด</p>
+                              <p className={`text-base font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{selectedMission.province || selectedMission.location || "-"}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className={`p-3 rounded-xl btn-3d shrink-0 ${isDarkMode ? 'btn-menu-dark text-orange-400' : 'btn-menu-light text-orange-600'}`}><Shield size={20} /></div>
+                            <div>
+                              <p className="text-xs font-bold text-gray-500">สังกัด / รหัสโดรน</p>
+                              <p className="mt-0.5 font-mono font-bold text-orange-400">{selectedMission.affiliation || "บช.ทท."} | {selectedMission.unit_name ? `${selectedMission.unit_name} (${selectedMission.raw_vehicle_id || selectedMission.vehicle_id})` : (selectedMission.raw_vehicle_id || selectedMission.vehicle_id)}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                          <p className="text-xs font-bold text-gray-500 mb-2"><Users className="inline mr-2" size={14}/>จำนวนผู้เข้าร่วมงานโดยประมาณ</p>
-                          <p className={`text-3xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>{Number(selectedMission.people_total).toLocaleString()} <span className="text-sm font-normal text-gray-500">คน</span></p>
+
+                        <div className="space-y-5">
+                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                            <p className="text-xs font-bold text-gray-500 mb-1"><Calendar className="inline mr-1.5" size={14}/>วันเวลาปฏิบัติการ</p>
+                            <p className={`text-base font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>วันที่ {formatModalDate(selectedMission.start_date)} เวลา {selectedMission.start_time || "21.00"} น.</p>
+                            <p className={`text-xs mt-2 font-mono ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>ระยะทางปฏิบัติภารกิจ: {selectedMission.distance_km ? `${selectedMission.distance_km} กม.` : "-"}</p>
+                          </div>
+
+                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                            <p className="text-xs font-bold text-gray-500 mb-1"><Plane className="inline mr-1.5" size={14}/>ข้อมูลโดรน UAV</p>
+                            <p className={`text-sm font-bold ${isDarkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>รุ่นโดรน: {selectedMission.drone_id || "Drone-01"}</p>
+                            <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>รอบการบิน: {selectedMission.sorties || 1} รอบ | ระยะเวลาบิน: {selectedMission.flight_duration_min || 45} นาที</p>
+                            {selectedMission.coverage_detail && (
+                              <p className={`text-xs mt-1.5 pt-1.5 border-t border-white/10 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>พื้นที่ปฏิบัติการ: {selectedMission.coverage_detail}</p>
+                            )}
+                          </div>
+
+                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                            <p className="text-xs font-bold text-gray-500 mb-1"><Users className="inline mr-1.5" size={14}/>ปริมาณ / จำนวนนักท่องเที่ยวโดยประมาณ</p>
+                            <p className={`text-xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                              {(() => {
+                                const count = selectedMission.tourist_count_est || selectedMission.people_total || selectedMission.people_per_day;
+                                if (count && count !== "-" && !String(count).includes("ไม่ได้")) {
+                                  const numStr = String(count).trim();
+                                  if (/^\d+$/.test(numStr)) {
+                                    return `${Number(numStr).toLocaleString()} คน`;
+                                  }
+                                  return numStr.includes("คน") ? numStr : `${numStr} คน`;
+                                }
+                                const density = selectedMission.tourist_density || "-";
+                                if (density !== "-" && !density.includes("ไม่ได้")) {
+                                  return density;
+                                }
+                                return "-";
+                              })()}
+                            </p>
+                          </div>
                         </div>
-                     </div>
-                     <div className={`md:col-span-2 grid grid-cols-2 gap-6 pt-6 border-t border-white/10`}>
-                        <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}><p className="text-xs font-bold text-gray-500 mb-2">INCIDENT REPORT</p><p className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{selectedMission.incident_report || "-"}</p></div>
-                        <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}><p className="text-xs font-bold text-gray-500 mb-2">REMARK / DISTANCE</p><p className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{selectedMission.remark || "-"}</p><p className={`mt-2 font-mono font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>Distance: {selectedMission.distance_km} km</p></div>
-                     </div>
-                     <div className="md:col-span-2 pt-6 border-t border-white/10">
-                       <PhotoGallery
-                         missionTimestamp={selectedMission.timestamp}
-                         currentUser={currentUser}
-                         isDarkMode={isDarkMode}
-                       />
-                     </div>
-                  </div>
+
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/10">
+                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                            <p className="text-xs font-bold text-gray-500 mb-1">ผลการปฏิบัติงาน (INCIDENT REPORT)</p>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{selectedMission.incident_report || "เหตุการณ์ทั่วไปปกติ"}</p>
+                          </div>
+                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                            <p className="text-xs font-bold text-gray-500 mb-1">หมายเหตุ / ข้อมูลเพิ่มเติม (REMARK)</p>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{selectedMission.remark || "-"}</p>
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/10">
+                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                            <p className="text-xs font-bold text-gray-500 mb-1">ผลการปฏิบัติงาน (INCIDENT REPORT)</p>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{selectedMission.incident_report || "เหตุการณ์ทั่วไปปกติ"}</p>
+                          </div>
+                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                            <p className="text-xs font-bold text-gray-500 mb-1">หมายเหตุ / ข้อมูลเพิ่มเติม (REMARK)</p>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{selectedMission.remark || "-"}</p>
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-2 pt-4 border-t border-white/10">
+                          <PhotoGallery
+                            missionTimestamp={selectedMission.timestamp}
+                            currentUser={currentUser}
+                            isDarkMode={isDarkMode}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <div className="space-y-6">
+                            <div><p className={`text-xs font-bold tracking-widest mb-1 ${isDarkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>ชื่อภารกิจ</p><p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{selectedMission.mission_name || "-"}</p></div>
+                            <div className="flex items-center gap-4"><div className={`p-4 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><MapPin /></div><div><p className="text-xs font-bold text-gray-500">พิกัด / จังหวัด</p><p className={`text-lg font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{selectedMission.province || "-"}</p></div></div>
+                            <div className="flex items-center gap-4"><div className={`p-4 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><Shield /></div><div><p className="text-xs font-bold text-gray-500">สังกัด / รหัสรถ</p><p className="mt-1 font-mono font-bold text-fuchsia-500">{selectedMission.affiliation || "บช.ทท."} | {VEHICLE_NAMES[selectedMission.vehicle_id] || selectedMission.vehicle_id}</p></div></div>
+                         </div>
+                         <div className="space-y-6">
+                            <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                              <p className="text-xs font-bold text-gray-500 mb-2"><Calendar className="inline mr-2" size={14}/>ห้วงเวลาปฏิบัติการ</p>
+                              <p className={`text-lg font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                                {formatModalDate(selectedMission.start_date)} {selectedMission.end_date ? `ถึง ${formatModalDate(selectedMission.end_date)}` : ""}
+                              </p>
+                              {selectedMission.total_days && <p className={`text-sm mt-2 font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>รวม: {selectedMission.total_days} วัน</p>}
+                            </div>
+                            <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                              <p className="text-xs font-bold text-gray-500 mb-2"><Users className="inline mr-2" size={14}/>จำนวนผู้เข้าร่วมงานโดยประมาณ</p>
+                              <p className={`text-3xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                                {!isNaN(Number(selectedMission.people_total)) && Number(selectedMission.people_total) > 0 
+                                  ? Number(selectedMission.people_total).toLocaleString() 
+                                  : !isNaN(Number(selectedMission.people_per_day)) 
+                                  ? Number(selectedMission.people_per_day).toLocaleString() 
+                                  : "-"} <span className="text-sm font-normal text-gray-500">คน</span>
+                              </p>
+                            </div>
+                         </div>
+                         <div className={`md:col-span-2 grid grid-cols-2 gap-6 pt-6 border-t border-white/10`}>
+                            <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}><p className="text-xs font-bold text-gray-500 mb-2">INCIDENT REPORT</p><p className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{selectedMission.incident_report || "-"}</p></div>
+                            <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}><p className="text-xs font-bold text-gray-500 mb-2">REMARK / DISTANCE</p><p className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{selectedMission.remark || "-"}</p><p className={`mt-2 font-mono font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>{selectedMission.distance_km ? `Distance: ${selectedMission.distance_km} km` : ""}</p></div>
+                         </div>
+                         <div className="md:col-span-2 pt-6 border-t border-white/10">
+                           <PhotoGallery
+                             missionTimestamp={selectedMission.timestamp}
+                             currentUser={currentUser}
+                             isDarkMode={isDarkMode}
+                           />
+                         </div>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <form onSubmit={(e) => handleSubmit(e, "edit")} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {/* ... ฟอร์ม Edit ... */}
@@ -1470,6 +1934,110 @@ export default function Home() {
         missionData={lastSubmittedMission}
         isDarkMode={isDarkMode}
       />
+
+      {/* PDF Export Modal Popup */}
+      {showPdfModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 anim-fade-in">
+          <div className={`w-full max-w-lg p-6 sm:p-8 rounded-3xl relative btn-3d anim-pop-in border ${
+            isDarkMode 
+              ? 'bg-slate-900/95 border-red-500/30 text-white shadow-[0_0_50px_rgba(239,68,68,0.2)]' 
+              : 'bg-white border-red-200 text-gray-900 shadow-2xl'
+          }`}>
+            <button 
+              onClick={() => setShowPdfModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-gray-500/20 text-gray-400 hover:text-white transition-all"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 rounded-2xl bg-red-500/20 text-red-500 border border-red-500/30">
+                <Printer size={28} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">ออกรายงานไฟล์ PDF</h3>
+                <p className="text-xs text-gray-400 mt-0.5">เลือกประเภทข้อมูลของตารางที่ต้องการดึงรายงาน</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3.5 my-6">
+              {/* ตัวเลือก 1: CCOC Mobile */}
+              <button
+                onClick={() => handleExportPDF("CCOC Mobile")}
+                className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left group ${
+                  isDarkMode 
+                    ? 'bg-slate-800/80 hover:bg-slate-700/80 border-cyan-500/30 hover:border-cyan-400' 
+                    : 'bg-cyan-50/60 hover:bg-cyan-100/80 border-cyan-200 hover:border-cyan-400'
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 group-hover:scale-110 transition-transform">
+                    <Truck size={22} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-cyan-400">รถปฏิบัติการเคลื่อนที่ CCOC Mobile</h4>
+                    <p className="text-xs text-gray-400">สถิติระยะทาง, ผู้ร่วมงาน, เหตุการณ์สำคัญ</p>
+                  </div>
+                </div>
+                <ExternalLink size={18} className="text-gray-400 group-hover:text-cyan-400 transition-colors shrink-0" />
+              </button>
+
+              {/* ตัวเลือก 2: UAV Mobile */}
+              <button
+                onClick={() => handleExportPDF("UAV Mobile")}
+                className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left group ${
+                  isDarkMode 
+                    ? 'bg-slate-800/80 hover:bg-slate-700/80 border-blue-500/30 hover:border-blue-400' 
+                    : 'bg-blue-50/60 hover:bg-blue-100/80 border-blue-200 hover:border-blue-400'
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 group-hover:scale-110 transition-transform">
+                    <Plane size={22} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-blue-400">สายตรวจอากาศยานไร้คนขับ (UAV Mobile)</h4>
+                    <p className="text-xs text-gray-400">ข้อมูลการบิน, เวลาบิน, โดรน, นักท่องเที่ยว</p>
+                  </div>
+                </div>
+                <ExternalLink size={18} className="text-gray-400 group-hover:text-blue-400 transition-colors shrink-0" />
+              </button>
+
+              {/* ตัวเลือก 3: ทั้งสองประเภท */}
+              <button
+                onClick={() => handleExportPDF("ALL")}
+                className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left group ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/40 hover:from-purple-800/60 hover:to-indigo-800/60 border-purple-500/40 hover:border-purple-400' 
+                    : 'bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200 hover:border-purple-400'
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400 group-hover:scale-110 transition-transform">
+                    <FileSpreadsheet size={22} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-purple-400">ทั้ง 2 ประเภท (CCOC & UAV)</h4>
+                    <p className="text-xs text-gray-400">ออกรายงานรวม แยก Section 1 (CCOC) และ Section 2 (UAV)</p>
+                  </div>
+                </div>
+                <ExternalLink size={18} className="text-gray-400 group-hover:text-purple-400 transition-colors shrink-0" />
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setShowPdfModal(false)}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                }`}
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

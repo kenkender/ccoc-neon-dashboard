@@ -37,35 +37,50 @@ export default function LineReportModal({
 
   const isUav =
     String(missionData.vehicle_id || "").toLowerCase().includes("uav") ||
-    missionData.vehicle_type === "UAV Mobile";
+    String(missionData.vehicle_type || "").toLowerCase().includes("uav") ||
+    Boolean(missionData.drone_id) ||
+    Boolean(missionData.sorties);
 
-  // 📝 สร้างข้อความรายงานผู้บังคับบัญชาแบบตำรวจ (LINE Report Format)
+  // 📝 สร้างข้อความรายงานผู้บังคับบัญชาแบบตำรวจ (LINE Report Format อ้างอิงหัวข้อฟอร์มล่าสุด)
   const lineMessageText = isUav
-    ? `${missionData.unit_name || "ส.ทท.5 กก.2 บก.ทท.1"}
+    ? `${missionData.unit_name || missionData.affiliation || "บช.ทท."}
 เรียน ผู้บังคับบัญชา
-🗓️  วันที่ ${formatDateThai(missionData.start_date)}
-🕗  เวลา ${missionData.start_time || "ไม่ระบุ"} น.
-👮‍♂️  ผู้ปฏิบัติ: ${missionData.operators || "สายตรวจอากาศยานไร้คนขับ"}
-     ผู้ควบคุมการปฏิบัติ: ${missionData.commander || "พ.ต.ท.อภิชาติ จารุรักษ์"}
-🟥  การปฏิบัติ: ${missionData.mission_name || "ว.10 ป้องกันเหตุ"}
-📍  สถานที่: ${missionData.location || "ไม่ระบุ"} ${missionData.province ? `จ.${missionData.province}` : ""}
+🗓️  วันที่: ${formatDateThai(missionData.start_date)}
+🕗  เวลา: ${missionData.start_time || "-"} น.
+👮‍♂️  ผู้ปฏิบัติ: ${missionData.unit_name ? `${missionData.unit_name} (${missionData.raw_vehicle_id || missionData.vehicle_id || "UAV Mobile"})` : "สายตรวจอากาศยานไร้คนขับ"}
+🟥  การปฏิบัติ: ${missionData.mission_name || "-"}
+📍  สถานที่: ${missionData.location || missionData.province || "-"} ${missionData.province && missionData.location && missionData.location !== missionData.province ? `จ.${missionData.province}` : ""}
+🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ): ${(() => {
+        const dist = missionData.distance_km || missionData.distance || missionData.km;
+        if (!dist || dist === "-" || dist === "0") return "-";
+        const distStr = String(dist).trim();
+        return distStr.includes("กม") ? distStr : `${distStr} กม.`;
+      })()}
+👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${(() => {
+        const val = missionData.tourist_count_est || missionData.people_total || missionData.people_per_day || missionData.tourist_density;
+        if (!val || val === "-") return "-";
+        const str = String(val).trim();
+        if (/^\d+$/.test(str)) return `${Number(str).toLocaleString()} คน`;
+        return str.includes("คน") ? str : `${str} คน`;
+      })()}
 🛸  ข้อมูลการบิน UAV Mobile:
-    - อุปกรณ์โดรน: ${missionData.drone_id || "Drone-01"} (${missionData.sorties || 1} รอบบิน / รวม ${missionData.flight_duration_min || 0} นาที)
-    - พื้นที่ครอบคลุม: ${missionData.coverage_detail || "สแกนพื้นที่มุมสูง"}
-    - สัญญาณภาพ: ${missionData.livestream_status || "ถ่ายทอดสดเข้าศูนย์ CCOC"}
-🟦  ผลการปฏิบัติ: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}
-    - ความหนาแน่นนักท่องเที่ยว: ${missionData.tourist_density || "ปริมาณน้อย"} ${missionData.tourist_count_est ? `(${missionData.tourist_count_est})` : ""}
-💡  ความคุ้มค่า/ผลสัมฤทธิ์: 
-    - ${missionData.manpower_saved ? `ประมาณการประหยัดกำลังพล: ${missionData.manpower_saved}` : "ภาพมุมสูงช่วยประเมินสถานการณ์พื้นที่โดยรวมได้ทันที"}`
-    : `${missionData.unit_name || "ส.ทท.5 กก.2 บก.ทท.1"}
+    - รหัส/รุ่นโดรน: ${missionData.drone_id || "-"} (${missionData.sorties || 1} รอบบิน / รวม ${missionData.flight_duration_min || 0} นาที)
+    - รายละเอียดพื้นที่ปฏิบัติการ: ${missionData.coverage_detail || "-"}
+🟦  ผลการปฏิบัติงาน: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}${missionData.remark && missionData.remark !== "-" ? `\n💡  หมายเหตุ: ${missionData.remark}` : ""}`
+    : `${missionData.unit_name || missionData.affiliation || "บช.ทท."}
 เรียน ผู้บังคับบัญชา
-🗓️  วันที่ ${formatDateThai(missionData.start_date)} ถึง ${formatDateThai(missionData.end_date)}
-👮‍♂️  ผู้ปฏิบัติ: รถปฏิบัติการเคลื่อนที่ ${missionData.vehicle_id} (${missionData.unit_name})
-🟥  การปฏิบัติ: ${missionData.mission_name || "ว.10 ป้องกันเหตุ"}
-📍  สถานที่: ${missionData.province || "ไม่ระบุ"}
-🚗  ระยะทางปฏิบัติงาน: ${missionData.distance_km || 0} กม. (รวม ${missionData.total_days || 1} วัน)
-👥  จำนวนผู้ร่วมงาน: ${Number(missionData.people_per_day || 0).toLocaleString()} คน/วัน (รวม ${Number(missionData.people_total || 0).toLocaleString()} คน)
-🟦  ผลการปฏิบัติ: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}`;
+🗓️  วันที่: ${formatDateThai(missionData.start_date)}${missionData.end_date ? ` ถึง ${formatDateThai(missionData.end_date)}` : ""}
+👮‍♂️  ผู้ปฏิบัติ: รถปฏิบัติการเคลื่อนที่ ${missionData.vehicle_id} ${missionData.unit_name ? `(${missionData.unit_name})` : ""}
+🟥  การปฏิบัติ: ${missionData.mission_name || "-"}
+📍  สถานที่: ${missionData.location || ""} ${missionData.province ? `จ.${missionData.province}` : ""}
+🚗  ระยะทางปฏิบัติงาน: ${(() => {
+        const dist = missionData.distance_km || missionData.distance || missionData.km;
+        if (!dist || dist === "-") return "0 กม.";
+        const distStr = String(dist).trim();
+        return distStr.includes("กม") ? distStr : `${distStr} กม.`;
+      })()} ${missionData.total_days ? `(รวม ${missionData.total_days} วัน)` : ""}
+👥  จำนวนผู้ร่วมงาน: ${Number(missionData.people_per_day || 0).toLocaleString()} คน/วัน ${missionData.people_total ? `(รวม ${Number(missionData.people_total || 0).toLocaleString()} คน)` : ""}
+🟦  ผลการปฏิบัติงาน: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}${missionData.remark && missionData.remark !== "-" ? `\n💡  หมายเหตุ: ${missionData.remark}` : ""}`;
 
   const handleCopy = async () => {
     try {
