@@ -320,21 +320,32 @@ export default function Home() {
                   Boolean(payloadData.drone_id) ||
                   formVehicleTypeFilter === "UAV Mobile"; // ✅ ใช้ formVehicleTypeFilter detect UAV สำหรับ ALL-type user เช่น stc01
 
-    // 🛠️ FIX COLUMN MISALIGNMENT FOR GOOGLE SHEETS:
+    // 🛠️ FIX COLUMN MISALIGNMENT FOR GOOGLE SHEETS uav_missions SHEET:
     // Strictly match Row 1 Header columns A to R:
     // 1: timestamp, 2: unit_name, 3: vehicle_id, 4: mission_name, 5: location, 6: province,
     // 7: start_date, 8: start_time, 9: commander, 10: operators, 11: drone_id, 12: sorties,
-    // 13: flight_duration_min, 14: coverage_detail, 15: tourist_density, 16: incident_report, 17: remark, 18: status
-    if (isUav) {
-      const touristCountEst = (formData as any).tourist_count_est;
-      const baseDensity = formData.tourist_density || "ปริมาณน้อย";
-      let combinedDensity = baseDensity;
-      if (touristCountEst) {
-        const countStr = String(touristCountEst).trim();
-        const formattedCount = countStr.includes("คน") ? countStr : `${countStr} คน`;
+    // 13: flight_duration_min, 14: coverage_detail, 15: tourist_density (O), 16: incident_report (P), 17: remark (Q), 18: status (R)
+    const touristCountEst = String((formData as any).tourist_count_est || "").trim();
+    const baseDensity = String(formData.tourist_density || "").trim() || "ปริมาณน้อย";
+    let combinedDensity = baseDensity;
+    if (touristCountEst) {
+      const formattedCount = touristCountEst.includes("คน") ? touristCountEst : `${touristCountEst} คน`;
+      if (baseDensity === touristCountEst || baseDensity === formattedCount) {
+        combinedDensity = formattedCount;
+      } else if (baseDensity.includes(touristCountEst)) {
+        combinedDensity = baseDensity;
+      } else {
         combinedDensity = `${baseDensity} (${formattedCount})`;
       }
+    }
 
+    const userRemark = String(formData.remark || "").trim();
+    const cleanRemark = (userRemark === "-" || userRemark === "ไม่ระบุ") ? "" : userRemark;
+    const userIncident = String(formData.incident_report || "").trim();
+    const cleanIncident = (userIncident && userIncident !== "-" && userIncident !== "ไม่ระบุ") ? userIncident : "เหตุการณ์ทั่วไปปกติ";
+    const userAffiliation = String(formData.affiliation || currentUser?.affiliation || "บช.ทท.");
+
+    if (isUav) {
       let coverageDetail = String(formData.coverage_detail || "-");
       const userDist = String((formData as any).distance_km || "").trim();
       if (userDist && userDist !== "-" && userDist !== "0" && !coverageDetail.includes(userDist)) {
@@ -345,11 +356,13 @@ export default function Home() {
         }
       }
 
-      const userRemark = String(formData.remark || "").trim();
-      const cleanRemark = (userRemark === "-" || userRemark === "ไม่ระบุ") ? "" : userRemark;
-      const userIncident = String(formData.incident_report || "").trim();
-      const cleanIncident = (userIncident && userIncident !== "-" && userIncident !== "ไม่ระบุ") ? userIncident : "เหตุการณ์ทั่วไปปกติ";
-
+      // ⚠️ GAS appends columns by hardcoded positional keys for uav_missions:
+      // Col 15 (O): data.live_stream || "ไม่ได้ Live Stream" -> Maps to Sheet Header Col O: tourist_density
+      // Col 16 (P): data.incident || "ไม่ระบุ"             -> Maps to Sheet Header Col P: incident_report
+      // Col 17 (Q): data.tourist_density || ""             -> Maps to Sheet Header Col Q: remark
+      // Col 18 (R): data.incident_report || ""             -> Maps to Sheet Header Col R: status
+      // Col 19 (S): data.remark || ""                      -> OMITTED (Must be blank)
+      // Col 20 (T): data.status || ""                      -> OMITTED (Must be blank)
       payloadData = {
         timestamp: currentTimestamp,
         unit_name: String(formData.unit_name || currentUser?.unit_name || currentUser?.affiliation || "-"),
@@ -368,7 +381,7 @@ export default function Home() {
         live_stream: String(combinedDensity),
         incident: cleanIncident,
         tourist_density: cleanRemark,
-        incident_report: String(formData.affiliation || currentUser?.affiliation || "บช.ทท.")
+        incident_report: userAffiliation
       };
     }
 
@@ -383,7 +396,7 @@ export default function Home() {
     showUploadProgress({
       stage: "sending_data",
       progress: 25,
-      missionName: payloadData.mission_name || "ภารกิจ CCOC",
+      missionName: payloadData.mission_name || (isUav ? "ภารกิจ UAV Mobile" : "ภารกิจ CCOC"),
       files: uploadedFiles,
       totalFiles: uploadedFiles.length,
     });
@@ -392,16 +405,20 @@ export default function Home() {
     const newMissionFormatted = {
       ...payloadData,
       tourist_count_est: (formData as any).tourist_count_est || "",
+      tourist_density: isUav ? String(combinedDensity) : payloadData.tourist_density,
+      incident_report: isUav ? cleanIncident : payloadData.incident_report,
+      remark: isUav ? cleanRemark : payloadData.remark,
+      status: isUav ? userAffiliation : payloadData.status,
       timestamp: payload.timestamp,
-      mission_name: payloadData.mission_name || "ว.43 สายตรวจโดรนมุมสูง",
-      vehicle_id: payloadData.vehicle_id || "UAV Mobile",
-      raw_vehicle_id: payloadData.vehicle_id || "UAV Mobile",
+      mission_name: payloadData.mission_name || (isUav ? "ว.43 สายตรวจโดรนมุมสูง" : "ภารกิจ CCOC"),
+      vehicle_id: payloadData.vehicle_id || (isUav ? "UAV Mobile" : "CCOC Mobile"),
+      raw_vehicle_id: payloadData.vehicle_id || (isUav ? "UAV Mobile" : "CCOC Mobile"),
       unit_name: payloadData.unit_name || currentUser.unit_name || currentUser.affiliation || "-",
       province: payloadData.province || "-",
       start_date: payloadData.start_date || new Date().toISOString().split('T')[0],
       start_time: payloadData.start_time || "21.00 น.",
       distance_km: userDistance || payloadData.distance_km || "-",
-      affiliation: String(formData.affiliation || currentUser?.affiliation || "บช.ทท."),
+      affiliation: userAffiliation,
       vehicle_type: isUav ? "UAV Mobile" : (payloadData.vehicle_type || "CCOC Mobile")
     };
 
