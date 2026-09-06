@@ -356,13 +356,12 @@ export default function Home() {
         }
       }
 
-      // ⚠️ GAS appends columns by hardcoded positional keys for uav_missions:
-      // Col 15 (O): data.live_stream || "ไม่ได้ Live Stream" -> Maps to Sheet Header Col O: tourist_density
-      // Col 16 (P): data.incident || "ไม่ระบุ"             -> Maps to Sheet Header Col P: incident_report
-      // Col 17 (Q): data.tourist_density || ""             -> Maps to Sheet Header Col Q: remark
-      // Col 18 (R): data.incident_report || ""             -> Maps to Sheet Header Col R: status
-      // Col 19 (S): data.remark || ""                      -> OMITTED (Must be blank)
-      // Col 20 (T): data.status || ""                      -> OMITTED (Must be blank)
+      // 🛠️ EXACT GAS FIELD MAPPING FOR uav_missions SHEET:
+      // GAS checks fields by exact property name:
+      // data.tourist_density -> Sheet Col O (Header: tourist_density)
+      // data.incident_report -> Sheet Col P (Header: incident_report)
+      // data.remark          -> Sheet Col Q (Header: remark)
+      // data.status          -> Sheet Col R (Header: status)
       payloadData = {
         timestamp: currentTimestamp,
         unit_name: String(formData.unit_name || currentUser?.unit_name || currentUser?.affiliation || "-"),
@@ -378,10 +377,10 @@ export default function Home() {
         sorties: Number(formData.sorties ?? 1),
         flight_duration_min: Number(formData.flight_duration_min ?? 45),
         coverage_detail: coverageDetail,
-        live_stream: String(combinedDensity),
-        incident: cleanIncident,
-        tourist_density: cleanRemark,
-        incident_report: userAffiliation
+        tourist_density: String(combinedDensity),
+        incident_report: cleanIncident,
+        remark: cleanRemark,
+        status: userAffiliation
       };
     }
 
