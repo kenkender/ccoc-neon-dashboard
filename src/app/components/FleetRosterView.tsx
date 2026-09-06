@@ -128,10 +128,9 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
   const canRecord = (vehicle: any) => {
     if (currentUser?.role === "admin") return true;
     if (isMyVehicle(vehicle)) return true;
-    const myVehicleType = String(currentUser?.vehicle_type || "").trim().toUpperCase();
-    const myUnitName = String(currentUser?.unit_name || currentUser?.affiliation || "").trim();
-    const vehicleUnitName = String(vehicle.unit_name || "").trim();
-    if (myVehicleType === "ALL" && myUnitName && vehicleUnitName && myUnitName === vehicleUnitName) return true;
+    const myAffil = String(currentUser?.affiliation || "").trim().toLowerCase();
+    const vehicleAffil = String(vehicle.affiliation || "").trim().toLowerCase();
+    if (myAffil && vehicleAffil && myAffil === vehicleAffil) return true;
     return false;
   };
 
@@ -342,7 +341,7 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
                             {isUav ? <Plane size={15} /> : <PenTool size={15} />}
                             {currentUser?.role === "admin" && !isMine
                               ? `บันทึกภารกิจ (${vehicle.username?.toUpperCase()})`
-                              : `➕ บันทึกภารกิจ ${isUav ? "UAV Mobile" : "ใหม่"}`}
+                              : `➕ บันทึกภารกิจ ${isUav ? "UAV Mobile" : "CCOC Mobile"}`}
                           </button>
                         )
                       )}
