@@ -538,7 +538,7 @@ function UavMissionForm({
                       type="text"
                       value={entry.coverage_detail || ""}
                       onChange={(e) => updateDroneEntry(index, 'coverage_detail', e.target.value)}
-                      placeholder="รัศมีการบินกี่กิโล"
+                      placeholder="อย่างเช่น 1.5 กม."
                       className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
                     />
                   </div>
