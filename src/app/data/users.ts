@@ -13,17 +13,17 @@ export const SYSTEM_USERS: UserAccount[] = [
   // Admin
   { username: "admin", password: "admin", role: "admin", affiliation: "ALL", vehicle_id: "admin", unit_name: "Master Admin", vehicle_name: "Master Admin", vehicle_type: "ALL" },
 
-  // CCOC Mobile (stc accounts with vehicle_type = ALL)
+  // CCOC Mobile (stc accounts)
   { username: "stc01", password: "ccocmobile01", role: "user", affiliation: "บช.ทท.", vehicle_id: "stc01", unit_name: "บช.ทท.", vehicle_name: "บช.ทท.", vehicle_type: "CCOC Mobile" },
   { username: "stc09", password: "ccocmobile09", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc09", unit_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)", vehicle_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)", vehicle_type: "CCOC Mobile" },
-  { username: "stc03", password: "ccocmobile03", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc03", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)", vehicle_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)", vehicle_type: "ALL" },
-  { username: "stc04", password: "ccocmobile04", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc04", unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)", vehicle_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)", vehicle_type: "ALL" },
-  { username: "stc05", password: "ccocmobile05", role: "user", affiliation: "บก.ทท.2", vehicle_id: "stc05", unit_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)", vehicle_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)", vehicle_type: "ALL" },
-  { username: "stc06", password: "ccocmobile06", role: "user", affiliation: "บก.ทท.2", vehicle_id: "stc06", unit_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)", vehicle_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)", vehicle_type: "ALL" },
-  { username: "stc07", password: "ccocmobile07", role: "user", affiliation: "บก.ทท.2", vehicle_id: "stc07", unit_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)", vehicle_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)", vehicle_type: "ALL" },
-  { username: "stc08", password: "ccocmobile08", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc08", unit_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)", vehicle_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)", vehicle_type: "ALL" },
-  { username: "stc02", password: "ccocmobile02", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc02", unit_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)", vehicle_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)", vehicle_type: "ALL" },
-  { username: "stc10", password: "ccocmobile10", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_type: "ALL" },
+  { username: "stc03", password: "ccocmobile03", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc03", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)", vehicle_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)", vehicle_type: "CCOC Mobile" },
+  { username: "stc04", password: "ccocmobile04", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc04", unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)", vehicle_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)", vehicle_type: "CCOC Mobile" },
+  { username: "stc05", password: "ccocmobile05", role: "user", affiliation: "บก.ทท.2", vehicle_id: "stc05", unit_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)", vehicle_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)", vehicle_type: "CCOC Mobile" },
+  { username: "stc06", password: "ccocmobile06", role: "user", affiliation: "บก.ทท.2", vehicle_id: "stc06", unit_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)", vehicle_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)", vehicle_type: "CCOC Mobile" },
+  { username: "stc07", password: "ccocmobile07", role: "user", affiliation: "บก.ทท.2", vehicle_id: "stc07", unit_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)", vehicle_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)", vehicle_type: "CCOC Mobile" },
+  { username: "stc08", password: "ccocmobile08", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc08", unit_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)", vehicle_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)", vehicle_type: "CCOC Mobile" },
+  { username: "stc02", password: "ccocmobile02", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc02", unit_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)", vehicle_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)", vehicle_type: "CCOC Mobile" },
+  { username: "stc10", password: "ccocmobile10", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_type: "CCOC Mobile" },
 
   // UAV Mobile (uav accounts)
   // บช.ทท.
