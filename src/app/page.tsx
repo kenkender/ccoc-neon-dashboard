@@ -1907,17 +1907,6 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/10">
-                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                            <p className="text-xs font-bold text-gray-500 mb-1">ผลการปฏิบัติงาน (INCIDENT REPORT)</p>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{selectedMission.incident_report || "เหตุการณ์ทั่วไปปกติ"}</p>
-                          </div>
-                          <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                            <p className="text-xs font-bold text-gray-500 mb-1">หมายเหตุ / ข้อมูลเพิ่มเติม (REMARK)</p>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{selectedMission.remark || "-"}</p>
-                          </div>
-                        </div>
-
                         <div className="md:col-span-2 pt-4 border-t border-white/10">
                           <PhotoGallery
                             missionTimestamp={selectedMission.timestamp}
