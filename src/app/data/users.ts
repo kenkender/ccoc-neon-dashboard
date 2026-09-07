@@ -26,23 +26,31 @@ export const SYSTEM_USERS: UserAccount[] = [
   { username: "stc10", password: "ccocmobile10", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_type: "ALL" },
 
   // UAV Mobile (uav accounts)
+  // บช.ทท.
   { username: "uav_bchtt", password: "uav@bchtt", role: "user", affiliation: "บช.ทท.", vehicle_id: "uav_bchtt", unit_name: "บช.ทท. (สายตรวจโดรน)", vehicle_name: "บช.ทท. (สายตรวจโดรน)", vehicle_type: "UAV Mobile" },
+
+  // บก.ทท.1
   { username: "uav002", password: "uav@002", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav002", unit_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)", vehicle_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)", vehicle_type: "UAV Mobile" },
-  { username: "uav007", password: "uav@007", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav007", unit_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)", vehicle_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)", vehicle_type: "UAV Mobile" },
+  { username: "uav008", password: "uav@008", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav008", unit_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)", vehicle_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)", vehicle_type: "UAV Mobile" },
   { username: "uav004", password: "uav@004", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav004", unit_name: "ส.ทท.3 กก.1 บก.ทท.1 (ธนบุรี)", vehicle_name: "ส.ทท.3 กก.1 บก.ทท.1 (ธนบุรี)", vehicle_type: "UAV Mobile" },
   { username: "uav006", password: "uav@006", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav006", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (ลพบุรี)", vehicle_name: "ส.ทท.2 กก.2 บก.ทท.1 (ลพบุรี)", vehicle_type: "UAV Mobile" },
-  { username: "uav013", password: "uav@013", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav013", unit_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)", vehicle_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)", vehicle_type: "UAV Mobile" },
-  { username: "uav008", password: "uav@008", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav008", unit_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)", vehicle_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)", vehicle_type: "UAV Mobile" },
-  { username: "uav014", password: "uav@014", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav014", unit_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)", vehicle_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)", vehicle_type: "UAV Mobile" },
-  { username: "uav015", password: "uav@015", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav015", unit_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)", vehicle_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)", vehicle_type: "UAV Mobile" },
+  { username: "uav007", password: "uav@007", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav007", unit_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)", vehicle_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)", vehicle_type: "UAV Mobile" },
+  { username: "uav009", password: "uav@009", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav009", unit_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)", vehicle_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)", vehicle_type: "UAV Mobile" },
+  { username: "uav010", password: "uav@010", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav010", unit_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)", vehicle_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)", vehicle_type: "UAV Mobile" },
+
+  // บก.ทท.2
+  { username: "uav011", password: "uav@011", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav011", unit_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)", vehicle_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)", vehicle_type: "UAV Mobile" },
   { username: "uav025", password: "uav@025", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav025", unit_name: "ส.ทท.3 กก.1 บก.ทท.2 (อุบลราชธานี)", vehicle_name: "ส.ทท.3 กก.1 บก.ทท.2 (อุบลราชธานี)", vehicle_type: "UAV Mobile" },
   { username: "uav001", password: "uav@001", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav001", unit_name: "ส.ทท.4 กก.1 บก.ทท.2 (นครพนม)", vehicle_name: "ส.ทท.4 กก.1 บก.ทท.2 (นครพนม)", vehicle_type: "UAV Mobile" },
-  { username: "uav016", password: "uav@016", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav016", unit_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)", vehicle_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)", vehicle_type: "UAV Mobile" },
-  { username: "uav0025", password: "uav@0025", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav0025", unit_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)", vehicle_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)", vehicle_type: "UAV Mobile" },
+  { username: "uav013", password: "uav@013", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav013", unit_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)", vehicle_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)", vehicle_type: "UAV Mobile" },
+  { username: "uav028", password: "uav@028", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav028", unit_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)", vehicle_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)", vehicle_type: "UAV Mobile" },
   { username: "uav026", password: "uav@026", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav026", unit_name: "ส.ทท.2 กก.2 บก.ทท.2 (เชียงราย)", vehicle_name: "ส.ทท.2 กก.2 บก.ทท.2 (เชียงราย)", vehicle_type: "UAV Mobile" },
   { username: "uav003", password: "uav@003", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav003", unit_name: "ส.ทท.3 กก.2 บก.ทท.2 (น่าน)", vehicle_name: "ส.ทท.3 กก.2 บก.ทท.2 (น่าน)", vehicle_type: "UAV Mobile" },
-  { username: "uav011", password: "uav@011", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav011", unit_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)", vehicle_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)", vehicle_type: "UAV Mobile" },
-  { username: "uav018", password: "uav@018", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav018", unit_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)", vehicle_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)", vehicle_type: "UAV Mobile" },
+  { username: "uav016", password: "uav@016", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav016", unit_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)", vehicle_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)", vehicle_type: "UAV Mobile" },
+  { username: "uav017", password: "uav@017", role: "user", affiliation: "บก.ทท.2", vehicle_id: "uav017", unit_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)", vehicle_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)", vehicle_type: "UAV Mobile" },
+
+  // บก.ทท.3
+  { username: "uav018", password: "uav@018", role: "user", affiliation: "บก.ทท.3", vehicle_id: "uav018", unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)", vehicle_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)", vehicle_type: "UAV Mobile" },
   { username: "uav019", password: "uav@019", role: "user", affiliation: "บก.ทท.3", vehicle_id: "uav019", unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)", vehicle_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)", vehicle_type: "UAV Mobile" },
   { username: "uav021", password: "uav@021", role: "user", affiliation: "บก.ทท.3", vehicle_id: "uav021", unit_name: "ส.ทท.2 กก.2 บก.ทท.3 (ระนอง)", vehicle_name: "ส.ทท.2 กก.2 บก.ทท.3 (ระนอง)", vehicle_type: "UAV Mobile" },
   { username: "uav022", password: "uav@022", role: "user", affiliation: "บก.ทท.3", vehicle_id: "uav022", unit_name: "ส.ทท.3 กก.2 บก.ทท.3 (กระบี่)", vehicle_name: "ส.ทท.3 กก.2 บก.ทท.3 (กระบี่)", vehicle_type: "UAV Mobile" },
@@ -84,21 +92,36 @@ export function enrichUserData(rawUser: any): UserAccount {
 
   // If user exists in pre-defined SYSTEM_USERS, strictly enforce official Thai unit names & affiliations!
   if (sysUser) {
+    const rawAff = String(rawUser.affiliation || "").trim();
+    const rawUnit = String(rawUser.unit_name || rawUser.vehicle_name || "").trim();
     return {
       ...rawUser,
       username: sysUser.username,
       password: rawUser.password || sysUser.password,
       role: sysUser.role,
-      affiliation: sysUser.affiliation,
+      affiliation: (rawAff && rawAff !== "ไม่ระบุ" && rawAff !== "-") ? rawAff : sysUser.affiliation,
       vehicle_id: sysUser.vehicle_id,
-      unit_name: sysUser.unit_name,
-      vehicle_name: sysUser.vehicle_name || sysUser.unit_name,
+      unit_name: (rawUnit && rawUnit !== "ไม่ระบุ" && rawUnit !== "-") ? rawUnit : sysUser.unit_name,
+      vehicle_name: (rawUnit && rawUnit !== "ไม่ระบุ" && rawUnit !== "-") ? rawUnit : (sysUser.vehicle_name || sysUser.unit_name),
       vehicle_type: sysUser.vehicle_type,
     };
   }
 
   const role = rawUser.role === "admin" || username.toLowerCase() === "admin" ? "admin" : (rawUser.role || "user");
-  const affiliation = role === "admin" ? "ALL" : (rawUser.affiliation || "บช.ทท.");
+  let affiliation = String(rawUser.affiliation || "").trim();
+  if (!affiliation || affiliation === "ไม่ระบุ" || affiliation === "-") {
+    if (role === "admin") {
+      affiliation = "ALL";
+    } else {
+      const unit = String(rawUser.unit_name || rawUser.vehicle_name || "").trim();
+      if (unit.includes("บก.ทท.1")) affiliation = "บก.ทท.1";
+      else if (unit.includes("บก.ทท.2")) affiliation = "บก.ทท.2";
+      else if (unit.includes("บก.ทท.3")) affiliation = "บก.ทท.3";
+      else if (unit.includes("บช.ทท.")) affiliation = "บช.ทท.";
+      else affiliation = "บช.ทท.";
+    }
+  }
+
   const unitName = rawUser.unit_name || rawUser.vehicle_name || username.toUpperCase();
   const vehicleType = rawUser.vehicle_type || (username.toLowerCase().startsWith("uav") ? "UAV Mobile" : "CCOC Mobile");
 
@@ -122,16 +145,14 @@ export function getUnifiedUsersList(gasUsers?: any[]): UserAccount[] {
     userMap.set(u.username.toLowerCase(), u);
   });
 
-  // 2. Append any valid custom dynamic users from GAS without overwriting official Thai names
+  // 2. Synchronize dynamic users from GAS with official SYSTEM_USERS entries
   if (Array.isArray(gasUsers)) {
     gasUsers.forEach(u => {
       const uname = String(u.username || u.vehicle_id || "").trim().toLowerCase();
       if (uname && uname !== "undefined" && uname !== "null") {
-        if (!userMap.has(uname)) {
-          const enriched = enrichUserData(u);
-          if (enriched.username && enriched.affiliation && enriched.affiliation !== "ไม่ระบุ") {
-            userMap.set(uname, enriched);
-          }
+        const enriched = enrichUserData(u);
+        if (enriched.username && enriched.affiliation && enriched.affiliation !== "ไม่ระบุ") {
+          userMap.set(uname, enriched);
         }
       }
     });
