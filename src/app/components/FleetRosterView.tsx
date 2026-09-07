@@ -128,9 +128,10 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
   const canRecord = (vehicle: any) => {
     if (currentUser?.role === "admin") return true;
     if (isMyVehicle(vehicle)) return true;
-    const myAffil = String(currentUser?.affiliation || "").trim().toLowerCase();
-    const vehicleAffil = String(vehicle.affiliation || "").trim().toLowerCase();
-    if (myAffil && vehicleAffil && myAffil === vehicleAffil) return true;
+    const isAllType = String(currentUser?.vehicle_type || "").trim().toUpperCase() === "ALL";
+    const myUnit = String(currentUser?.unit_name || "").trim().toLowerCase();
+    const vehicleUnit = String(vehicle.unit_name || "").trim().toLowerCase();
+    if (isAllType && myUnit && vehicleUnit && myUnit === vehicleUnit) return true;
     return false;
   };
 
