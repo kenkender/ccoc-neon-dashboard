@@ -762,9 +762,30 @@ export default function Home() {
       .section-uav th { background-color: #dbeafe; }
       @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }`;
 
+    // ─── master list CCOC (ลำดับตาม SYSTEM_USERS) ────────────────────────────
+    const CCOC_MASTER_ORDER = [
+      { affiliation: "บช.ทท.",  vehicle_id: "stc01", unit_name: "บช.ทท." },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc09", unit_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc03", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc04", unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc05", unit_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc06", unit_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc07", unit_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc08", unit_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc02", unit_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)" },
+    ];
+
     // ─── ฟังก์ชัน build ตาราง CCOC ────────────────────────────────────────────
     const buildCCOCTable = (logs: any[]) => {
-      if (logs.length === 0) return `<p style="color:#6b7280;">ไม่มีข้อมูล CCOC Mobile ในช่วงเวลาที่เลือก</p>`;
+      // จัดกลุ่มข้อมูลที่มีตาม vehicle_id
+      const logsByVehicle: Record<string, any[]> = {};
+      logs.forEach((m: any) => {
+        const vid = String(m.vehicle_id || "").toLowerCase();
+        if (!logsByVehicle[vid]) logsByVehicle[vid] = [];
+        logsByVehicle[vid].push(m);
+      });
+
       let html = `<table><thead><tr>
         <th rowspan="2" width="4%">ลำดับ</th>
         <th rowspan="2" width="15%">หน่วย</th>
@@ -778,16 +799,42 @@ export default function Home() {
         <th width="6%">เริ่มวันที่</th><th width="6%">ถึงวันที่</th><th width="5%">รวม/วัน</th>
         <th width="5%">ต่อวัน</th><th width="6%">ตลอดงาน</th>
       </tr></thead><tbody>`;
+
       let curAff = ""; let rowIdx = 1;
-      logs.forEach((m: any) => {
-        const aff = normalizeAffiliation(String(m.affiliation || "ไม่ระบุสังกัด").trim());
-        if (aff !== curAff) { html += `<tr><td colspan="11" class="bg-group">${toThaiNumber(aff)}</td></tr>`; curAff = aff; rowIdx = 1; }
-        const unitName = `${m.unit_name || "-"}<br/><small>${VEHICLE_NAMES[m.vehicle_id] || m.vehicle_id}</small>`;
-        const missionAndProv = `${m.mission_name || "-"}<br/><b>${m.province || "-"}</b>`;
-        const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
-        const eDate = m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
-        html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndProv)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(eDate)}</td><td class="text-center">${toThaiNumber(m.total_days || 0)}</td><td class="text-center">${toThaiNumber(m.distance_km || 0)}</td><td class="text-right">${toThaiNumber(Number(m.people_per_day || 0).toLocaleString())}</td><td class="text-right">${toThaiNumber(Number(m.people_total || 0).toLocaleString())}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+
+      CCOC_MASTER_ORDER.forEach((station) => {
+        const aff = station.affiliation;
+        const vid = station.vehicle_id.toLowerCase();
+        const stationMissions = (logsByVehicle[vid] || []).sort(
+          (a: any, b: any) => new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime()
+        );
+
+        // แสดง header ของ บก. เมื่อเปลี่ยนสังกัด
+        if (aff !== curAff) {
+          html += `<tr><td colspan="11" class="bg-group">${toThaiNumber(aff)}</td></tr>`;
+          curAff = aff;
+          rowIdx = 1;
+        }
+
+        if (stationMissions.length === 0) {
+          // แถวว่าง — ยังไม่มีการลงภารกิจ
+          html += `<tr style="background-color:#fafafa;color:#9ca3af;font-style:italic;">`
+            + `<td class="text-center">—</td>`
+            + `<td>${toThaiNumber(station.unit_name)}</td>`
+            + `<td class="text-center" style="color:#d1d5db;">— ยังไม่มีการลงภารกิจ —</td>`
+            + `<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`
+            + `</tr>`;
+        } else {
+          stationMissions.forEach((m: any) => {
+            const unitName = `${m.unit_name || station.unit_name}<br/><small>${VEHICLE_NAMES[m.vehicle_id] || m.vehicle_id}</small>`;
+            const missionAndProv = `${m.mission_name || "-"}<br/><b>${m.province || "-"}</b>`;
+            const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
+            const eDate = m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
+            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndProv)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(eDate)}</td><td class="text-center">${toThaiNumber(m.total_days || 0)}</td><td class="text-center">${toThaiNumber(m.distance_km || 0)}</td><td class="text-right">${toThaiNumber(Number(m.people_per_day || 0).toLocaleString())}</td><td class="text-right">${toThaiNumber(Number(m.people_total || 0).toLocaleString())}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+          });
+        }
       });
+
       const totDist = logs.reduce((s, m) => s + Number(m.distance_km || 0), 0);
       const totPplDay = logs.reduce((s, m) => s + Number(m.people_per_day || 0), 0);
       const totPplAll = logs.reduce((s, m) => s + Number(m.people_total || 0), 0);
@@ -796,10 +843,37 @@ export default function Home() {
       return html;
     };
 
+    // ─── master list UAV (ลำดับตาม SYSTEM_USERS) ─────────────────────────────
+    const UAV_MASTER_ORDER = [
+      { affiliation: "บช.ทท.",  vehicle_id: "uav_bchtt", unit_name: "บช.ทท. (สายตรวจโดรน)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav002",    unit_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav008",    unit_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav004",    unit_name: "ส.ทท.3 กก.1 บก.ทท.1 (ธนบุรี)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav006",    unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (ลพบุรี)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav007",    unit_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav009",    unit_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav010",    unit_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav011",    unit_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav025",    unit_name: "ส.ทท.3 กก.1 บก.ทท.2 (อุบลราชธานี)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav001",    unit_name: "ส.ทท.4 กก.1 บก.ทท.2 (นครพนม)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav013",    unit_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav028",    unit_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav026",    unit_name: "ส.ทท.2 กก.2 บก.ทท.2 (เชียงราย)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav003",    unit_name: "ส.ทท.3 กก.2 บก.ทท.2 (น่าน)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav016",    unit_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav017",    unit_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav018",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav019",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี) - ชุด 2" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav021",    unit_name: "ส.ทท.2 กก.2 บก.ทท.3 (ระนอง)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav022",    unit_name: "ส.ทท.3 กก.2 บก.ทท.3 (กระบี่)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav023",    unit_name: "ส.ทท.4 กก.2 บก.ทท.3 (สุราษฎร์ธานี)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uavsamui",  unit_name: "ส.ทท.5 กก.2 บก.ทท.3 (เกาะสมุย)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav027",    unit_name: "ส.ทท.2 กก.3 บก.ทท.3 (ตรัง)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav005",    unit_name: "ส.ทท.3 กก.3 บก.ทท.3 (นราธิวาส)" },
+    ];
+
     // ─── ฟังก์ชัน build ตาราง UAV ─────────────────────────────────────────────
     const buildUAVTable = (logs: any[]) => {
-      if (logs.length === 0) return `<p style="color:#6b7280;">ไม่มีข้อมูล UAV Mobile ในช่วงเวลาที่เลือก</p>`;
-
       const getFlightDuration = (m: any): number => {
         const val = m.flight_duration_min;
         if (val !== undefined && val !== null && val !== "") {
@@ -823,6 +897,14 @@ export default function Home() {
         return 0;
       };
 
+      // จัดกลุ่มข้อมูลที่มีตาม vehicle_id
+      const logsByVehicle: Record<string, any[]> = {};
+      logs.forEach((m: any) => {
+        const vid = String(m.vehicle_id || m.raw_vehicle_id || "").toLowerCase();
+        if (!logsByVehicle[vid]) logsByVehicle[vid] = [];
+        logsByVehicle[vid].push(m);
+      });
+
       let html = `<table class="section-uav"><thead><tr>
         <th rowspan="2" width="4%">ลำดับ</th>
         <th rowspan="2" width="14%">หน่วย</th>
@@ -837,23 +919,46 @@ export default function Home() {
         <th width="7%">วันที่</th><th width="5%">เวลา</th>
         <th width="9%">รุ่น/รหัสโดรน</th><th width="5%">รอบบิน</th><th width="6%">เวลาบิน (นาที)</th>
       </tr></thead><tbody>`;
-      let curAff = ""; let rowIdx = 1;
-      logs.forEach((m: any) => {
-        const aff = normalizeAffiliation(String(m.affiliation || "ไม่ระบุสังกัด").trim());
-        if (aff !== curAff) { html += `<tr><td colspan="12" class="bg-group">${toThaiNumber(aff)}</td></tr>`; curAff = aff; rowIdx = 1; }
-        const unitName = `${m.unit_name || "-"}<br/><small>${m.raw_vehicle_id || m.vehicle_id || "UAV"}</small>`;
-        const missionAndPlace = `${m.mission_name || "-"}<br/><small>${m.location || ""}</small><br/><b>${m.province || "-"}</b>`;
-        const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
-        
-        const flightMin = getFlightDuration(m);
-        const tNum = getTouristNumber(m);
-        const touristVal = tNum > 0 
-          ? `${tNum.toLocaleString()} คน`
-          : (m.tourist_count_est && m.tourist_count_est !== "ปริมาณน้อย" 
-              ? m.tourist_count_est 
-              : (m.tourist_density || "-"));
 
-        html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(m.start_time || "-")}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+      let curAff = ""; let rowIdx = 1;
+
+      UAV_MASTER_ORDER.forEach((station) => {
+        const aff = station.affiliation;
+        const vid = station.vehicle_id.toLowerCase();
+        const stationMissions = (logsByVehicle[vid] || []).sort(
+          (a: any, b: any) => new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime()
+        );
+
+        // แสดง header ของ บก. เมื่อเปลี่ยนสังกัด
+        if (aff !== curAff) {
+          html += `<tr><td colspan="12" class="bg-group">${toThaiNumber(aff)}</td></tr>`;
+          curAff = aff;
+          rowIdx = 1;
+        }
+
+        if (stationMissions.length === 0) {
+          // แถวว่าง — ยังไม่มีการลงภารกิจ
+          html += `<tr style="background-color:#fafafa;color:#9ca3af;font-style:italic;">`
+            + `<td class="text-center">—</td>`
+            + `<td>${toThaiNumber(station.unit_name)}</td>`
+            + `<td class="text-center" style="color:#d1d5db;">— ยังไม่มีการลงภารกิจ —</td>`
+            + `<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`
+            + `</tr>`;
+        } else {
+          stationMissions.forEach((m: any) => {
+            const unitName = `${m.unit_name || station.unit_name}<br/><small>${m.raw_vehicle_id || m.vehicle_id || "UAV"}</small>`;
+            const missionAndPlace = `${m.mission_name || "-"}<br/><small>${m.location || ""}</small><br/><b>${m.province || "-"}</b>`;
+            const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
+            const flightMin = getFlightDuration(m);
+            const tNum = getTouristNumber(m);
+            const touristVal = tNum > 0
+              ? `${tNum.toLocaleString()} คน`
+              : (m.tourist_count_est && m.tourist_count_est !== "ปริมาณน้อย"
+                  ? m.tourist_count_est
+                  : (m.tourist_density || "-"));
+            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(m.start_time || "-")}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+          });
+        }
       });
 
       const totDist = logs.reduce((s, m) => s + Number(m.distance_km || 0), 0);
