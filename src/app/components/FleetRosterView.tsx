@@ -124,14 +124,39 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
   // canRecord = true ถ้า:
   // 1. เป็น Admin
   // 2. เป็นรถของตัวเอง (vehicle_id ตรงกัน)
-  // 3. มี vehicle_type = "ALL" และอยู่ unit_name เดียวกัน (สถานีเดียวกัน มีทั้ง CCOC + UAV)
+  // 3. มี vehicle_type = "ALL" และอยู่ในสังกัด/หน่วยงานเดียวกัน (สถานีเดียวกัน มีทั้ง CCOC + UAV)
   const canRecord = (vehicle: any) => {
     if (currentUser?.role === "admin") return true;
     if (isMyVehicle(vehicle)) return true;
+
     const isAllType = String(currentUser?.vehicle_type || "").trim().toUpperCase() === "ALL";
+    if (!isAllType) return false;
+
+    const myAffil = String(currentUser?.affiliation || "").trim().toLowerCase();
+    const vehicleAffil = String(vehicle.affiliation || "").trim().toLowerCase();
+
+    if (!myAffil || !vehicleAffil || myAffil !== vehicleAffil) return false;
+
+    // สำหรับ บช.ทท. บัญชีประเภท ALL สามารถบันทึกรถทุกคันในสังกัด บช.ทท. ได้ (ทั้ง stc01 และ uav_bchtt)
+    if (myAffil === "บช.ทท.") return true;
+
+    // สำหรับ บก.ทท.1, 2, 3: เช็กชื่อหน่วยงาน/สถานี
     const myUnit = String(currentUser?.unit_name || "").trim().toLowerCase();
     const vehicleUnit = String(vehicle.unit_name || "").trim().toLowerCase();
-    if (isAllType && myUnit && vehicleUnit && myUnit === vehicleUnit) return true;
+
+    if (myUnit && vehicleUnit) {
+      if (myUnit === vehicleUnit) return true;
+
+      const extractStationCode = (str: string) => {
+        const match = str.match(/(ส\.ทท\.\d+\s*กก\.\d+|กก\.\d+\s*บก\.ทท\.\d+|ส\.ทท\.\d+)/i);
+        return match ? match[0].replace(/\s+/g, "") : str;
+      };
+
+      const code1 = extractStationCode(myUnit);
+      const code2 = extractStationCode(vehicleUnit);
+      if (code1 && code2 && code1 === code2) return true;
+    }
+
     return false;
   };
 
