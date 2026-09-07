@@ -94,15 +94,21 @@ export function enrichUserData(rawUser: any): UserAccount {
   if (sysUser) {
     const rawAff = String(rawUser.affiliation || "").trim();
     const rawUnit = String(rawUser.unit_name || rawUser.vehicle_name || "").trim();
+
+    // Check if rawUnit is valid and NOT just a generic short division name (e.g. "บก.ทท.1")
+    const isGenericAffil = ["บช.ทท.", "บก.ทท.1", "บก.ทท.2", "บก.ทท.3", "ALL", "-", "ไม่ระบุ"].includes(rawUnit);
+    const finalUnit = (rawUnit && !isGenericAffil) ? rawUnit : sysUser.unit_name;
+    const finalAff = (rawAff && rawAff !== "ไม่ระบุ" && rawAff !== "-") ? rawAff : sysUser.affiliation;
+
     return {
       ...rawUser,
       username: sysUser.username,
       password: rawUser.password || sysUser.password,
       role: sysUser.role,
-      affiliation: (rawAff && rawAff !== "ไม่ระบุ" && rawAff !== "-") ? rawAff : sysUser.affiliation,
+      affiliation: finalAff,
       vehicle_id: sysUser.vehicle_id,
-      unit_name: (rawUnit && rawUnit !== "ไม่ระบุ" && rawUnit !== "-") ? rawUnit : sysUser.unit_name,
-      vehicle_name: (rawUnit && rawUnit !== "ไม่ระบุ" && rawUnit !== "-") ? rawUnit : (sysUser.vehicle_name || sysUser.unit_name),
+      unit_name: finalUnit,
+      vehicle_name: sysUser.vehicle_name || finalUnit,
       vehicle_type: sysUser.vehicle_type,
     };
   }
