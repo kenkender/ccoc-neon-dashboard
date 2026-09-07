@@ -14,7 +14,7 @@ export const SYSTEM_USERS: UserAccount[] = [
   { username: "admin", password: "admin", role: "admin", affiliation: "ALL", vehicle_id: "admin", unit_name: "Master Admin", vehicle_name: "Master Admin", vehicle_type: "ALL" },
 
   // CCOC Mobile (stc accounts with vehicle_type = ALL)
-  { username: "stc01", password: "ccocmobile01", role: "user", affiliation: "บช.ทท.", vehicle_id: "stc01", unit_name: "บช.ทท.", vehicle_name: "บช.ทท.", vehicle_type: "ALL" },
+  { username: "stc01", password: "ccocmobile01", role: "user", affiliation: "บช.ทท.", vehicle_id: "stc01", unit_name: "บช.ทท.", vehicle_name: "บช.ทท.", vehicle_type: "CCOC Mobile" },
   { username: "stc09", password: "ccocmobile09", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc09", unit_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)", vehicle_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)", vehicle_type: "CCOC Mobile" },
   { username: "stc03", password: "ccocmobile03", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc03", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)", vehicle_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)", vehicle_type: "ALL" },
   { username: "stc04", password: "ccocmobile04", role: "user", affiliation: "บก.ทท.1", vehicle_id: "stc04", unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)", vehicle_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)", vehicle_type: "ALL" },
@@ -101,7 +101,7 @@ export function enrichUserData(rawUser: any): UserAccount {
     const finalAff = (rawAff && rawAff !== "ไม่ระบุ" && rawAff !== "-") ? rawAff : sysUser.affiliation;
 
     const rawVType = String(rawUser.vehicle_type || "").trim().toUpperCase();
-    const finalVType = rawVType === "ALL" ? "ALL" : sysUser.vehicle_type;
+    const finalVType = (rawVType === "ALL" || sysUser.username.toLowerCase() === "stc01") ? "ALL" : sysUser.vehicle_type;
 
     return {
       ...rawUser,
