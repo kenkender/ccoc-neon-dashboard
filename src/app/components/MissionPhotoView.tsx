@@ -234,7 +234,7 @@ export default function MissionPhotoView({
                 const res = await fetch(`/api/photos/${photo.id}`, {
                   method: "DELETE",
                   headers: {
-                    "x-vehicle-id": currentUser?.vehicle_id || "",
+                    "x-vehicle-id": currentUser?.role === "admin" ? photo.vehicle_id : (currentUser?.vehicle_id || ""),
                   },
                 });
                 const data = await res.json();
@@ -318,7 +318,7 @@ export default function MissionPhotoView({
           const res = await fetch(`/api/photos/${photo.id}`, {
             method: "DELETE",
             headers: {
-              "x-vehicle-id": currentUser?.vehicle_id || "",
+              "x-vehicle-id": currentUser?.role === "admin" ? photo.vehicle_id : (currentUser?.vehicle_id || ""),
             },
           });
           const result = await res.json();
