@@ -69,7 +69,8 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
           data: {
             username: usernameClean,
             password: formData.password,
-            unit_name: formData.unit_name,
+            unit_name: formData.affiliation,
+            vehicle_name: formData.unit_name,
             affiliation: formData.affiliation,
             vehicle_type: formData.vehicle_type,
             role: "user",

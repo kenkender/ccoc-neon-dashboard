@@ -117,21 +117,30 @@ export function enrichUserData(rawUser: any): UserAccount {
   }
 
   const role = rawUser.role === "admin" || username.toLowerCase() === "admin" ? "admin" : (rawUser.role || "user");
+
+  const rawUnitName = String(rawUser.unit_name || "").trim();
+  const rawVehicleName = String(rawUser.vehicle_name || "").trim();
+  const isGenericAffilUnit = ["บช.ทท.", "บก.ทท.1", "บก.ทท.2", "บก.ทท.3", "ALL", "-", "ไม่ระบุ"].includes(rawUnitName);
+
+  const finalUnitName = (rawVehicleName && (isGenericAffilUnit || !rawUnitName))
+    ? rawVehicleName
+    : (rawUnitName || rawVehicleName || username.toUpperCase());
+  const finalVehicleName = rawVehicleName || finalUnitName;
+
   let affiliation = String(rawUser.affiliation || "").trim();
   if (!affiliation || affiliation === "ไม่ระบุ" || affiliation === "-") {
     if (role === "admin") {
       affiliation = "ALL";
     } else {
-      const unit = String(rawUser.unit_name || rawUser.vehicle_name || "").trim();
-      if (unit.includes("บก.ทท.1")) affiliation = "บก.ทท.1";
-      else if (unit.includes("บก.ทท.2")) affiliation = "บก.ทท.2";
-      else if (unit.includes("บก.ทท.3")) affiliation = "บก.ทท.3";
-      else if (unit.includes("บช.ทท.")) affiliation = "บช.ทท.";
+      if (isGenericAffilUnit) affiliation = rawUnitName;
+      else if (finalUnitName.includes("บก.ทท.1")) affiliation = "บก.ทท.1";
+      else if (finalUnitName.includes("บก.ทท.2")) affiliation = "บก.ทท.2";
+      else if (finalUnitName.includes("บก.ทท.3")) affiliation = "บก.ทท.3";
+      else if (finalUnitName.includes("บช.ทท.")) affiliation = "บช.ทท.";
       else affiliation = "บช.ทท.";
     }
   }
 
-  const unitName = rawUser.unit_name || rawUser.vehicle_name || username.toUpperCase();
   const vehicleType = rawUser.vehicle_type || (username.toLowerCase().startsWith("uav") ? "UAV Mobile" : "CCOC Mobile");
 
   return {
@@ -140,8 +149,8 @@ export function enrichUserData(rawUser: any): UserAccount {
     role,
     affiliation,
     vehicle_id: username,
-    unit_name: unitName,
-    vehicle_name: unitName,
+    unit_name: finalUnitName,
+    vehicle_name: finalVehicleName,
     vehicle_type: vehicleType,
   };
 }
