@@ -69,8 +69,10 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
           data: {
             username: usernameClean,
             password: formData.password,
-            unit_name: formData.affiliation,
+            unit_name: formData.unit_name,
             vehicle_name: formData.unit_name,
+            station_name: formData.unit_name,
+            station: formData.unit_name,
             affiliation: formData.affiliation,
             vehicle_type: formData.vehicle_type,
             role: "user",
@@ -212,15 +214,15 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
               </div>
             </div>
 
-            {/* หน่วยงาน */}
+            {/* หน่วยงาน / ชื่อสถานี */}
             <div className="flex flex-col gap-1 min-w-0">
-              <label className={labelClass}>หน่วยงาน (Unit Name) *</label>
+              <label className={labelClass}>หน่วยงาน / ชื่อสถานี (Unit Name / Vehicle Name) *</label>
               <input
                 type="text"
                 name="unit_name"
                 value={formData.unit_name}
                 onChange={handleChange}
-                placeholder="เช่น บช.ทท., สภ.เมืองเชียงใหม่"
+                placeholder="เช่น ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)"
                 className={inputClass}
               />
             </div>
