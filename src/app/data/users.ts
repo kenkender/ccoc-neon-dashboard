@@ -119,7 +119,7 @@ export function enrichUserData(rawUser: any): UserAccount {
   const role = rawUser.role === "admin" || username.toLowerCase() === "admin" ? "admin" : (rawUser.role || "user");
 
   const rawUnitName = String(rawUser.unit_name || "").trim();
-  const rawVehicleName = String(rawUser.vehicle_name || "").trim();
+  const rawVehicleName = String(rawUser.vehicle_name || rawUser.station_name || rawUser.station || rawUser.unit || "").trim();
   const isGenericAffilUnit = ["บช.ทท.", "บก.ทท.1", "บก.ทท.2", "บก.ทท.3", "ALL", "-", "ไม่ระบุ"].includes(rawUnitName);
 
   const finalUnitName = (rawVehicleName && (isGenericAffilUnit || !rawUnitName))

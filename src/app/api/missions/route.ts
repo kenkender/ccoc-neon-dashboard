@@ -123,10 +123,18 @@ async function refreshCacheInBackground() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const isRefresh = url.searchParams.get("refresh") === "true";
   const now = Date.now();
 
-  // 1. ถ้ามีแคชอยู่แล้ว ตอบกลับทันที (Stale-While-Revalidate)
+  // 1. ถ้าขอ refresh ให้ล้างแคชเพื่อดึงข้อมูลใหม่ทันที
+  if (isRefresh) {
+    cachedData = null;
+    lastFetchTime = 0;
+  }
+
+  // 2. ถ้ามีแคชอยู่แล้ว ตอบกลับทันที (Stale-While-Revalidate)
   if (cachedData) {
     if (now - lastFetchTime > CACHE_TTL_MS) {
       refreshCacheInBackground();
@@ -286,6 +294,28 @@ export async function POST(req: Request) {
         cachedData.data.missions = cachedData.data.missions.map((m: any) =>
           m.timestamp === body.timestamp ? { ...m, ...body.data } : m
         );
+      } else if (body.action === "addVehicle" && body.data) {
+        const newUser = {
+          username: body.data.username,
+          password: body.data.password,
+          role: "user",
+          affiliation: body.data.affiliation || body.data.unit_name,
+          vehicle_id: body.data.username,
+          unit_name: body.data.vehicle_name || body.data.unit_name,
+          vehicle_name: body.data.vehicle_name || body.data.unit_name,
+          vehicle_type: body.data.vehicle_type || "CCOC Mobile",
+        };
+        if (!Array.isArray(cachedData.data.users)) {
+          cachedData.data.users = [];
+        }
+        const exists = cachedData.data.users.some(
+          (u: any) => String(u.username || "").toLowerCase() === String(newUser.username).toLowerCase()
+        );
+        if (!exists) {
+          cachedData.data.users.push(newUser);
+        }
+        lastFetchTime = 0;
+        refreshCacheInBackground();
       } else if (body.action === "delete" && body.timestamp) {
         cachedData.data.missions = cachedData.data.missions.filter(
           (m: any) => m.timestamp !== body.timestamp

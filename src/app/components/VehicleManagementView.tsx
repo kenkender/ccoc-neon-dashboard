@@ -7,7 +7,7 @@ import { usePopup } from "./PopupContext";
 interface VehicleManagementViewProps {
   isDarkMode: boolean;
   usersList: any[];
-  fetchData: () => void;
+  fetchData: (forceRefresh?: boolean) => void;
   API_URL: string;
 }
 
@@ -91,12 +91,12 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
           `รหัส: ${usernameClean}`,
           `หน่วย: ${formData.unit_name}`,
           `สังกัด: ${formData.affiliation}`,
-          "⚠️ กรุณารอ 3-5 วินาทีแล้วกดรีเฟรชเพื่อดูข้อมูลล่าสุด",
+          "⚠️ กรุณารอ 2-3 วินาทีระบบกำลังอัปเดตข้อมูลล่าสด",
         ],
       });
 
       setFormData({ vehicle_type: "CCOC Mobile", username: "", password: "", unit_name: "", affiliation: "" });
-      setTimeout(() => { fetchData(); }, 3000);
+      setTimeout(() => { fetchData(true); }, 2000);
 
     } catch (error) {
       showNotification({ type: "error", title: "เกิดข้อผิดพลาด", message: "ไม่สามารถเพิ่มรถเข้าระบบได้ กรุณาลองใหม่อีกครั้ง" });
@@ -132,7 +132,7 @@ export default function VehicleManagementView({ isDarkMode, usersList, fetchData
             จัดการรถ / ผู้ใช้งาน
           </h2>
           <button
-            onClick={() => fetchData()}
+            onClick={() => fetchData(true)}
             className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl btn-3d ${isDarkMode ? "btn-menu-dark text-blue-400" : "btn-menu-light text-blue-600"}`}
           >
             <RefreshCw size={15} /> รีเฟรชข้อมูล

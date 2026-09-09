@@ -123,9 +123,9 @@ export default function Home() {
 
   const API_URL = "/api/missions";
 
-  const fetchData = async () => {
+  const fetchData = async (forceRefresh = false) => {
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(forceRefresh ? `${API_URL}?refresh=true` : API_URL);
       const text = await response.text();
       let result: any;
       try {
