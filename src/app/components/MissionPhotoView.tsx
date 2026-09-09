@@ -54,6 +54,7 @@ export default function MissionPhotoView({
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
   const { showNotification, showConfirm } = usePopup();
 
   // Filters State
@@ -202,6 +203,83 @@ export default function MissionPhotoView({
     }
   };
 
+  // Bulk Delete Handler
+  const handleBulkDelete = () => {
+    if (selectedPhotoIds.length === 0) return;
+
+    const deletablePhotos = photos.filter(
+      (p) => selectedPhotoIds.includes(p.id) && canDelete(p)
+    );
+
+    if (deletablePhotos.length === 0) {
+      showNotification({
+        type: "warning",
+        title: "ไม่มีสิทธิ์ลบรูปภาพ",
+        message: "คุณไม่มีสิทธิ์ลบรูปภาพที่เลือกไว้",
+      });
+      return;
+    }
+
+    showConfirm({
+      title: "ยืนยันการลบรูปภาพที่เลือก",
+      message: `คุณแน่ใจหรือไม่ว่าต้องการลบรูปภาพที่เลือกไว้จำนวน ${deletablePhotos.length} รูปออกจากระบบ?\n(การลบจะไม่สามารถกู้คืนได้)`,
+      isDanger: true,
+      confirmText: `ยืนยันลบ ${deletablePhotos.length} รูป`,
+      onConfirm: async () => {
+        try {
+          setIsDeletingBulk(true);
+          const results = await Promise.all(
+            deletablePhotos.map(async (photo) => {
+              try {
+                const res = await fetch(`/api/photos/${photo.id}`, {
+                  method: "DELETE",
+                  headers: {
+                    "x-vehicle-id": currentUser?.vehicle_id || "",
+                  },
+                });
+                const data = await res.json();
+                return { id: photo.id, success: data?.success ?? res.ok };
+              } catch (err) {
+                return { id: photo.id, success: false };
+              }
+            })
+          );
+
+          const deletedIds = results.filter((r) => r.success).map((r) => r.id);
+
+          if (deletedIds.length > 0) {
+            setPhotos((prev) => prev.filter((p) => !deletedIds.includes(p.id)));
+            setSelectedPhotoIds((prev) => prev.filter((id) => !deletedIds.includes(id)));
+            if (lightboxIndex !== null) setLightboxIndex(null);
+
+            showNotification({
+              type: "success",
+              title: "ลบรูปภาพสำเร็จ",
+              message: `ลบรูปภาพออกจากระบบเรียบร้อยแล้ว จำนวน ${deletedIds.length} รูป`,
+            });
+          }
+
+          if (deletedIds.length < deletablePhotos.length) {
+            showNotification({
+              type: "error",
+              title: "บางรูปภาพลบไม่สำเร็จ",
+              message: `ไม่สามารถลบรูปภาพได้จำนวน ${deletablePhotos.length - deletedIds.length} รูป`,
+            });
+          }
+        } catch (err) {
+          showNotification({
+            type: "error",
+            title: "เกิดข้อผิดพลาด",
+            message: "เกิดข้อผิดพลาดในการลบรูปภาพที่เลือก",
+          });
+          console.error(err);
+        } finally {
+          setIsDeletingBulk(false);
+        }
+      },
+    });
+  };
+
   // Single download
   const handleDownload = async (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -306,6 +384,26 @@ export default function MissionPhotoView({
               {selectedPhotoIds.length === filteredPhotos.length ? "🚫 ยกเลิกเลือกทั้งหมด" : "✅ เลือกทั้งหมด"}
             </button>
           )}
+
+          <button
+            disabled={selectedPhotoIds.length === 0 || isDeletingBulk}
+            onClick={handleBulkDelete}
+            className={`flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl btn-3d transition-all ${
+              selectedPhotoIds.length > 0
+                ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] cursor-pointer"
+                : "opacity-50 cursor-not-allowed text-gray-500 bg-gray-800/20"
+            }`}
+          >
+            {isDeletingBulk ? (
+              <>
+                <Loader2 size={14} className="animate-spin" /> กำลังลบ...
+              </>
+            ) : (
+              <>
+                <Trash2 size={14} /> ลบรูปภาพที่เลือก ({selectedPhotoIds.length} รูป)
+              </>
+            )}
+          </button>
 
           <button
             disabled={selectedPhotoIds.length === 0 || isDownloadingZip}
