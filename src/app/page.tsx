@@ -984,6 +984,33 @@ export default function Home() {
         return 45; // ค่ามาตรฐานหากไม่ได้ระบุ
       };
 
+      const formatTimeDisplay = (timeVal: any): string => {
+        if (timeVal === null || timeVal === undefined || timeVal === "") return "-";
+        let str = String(timeVal).trim();
+        if (!str || str === "-") return "-";
+
+        str = str.replace(/\s*น\.?$/i, "").trim();
+
+        if (/^\d{1,2}$/.test(str)) {
+          return `${str.padStart(2, '0')}.00 น.`;
+        }
+
+        if (/^\d{1,2}:\d{2}$/.test(str)) {
+          const [h, mm] = str.split(':');
+          return `${h.padStart(2, '0')}.${mm} น.`;
+        }
+
+        if (/^\d{1,2}\.\d{1,2}$/.test(str)) {
+          const [h, mm] = str.split('.');
+          return `${h.padStart(2, '0')}.${mm.padEnd(2, '0')} น.`;
+        }
+
+        if (!str.endsWith("น.") && !str.endsWith("น")) {
+          return `${str} น.`;
+        }
+        return str.endsWith("น.") ? str : `${str}.`;
+      };
+
       const getTouristNumber = (m: any): number => {
         const fields = [m.tourist_count_est, m.people_per_day, m.people_total];
         for (const f of fields) {
@@ -1057,7 +1084,8 @@ export default function Home() {
               : (m.tourist_count_est && m.tourist_count_est !== "ปริมาณน้อย"
                   ? m.tourist_count_est
                   : (m.tourist_density || "-"));
-            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(m.start_time || "-")}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+            const formattedTimeStr = formatTimeDisplay(m.start_time);
+            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
           });
         }
       });
