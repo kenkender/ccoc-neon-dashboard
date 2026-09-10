@@ -46,7 +46,11 @@ export default function LineReportModal({
     ? `${missionData.unit_name || missionData.affiliation || "บช.ทท."}
 เรียน ผู้บังคับบัญชา
 🗓️  วันที่: ${formatDateThai(missionData.start_date)}
-🕗  เวลา: ${missionData.start_time || "-"} น.
+🕗  เวลา: ${(() => {
+        const t = String(missionData.start_time || "-").trim();
+        if (!t || t === "-") return "-";
+        return (t.endsWith("น.") || t.endsWith("น")) ? t : `${t} น.`;
+      })()}
 👮‍♂️  ผู้ปฏิบัติ: ${missionData.unit_name ? `${missionData.unit_name} (${missionData.raw_vehicle_id || missionData.vehicle_id || "UAV Mobile"})` : "สายตรวจอากาศยานไร้คนขับ"}
 🟥  การปฏิบัติ: ${missionData.mission_name || "-"}
 📍  สถานที่: ${missionData.location || missionData.province || "-"} ${missionData.province && missionData.location && missionData.location !== missionData.province ? `จ.${missionData.province}` : ""}

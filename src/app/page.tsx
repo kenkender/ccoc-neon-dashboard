@@ -57,6 +57,49 @@ const formatRecordedDate = (timestampStr: string) => {
   return timestampStr;
 };
 
+export const normalizeTimeStr = (timeVal: any, fallback = "21.00 น."): string => {
+  if (timeVal === null || timeVal === undefined || timeVal === "") return fallback;
+  let str = String(timeVal).trim();
+  if (!str || str === "-" || str === "undefined" || str === "null") return fallback;
+
+  const thaiDigits = ["๐","๑","๒","๓","๔","๕","๖","๗","๘","๙"];
+  for (let i = 0; i < 10; i++) {
+    str = str.split(thaiDigits[i]).join(String(i));
+  }
+
+  str = str.replace(/\s*น\.?$/i, "").trim();
+
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(str)) {
+    const parts = str.split(':');
+    const h = parts[0].padStart(2, '0');
+    const mm = parts[1];
+    return `${h}.${mm} น.`;
+  }
+
+  if (/^\d{1,2}\.\d{1,2}(\.\d{1,2})?$/.test(str)) {
+    const parts = str.split('.');
+    const h = parts[0].padStart(2, '0');
+    const mm = parts[1].padEnd(2, '0');
+    return `${h}.${mm} น.`;
+  }
+
+  if (/^\d{1,2}$/.test(str)) {
+    return `${str.padStart(2, '0')}.00 น.`;
+  }
+
+  if (/^\d{1,2}\.\d+$/.test(str)) {
+    const parts = str.split('.');
+    const h = parts[0].padStart(2, '0');
+    const mm = parts[1].padEnd(2, '0');
+    return `${h}.${mm} น.`;
+  }
+
+  if (!str.endsWith("น.") && !str.endsWith("น")) {
+    return `${str} น.`;
+  }
+  return str.endsWith("น.") ? str : `${str}.`;
+};
+
 export default function Home() {
   const { showNotification, showConfirm, showUploadProgress, updateUploadProgress, closeUploadProgress } = usePopup();
   const [currentUser, setCurrentUser] = useState<any>(null); 
@@ -225,7 +268,7 @@ export default function Home() {
           unit_name: unitName,
           province: province || "-",
           start_date: startDate,
-          start_time: startTime || "21.00 น.",
+          start_time: normalizeTimeStr(startTime, "21.00 น."),
           distance_km: distanceKm,
           tourist_count_est: touristCountEst,
           tourist_density: density,
@@ -984,33 +1027,6 @@ export default function Home() {
         return 45; // ค่ามาตรฐานหากไม่ได้ระบุ
       };
 
-      const formatTimeDisplay = (timeVal: any): string => {
-        if (timeVal === null || timeVal === undefined || timeVal === "") return "-";
-        let str = String(timeVal).trim();
-        if (!str || str === "-") return "-";
-
-        str = str.replace(/\s*น\.?$/i, "").trim();
-
-        if (/^\d{1,2}$/.test(str)) {
-          return `${str.padStart(2, '0')}.00 น.`;
-        }
-
-        if (/^\d{1,2}:\d{2}$/.test(str)) {
-          const [h, mm] = str.split(':');
-          return `${h.padStart(2, '0')}.${mm} น.`;
-        }
-
-        if (/^\d{1,2}\.\d{1,2}$/.test(str)) {
-          const [h, mm] = str.split('.');
-          return `${h.padStart(2, '0')}.${mm.padEnd(2, '0')} น.`;
-        }
-
-        if (!str.endsWith("น.") && !str.endsWith("น")) {
-          return `${str} น.`;
-        }
-        return str.endsWith("น.") ? str : `${str}.`;
-      };
-
       const getTouristNumber = (m: any): number => {
         const fields = [m.tourist_count_est, m.people_per_day, m.people_total];
         for (const f of fields) {
@@ -1084,7 +1100,7 @@ export default function Home() {
               : (m.tourist_count_est && m.tourist_count_est !== "ปริมาณน้อย"
                   ? m.tourist_count_est
                   : (m.tourist_density || "-"));
-            const formattedTimeStr = formatTimeDisplay(m.start_time);
+            const formattedTimeStr = normalizeTimeStr(m.start_time, "21.00 น.");
             html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
           });
         }
