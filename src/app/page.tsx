@@ -198,7 +198,11 @@ export default function Home() {
         let finalAffil = String(affil || "").trim();
 
         if (vId.includes("uav")) {
-          vId = "UAV Mobile";
+          if (vId === "uav" || vId === "uav mobile" || vId === "uav_mobile") {
+            vId = "UAV Mobile";
+          } else {
+            vId = String(vehicleId || "").trim();
+          }
           if (!finalAffil || finalAffil === "-") finalAffil = "บช.ทท.";
         } else if (vId.includes("อยุธยา") || uName.includes("อยุธยา")) {
           vId = "stc03";
@@ -731,16 +735,156 @@ export default function Home() {
       return new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime();
     };
 
-    // แยกข้อมูล CCOC และ UAV
-    const ccocLogs = [...filteredLogs].filter(m => {
+
+    // ─── master list CCOC (ลำดับตาม SYSTEM_USERS) ────────────────────────────
+    const CCOC_MASTER_ORDER = [
+      { affiliation: "บช.ทท.",  vehicle_id: "stc01", unit_name: "บช.ทท." },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc09", unit_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc03", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc04", unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc05", unit_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc06", unit_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc07", unit_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc08", unit_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc02", unit_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)" },
+    ];
+
+    // ─── master list UAV (ลำดับตาม SYSTEM_USERS) ─────────────────────────────
+    const UAV_MASTER_ORDER = [
+      { affiliation: "บช.ทท.",  vehicle_id: "uav_bchtt", unit_name: "บช.ทท. (สายตรวจโดรน)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav002",    unit_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav008",    unit_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav004",    unit_name: "ส.ทท.3 กก.1 บก.ทท.1 (ธนบุรี)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav006",    unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (ลพบุรี)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav007",    unit_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav009",    unit_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "uav010",    unit_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav011",    unit_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav025",    unit_name: "ส.ทท.3 กก.1 บก.ทท.2 (อุบลราชธานี)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav001",    unit_name: "ส.ทท.4 กก.1 บก.ทท.2 (นครพนม)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav013",    unit_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav028",    unit_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav026",    unit_name: "ส.ทท.2 กก.2 บก.ทท.2 (เชียงราย)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav003",    unit_name: "ส.ทท.3 กก.2 บก.ทท.2 (น่าน)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav016",    unit_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "uav017",    unit_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav018",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav019",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี) - ชุด 2" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav021",    unit_name: "ส.ทท.2 กก.2 บก.ทท.3 (ระนอง)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav022",    unit_name: "ส.ทท.3 กก.2 บก.ทท.3 (กระบี่)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav023",    unit_name: "ส.ทท.4 กก.2 บก.ทท.3 (สุราษฎร์ธานี)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uavsamui",  unit_name: "ส.ทท.5 กก.2 บก.ทท.3 (เกาะสมุย)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav027",    unit_name: "ส.ทท.2 กก.3 บก.ทท.3 (ตรัง)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "uav005",    unit_name: "ส.ทท.3 กก.3 บก.ทท.3 (นราธิวาส)" },
+    ];
+
+    const getUavStationIdForMission = (m: any): string => {
+      const vid = String(m.raw_vehicle_id || m.vehicle_id || "").toLowerCase().trim();
+      const unit = String(m.unit_name || "").toLowerCase().trim();
+      const affil = String(m.affiliation || "").toLowerCase().trim();
+      const prov = String(m.province || "").toLowerCase().trim();
+
+      for (const station of UAV_MASTER_ORDER) {
+        const svid = station.vehicle_id.toLowerCase().trim();
+        if (vid === svid) return svid;
+        if (vid.replace(/^uav0*/, 'uav') === svid.replace(/^uav0*/, 'uav')) return svid;
+      }
+
+      const stcToUavMap: Record<string, string> = {
+        "stc01": "uav_bchtt",
+        "stc09": "uav002",
+        "stc03": "uav006",
+        "stc04": "uav009",
+        "stc05": "uav011",
+        "stc06": "uav026",
+        "stc07": "uav016",
+        "stc08": "uav018",
+        "stc02": "uav022",
+        "stc10": "uav027",
+      };
+      if (stcToUavMap[vid]) return stcToUavMap[vid];
+
+      if (unit.includes("กรุงเทพเหนือ")) return "uav002";
+      if (unit.includes("กรุงเทพใต้")) return "uav008";
+      if (unit.includes("ธนบุรี")) return "uav004";
+      if (unit.includes("ลพบุรี")) return "uav006";
+      if (unit.includes("สระแก้ว")) return "uav007";
+      if (unit.includes("ระยอง") || prov.includes("ระยอง")) return "uav009";
+      if (unit.includes("ตราด") || prov.includes("ตราด")) return "uav010";
+      if (unit.includes("ขอนแก่น") || prov.includes("ขอนแก่น")) return "uav011";
+      if (unit.includes("อุบล") || prov.includes("อุบล")) return "uav025";
+      if (unit.includes("นครพนม") || prov.includes("นครพนม")) return "uav001";
+      if (unit.includes("อุดร") || prov.includes("อุดร")) return "uav013";
+      if (unit.includes("เลย") || prov.includes("เลย")) return "uav028";
+      if (unit.includes("เชียงราย") || prov.includes("เชียงราย")) return "uav026";
+      if (unit.includes("น่าน") || prov.includes("น่าน")) return "uav003";
+      if (unit.includes("นครสวรรค์") || prov.includes("นครสวรรค์")) return "uav016";
+      if (unit.includes("ตาก") || prov.includes("ตาก")) return "uav017";
+      if (unit.includes("กาญจนบุรี") || prov.includes("กาญจนบุรี")) return "uav018";
+      if (unit.includes("ระนอง") || prov.includes("ระนอง")) return "uav021";
+      if (unit.includes("กระบี่") || prov.includes("กระบี่")) return "uav022";
+      if (unit.includes("สุราษฎร์") || prov.includes("สุราษฎร์")) return "uav023";
+      if (unit.includes("สมุย") || prov.includes("สมุย")) return "uavsamui";
+      if (unit.includes("ตรัง") || prov.includes("ตรัง")) return "uav027";
+      if (unit.includes("นราธิวาส") || prov.includes("นราธิวาส")) return "uav005";
+
+      if (affil.includes("บช.ทท") || unit.includes("บช.ทท")) return "uav_bchtt";
+      if (affil.includes("บก.ทท.1")) return "uav002";
+      if (affil.includes("บก.ทท.2")) return "uav011";
+      if (affil.includes("บก.ทท.3")) return "uav018";
+
+      return "uav_bchtt";
+    };
+
+    const getCcocStationIdForMission = (m: any): string => {
+      const vid = String(m.raw_vehicle_id || m.vehicle_id || "").toLowerCase().trim();
+      const unit = String(m.unit_name || "").toLowerCase().trim();
+      const affil = String(m.affiliation || "").toLowerCase().trim();
+      const prov = String(m.province || "").toLowerCase().trim();
+
+      for (const station of CCOC_MASTER_ORDER) {
+        const svid = station.vehicle_id.toLowerCase().trim();
+        if (vid === svid) return svid;
+      }
+
+      if (unit.includes("สนามศุภ") || prov.includes("กทม")) return "stc09";
+      if (unit.includes("อยุธยา") || prov.includes("อยุธยา")) return "stc03";
+      if (unit.includes("ชลบุรี") || unit.includes("พัทยา") || prov.includes("ชลบุรี")) return "stc04";
+      if (unit.includes("โคราช") || unit.includes("นครราชสีมา") || prov.includes("นครราชสีมา")) return "stc05";
+      if (unit.includes("เชียงใหม่") || prov.includes("เชียงใหม่")) return "stc06";
+      if (unit.includes("พิษณุโลก") || prov.includes("พิษณุโลก")) return "stc07";
+      if (unit.includes("หัวหิน") || unit.includes("ประจวบ") || prov.includes("ประจวบ")) return "stc08";
+      if (unit.includes("ภูเก็ต") || prov.includes("ภูเก็ต")) return "stc02";
+      if (unit.includes("หาดใหญ่") || unit.includes("สงขลา") || prov.includes("สงขลา")) return "stc10";
+      if (affil.includes("บช.ทท") || unit.includes("บช.ทท")) return "stc01";
+
+      return "stc01";
+    };
+
+    // Filter missions by date and affiliation filter
+    const activeLogs = allowedMissions.filter((m: any) => {
+      let passAffil = logFilterAffiliation === "ALL" || String(m.affiliation || "").trim() === logFilterAffiliation;
+      let passDate = true;
+      const mDateStr = parseMissionDateStr(m.start_date || m.timestamp);
+      if (mDateStr) {
+        if (logFilterStartDate) passDate = mDateStr >= logFilterStartDate;
+        if (passDate && logFilterEndDate) passDate = mDateStr <= logFilterEndDate;
+      } else if (logFilterStartDate || logFilterEndDate) {
+        passDate = false; 
+      }
+      return passAffil && passDate;
+    });
+
+    const ccocLogs = activeLogs.filter((m: any) => {
       const vt = String(m.vehicle_type || "").toLowerCase();
-      const vid = String(m.vehicle_id || "").toLowerCase();
-      return vt === "ccoc mobile" || vid.startsWith("stc");
+      const vid = String(m.vehicle_id || m.raw_vehicle_id || "").toLowerCase();
+      return (vt === "ccoc mobile" || vid.startsWith("stc")) && vt !== "uav mobile";
     }).sort(sortByAffDate);
 
-    const uavLogs = [...filteredLogs].filter(m => {
+    const uavLogs = activeLogs.filter((m: any) => {
       const vt = String(m.vehicle_type || "").toLowerCase();
-      const vid = String(m.vehicle_id || "").toLowerCase();
+      const vid = String(m.vehicle_id || m.raw_vehicle_id || "").toLowerCase();
       return vt === "uav mobile" || vid.startsWith("uav") || vid === "uav mobile" || Boolean(m.drone_id);
     }).sort(sortByAffDate);
 
@@ -762,28 +906,14 @@ export default function Home() {
       .section-uav th { background-color: #dbeafe; }
       @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }`;
 
-    // ─── master list CCOC (ลำดับตาม SYSTEM_USERS) ────────────────────────────
-    const CCOC_MASTER_ORDER = [
-      { affiliation: "บช.ทท.",  vehicle_id: "stc01", unit_name: "บช.ทท." },
-      { affiliation: "บก.ทท.1", vehicle_id: "stc09", unit_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "stc03", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "stc04", unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "stc05", unit_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "stc06", unit_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "stc07", unit_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "stc08", unit_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "stc02", unit_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)" },
-    ];
-
     // ─── ฟังก์ชัน build ตาราง CCOC ────────────────────────────────────────────
     const buildCCOCTable = (logs: any[]) => {
-      // จัดกลุ่มข้อมูลที่มีตาม vehicle_id
+      // จัดกลุ่มข้อมูลที่มีตาม station ID
       const logsByVehicle: Record<string, any[]> = {};
       logs.forEach((m: any) => {
-        const vid = String(m.vehicle_id || "").toLowerCase();
-        if (!logsByVehicle[vid]) logsByVehicle[vid] = [];
-        logsByVehicle[vid].push(m);
+        const targetVid = getCcocStationIdForMission(m);
+        if (!logsByVehicle[targetVid]) logsByVehicle[targetVid] = [];
+        logsByVehicle[targetVid].push(m);
       });
 
       let html = `<table><thead><tr>
@@ -843,35 +973,6 @@ export default function Home() {
       return html;
     };
 
-    // ─── master list UAV (ลำดับตาม SYSTEM_USERS) ─────────────────────────────
-    const UAV_MASTER_ORDER = [
-      { affiliation: "บช.ทท.",  vehicle_id: "uav_bchtt", unit_name: "บช.ทท. (สายตรวจโดรน)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "uav002",    unit_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "uav008",    unit_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "uav004",    unit_name: "ส.ทท.3 กก.1 บก.ทท.1 (ธนบุรี)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "uav006",    unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (ลพบุรี)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "uav007",    unit_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "uav009",    unit_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)" },
-      { affiliation: "บก.ทท.1", vehicle_id: "uav010",    unit_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav011",    unit_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav025",    unit_name: "ส.ทท.3 กก.1 บก.ทท.2 (อุบลราชธานี)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav001",    unit_name: "ส.ทท.4 กก.1 บก.ทท.2 (นครพนม)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav013",    unit_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav028",    unit_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav026",    unit_name: "ส.ทท.2 กก.2 บก.ทท.2 (เชียงราย)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav003",    unit_name: "ส.ทท.3 กก.2 บก.ทท.2 (น่าน)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav016",    unit_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)" },
-      { affiliation: "บก.ทท.2", vehicle_id: "uav017",    unit_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uav018",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uav019",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี) - ชุด 2" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uav021",    unit_name: "ส.ทท.2 กก.2 บก.ทท.3 (ระนอง)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uav022",    unit_name: "ส.ทท.3 กก.2 บก.ทท.3 (กระบี่)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uav023",    unit_name: "ส.ทท.4 กก.2 บก.ทท.3 (สุราษฎร์ธานี)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uavsamui",  unit_name: "ส.ทท.5 กก.2 บก.ทท.3 (เกาะสมุย)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uav027",    unit_name: "ส.ทท.2 กก.3 บก.ทท.3 (ตรัง)" },
-      { affiliation: "บก.ทท.3", vehicle_id: "uav005",    unit_name: "ส.ทท.3 กก.3 บก.ทท.3 (นราธิวาส)" },
-    ];
-
     // ─── ฟังก์ชัน build ตาราง UAV ─────────────────────────────────────────────
     const buildUAVTable = (logs: any[]) => {
       const getFlightDuration = (m: any): number => {
@@ -897,12 +998,12 @@ export default function Home() {
         return 0;
       };
 
-      // จัดกลุ่มข้อมูลที่มีตาม vehicle_id
+      // จัดกลุ่มข้อมูลที่มีตาม station ID
       const logsByVehicle: Record<string, any[]> = {};
       logs.forEach((m: any) => {
-        const vid = String(m.vehicle_id || m.raw_vehicle_id || "").toLowerCase();
-        if (!logsByVehicle[vid]) logsByVehicle[vid] = [];
-        logsByVehicle[vid].push(m);
+        const targetVid = getUavStationIdForMission(m);
+        if (!logsByVehicle[targetVid]) logsByVehicle[targetVid] = [];
+        logsByVehicle[targetVid].push(m);
       });
 
       let html = `<table class="section-uav"><thead><tr>
