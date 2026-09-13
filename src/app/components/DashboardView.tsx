@@ -425,7 +425,9 @@ export default function DashboardView({ missions, refreshData }: { missions: any
                 <XAxis dataKey="shortName" stroke="#666" tick={{fill: '#888', fontSize: 11}} axisLine={false} tickLine={false} interval={0} />
                 <YAxis stroke="#666" tick={{fill: '#888', fontSize: 10}} allowDecimals={false} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#a855f7', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'}} 
+                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#a855f7', borderRadius: '10px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.7)', color: '#ffffff'}} 
+                  labelStyle={{color: '#ffffff', fontWeight: 'bold', marginBottom: '2px'}}
+                  itemStyle={{color: '#38bdf8', fontWeight: 'bold'}}
                   cursor={{fill: '#ffffff0a'}}
                   labelFormatter={(label: any, payload: any) => {
                     if (payload && payload.length > 0) {
@@ -466,8 +468,9 @@ export default function DashboardView({ missions, refreshData }: { missions: any
                 <YAxis dataKey="name" type="category" stroke="#e5e7eb" tick={{fill: '#e5e7eb', fontSize: 11, fontWeight: 'bold'}} axisLine={false} tickLine={false} width={110} />
                 <Tooltip 
                   cursor={{fill: '#ffffff0a'}}
-                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#06b6d4', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'}} 
-                  itemStyle={{ fontWeight: 'bold', color: '#fff' }} 
+                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#06b6d4', borderRadius: '10px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.7)', color: '#ffffff'}} 
+                  labelStyle={{color: '#ffffff', fontWeight: 'bold', marginBottom: '2px'}}
+                  itemStyle={{color: '#38bdf8', fontWeight: 'bold'}} 
                   formatter={(value: any) => [`${value} ภารกิจ`, 'จำนวน']}
                 />
                 <Bar dataKey="count" barSize={10} radius={[0, 10, 10, 0]}>
