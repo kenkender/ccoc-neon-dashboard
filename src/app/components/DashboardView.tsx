@@ -5,13 +5,20 @@ import { Activity, Filter, List, MapPin, Users, Car, Trophy, AlertTriangle, Map,
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import IncidentModal from "./IncidentModal";
 import { usePopup } from "./PopupContext";
-
+import { VEHICLE_AFFILIATIONS } from "../data/users";
 
 const VEHICLE_NAMES: Record<string, string> = {
   "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
   "stc04": "4. stc04 ชลบุรี", "stc05": "5. stc05 โคราช", "stc06": "6. stc06 เชียงใหม่",
   "stc07": "7. stc07 พิษณุโลก", "stc08": "8. stc08 หัวหิน", "stc09": "9. stc09 สนามศุภชลาศัย",
   "stc10": "10. stc10 หาดใหญ่", "uav mobile": "11. UAV Mobile", "UAV Mobile": "11. UAV Mobile"
+};
+
+const AFFILIATION_COLORS: Record<string, { fill: string; glow: string; border: string }> = {
+  "บช.ทท.":  { fill: "#d946ef", glow: "rgba(217, 70, 239, 0.6)", border: "#e879f9" }, // Fuchsia / Pink
+  "บก.ทท.1": { fill: "#06b6d4", glow: "rgba(6, 182, 212, 0.6)",  border: "#22d3ee" }, // Cyan / Blue
+  "บก.ทท.2": { fill: "#22c55e", glow: "rgba(34, 197, 94, 0.6)",  border: "#4ade80" }, // Green
+  "บก.ทท.3": { fill: "#ea580c", glow: "rgba(234, 88, 12, 0.6)", border: "#fb923c" }, // Orange
 };
 
 export default function DashboardView({ missions, refreshData }: { missions: any[], refreshData?: any }) {
@@ -248,8 +255,31 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const kpiTotalDistance = filteredMissions.reduce((sum: number, m: any) => sum + Number(m.distance_km || 0), 0);
   const kpiTotalPeople = filteredMissions.reduce((sum: number, m: any) => sum + Number(m.people_total || 0), 0);
 
+  const getVehicleAffiliation = (vehicleKey: string): string => {
+    const cleanKey = vehicleKey.toLowerCase();
+    if (VEHICLE_AFFILIATIONS[cleanKey]) {
+      return normalizeAffiliation(VEHICLE_AFFILIATIONS[cleanKey]);
+    }
+    const foundMission = filteredMissions.find((m: any) => String(m.vehicle_id || "").toLowerCase() === cleanKey);
+    if (foundMission && foundMission.affiliation) {
+      return normalizeAffiliation(foundMission.affiliation);
+    }
+    return "ไม่ระบุ";
+  };
+
   const vehicleStats = filteredMissions.reduce((acc: any, m: any) => { const v = String(m.vehicle_id || 'Unknown').toLowerCase(); acc[v] = (acc[v] || 0) + 1; return acc; }, {});
-  const chartDataVehicle = Object.keys(vehicleStats).map(key => ({ name: VEHICLE_NAMES[key] || key.toUpperCase(), shortName: key.toUpperCase(), count: vehicleStats[key]}));
+  const chartDataVehicle = Object.keys(vehicleStats).map(key => {
+    const aff = getVehicleAffiliation(key);
+    const colorInfo = AFFILIATION_COLORS[aff] || { fill: '#c084fc', glow: 'rgba(192,132,252,0.6)', border: '#c084fc' };
+    return {
+      name: VEHICLE_NAMES[key.toLowerCase()] || VEHICLE_NAMES[key] || key.toUpperCase(),
+      shortName: key.toUpperCase(),
+      count: vehicleStats[key],
+      affiliation: aff,
+      fill: colorInfo.fill,
+      glow: colorInfo.glow,
+    };
+  });
   const topVehicles = [...chartDataVehicle].sort((a, b) => b.count - a.count).slice(0, 10);
 
   const provinceStats = filteredMissions.reduce((acc: any, m: any) => { const p = m.province || 'ไม่ระบุ'; acc[p] = (acc[p] || 0) + 1; return acc; }, {});
@@ -270,11 +300,16 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   };
 
   const chartDataAffiliation = Object.keys(affiliationStats)
-    .map((key, index) => ({ 
-      name: key, 
-      count: affiliationStats[key],
-      fill: ['#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#ec4899'][index % 6] 
-    }))
+    .map((key) => {
+      const normAff = normalizeAffiliation(key);
+      const colorInfo = AFFILIATION_COLORS[normAff] || { fill: '#94a3b8', glow: 'rgba(148,163,184,0.6)', border: '#94a3b8' };
+      return { 
+        name: normAff, 
+        count: affiliationStats[key],
+        fill: colorInfo.fill,
+        glow: colorInfo.glow,
+      };
+    })
     .sort((a, b) => {
       const weightA = orderWeight[a.name] || 99;
       const weightB = orderWeight[b.name] || 99;
@@ -380,35 +415,38 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       {/* Chart Panels (Flex-1) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 mb-3 flex-1 min-h-[260px] chart-grid-container">
         <div className="relative group bg-gray-900/85 border border-gray-700/50 p-3 md:p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-500/10 anim-fade-in-up" style={{ animationDelay: '320ms' }}>
-          <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md"><Car size={18} className="anim-float"/> สถิติภารกิจของรถ CCOC Mobile</h3>
+          <h3 className="text-purple-400 font-bold mb-2 text-[13px] tracking-widest flex items-center gap-2 shrink-0 drop-shadow-md">
+            <Car size={18} className="anim-float"/> สถิติภารกิจของรถ {selectedType === "UAV" ? "UAV Mobile" : selectedType === "CCOC" ? "CCOC Mobile" : "ปฏิบัติการ"}
+          </h3>
           <div className="flex-1 min-h-[220px] w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
               <BarChart data={chartDataVehicle} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorVehicle" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#c084fc" stopOpacity={1}/>
-                    <stop offset="80%" stopColor="#7e22ce" stopOpacity={0.8}/>
-                    <stop offset="100%" stopColor="#3b0764" stopOpacity={0.3}/>
-                  </linearGradient>
-                  <filter id="shadowPurple">
-                    <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="#7e22ce" floodOpacity="0.5"/>
-                  </filter>
-                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                 <XAxis dataKey="shortName" stroke="#666" tick={{fill: '#888', fontSize: 11}} axisLine={false} tickLine={false} interval={0} />
                 <YAxis stroke="#666" tick={{fill: '#888', fontSize: 10}} allowDecimals={false} axisLine={false} tickLine={false} />
                 <Tooltip 
-                    contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#a855f7', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(168,85,247,0.2)'}} 
-                    itemStyle={{color: '#e879f9', fontWeight: 'bold'}} 
-                    cursor={{fill: '#ffffff0a'}}
-                    labelFormatter={(label: any, payload: any) => {
-                      if (payload && payload.length > 0) {
-                        return payload[0].payload.name;
-                      }
-                      return label;
-                    }}
-                  />                
-                  <Bar dataKey="count" fill="url(#colorVehicle)" radius={[6, 6, 0, 0]} filter="url(#shadowPurple)" />
+                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#a855f7', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'}} 
+                  cursor={{fill: '#ffffff0a'}}
+                  labelFormatter={(label: any, payload: any) => {
+                    if (payload && payload.length > 0) {
+                      return payload[0].payload.name;
+                    }
+                    return label;
+                  }}
+                  formatter={(value: any, name: any, item: any) => [
+                    `${value} ภารกิจ (${item?.payload?.affiliation || "ไม่ระบุสังกัด"})`,
+                    'จำนวน'
+                  ]}
+                />                
+                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                  {chartDataVehicle.map((entry, index) => (
+                    <Cell 
+                      key={`cell-v-${index}`} 
+                      fill={entry.fill} 
+                      style={{ filter: `drop-shadow(0px 0px 6px ${entry.fill})` }}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -428,14 +466,14 @@ export default function DashboardView({ missions, refreshData }: { missions: any
                 <YAxis dataKey="name" type="category" stroke="#e5e7eb" tick={{fill: '#e5e7eb', fontSize: 11, fontWeight: 'bold'}} axisLine={false} tickLine={false} width={110} />
                 <Tooltip 
                   cursor={{fill: '#ffffff0a'}}
-                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#06b6d4', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(6,182,212,0.2)'}} 
+                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#06b6d4', borderRadius: '8px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'}} 
                   itemStyle={{ fontWeight: 'bold', color: '#fff' }} 
                   formatter={(value: any) => [`${value} ภารกิจ`, 'จำนวน']}
                 />
-                <Bar dataKey="count" barSize={8} radius={[0, 10, 10, 0]}>
+                <Bar dataKey="count" barSize={10} radius={[0, 10, 10, 0]}>
                   {chartDataAffiliation.map((entry, index) => (
                     <Cell 
-                      key={`cell-${index}`} 
+                      key={`cell-affil-${index}`} 
                       fill={entry.fill} 
                       style={{ filter: `drop-shadow(0px 0px 8px ${entry.fill})` }}
                     />
@@ -457,7 +495,12 @@ export default function DashboardView({ missions, refreshData }: { missions: any
             {topVehicles.length === 0 && <li className="text-gray-500 text-xs text-center py-4">NO DATA</li>}
             {topVehicles.map((v: any, i: number) => (
               <li key={i} className="flex justify-between items-center bg-gray-800/85 py-1.5 px-2.5 rounded-xl border border-purple-500/10 hover:border-purple-400/50 hover:bg-purple-900/20 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 shadow-sm anim-fade-in-left" style={{ animationDelay: `${600 + i * 50}ms` }}>
-                <span className="text-gray-200 font-bold text-[13px] flex items-center gap-2.5"><span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-inner ${i === 0 ? 'bg-linear-to-br from-yellow-300 to-yellow-600 text-black shadow-yellow-500/50' : i === 1 ? 'bg-linear-to-br from-gray-200 to-gray-500 text-black' : i === 2 ? 'bg-linear-to-br from-orange-300 to-orange-600 text-black' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{i + 1}</span>{v.name.split(' ')[1] || v.name}</span><span className="text-purple-300 font-mono text-[11px] bg-purple-900/50 border border-purple-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{v.count} งาน</span>
+                <span className="text-gray-200 font-bold text-[13px] flex items-center gap-2">
+                  <span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-inner ${i === 0 ? 'bg-linear-to-br from-yellow-300 to-yellow-600 text-black shadow-yellow-500/50' : i === 1 ? 'bg-linear-to-br from-gray-200 to-gray-500 text-black' : i === 2 ? 'bg-linear-to-br from-orange-300 to-orange-600 text-black' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{i + 1}</span>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: v.fill, boxShadow: `0 0 6px ${v.fill}` }} title={v.affiliation} />
+                  <span>{v.name.split(' ')[1] || v.name}</span>
+                </span>
+                <span className="text-purple-300 font-mono text-[11px] bg-purple-900/50 border border-purple-500/30 px-2 py-0.5 rounded-md shrink-0 shadow-inner">{v.count} งาน</span>
               </li>
             ))}
           </ul>
