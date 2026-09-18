@@ -14,6 +14,15 @@ import UavMissionForm from "./components/UavMissionForm";
 import LineReportModal from "./components/LineReportModal";
 import { usePopup } from "./components/PopupContext";
 import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData, getUnifiedUsersList } from "./data/users";
+import { useMobile } from "./hooks/useMobile";
+import MobileHeader from "./components/mobile/MobileHeader";
+import MobileBottomNav from "./components/mobile/MobileBottomNav";
+import MobileDrawer from "./components/mobile/MobileDrawer";
+import MobileDashboardView from "./components/mobile/MobileDashboardView";
+import MobileFleetRosterView from "./components/mobile/MobileFleetRosterView";
+import MobileVehicleManagementView from "./components/mobile/MobileVehicleManagementView";
+import MobileUavMissionForm from "./components/mobile/MobileUavMissionForm";
+import MobileMissionLogsView from "./components/mobile/MobileMissionLogsView";
 
 const getAffiliationColor = (affiliation: string, isDark: boolean) => {
   switch (affiliation) {
@@ -57,7 +66,7 @@ const formatRecordedDate = (timestampStr: string) => {
   return timestampStr;
 };
 
-export const normalizeTimeStr = (timeVal: any, fallback = "21.00 น."): string => {
+export const normalizeTimeStr = (timeVal: any, fallback = ""): string => {
   if (timeVal === null || timeVal === undefined || timeVal === "") return fallback;
   let str = String(timeVal).trim();
   if (!str || str === "-" || str === "undefined" || str === "null") return fallback;
@@ -101,6 +110,8 @@ export const normalizeTimeStr = (timeVal: any, fallback = "21.00 น."): string 
 };
 
 export default function Home() {
+  const isMobile = useMobile(768);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { showNotification, showConfirm, showUploadProgress, updateUploadProgress, closeUploadProgress } = usePopup();
   const [currentUser, setCurrentUser] = useState<any>(null); 
   const [usersList, setUsersList] = useState<any[]>([]); 
@@ -160,7 +171,7 @@ export default function Home() {
 
   const [formData, setFormData] = useState({
     affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "",
-    location: "", start_time: "21.00", operators: "สายตรวจอากาศยานไร้คนขับ",
+    location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ",
     drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", vehicle_type: "CCOC Mobile"
   });
 
@@ -219,7 +230,7 @@ export default function Home() {
         if (isUav) {
           const startTimeStr = String(startTime || "");
           if (startTimeStr && (startTimeStr.includes("พ.ต.ท.") || startTimeStr.includes("สายตรวจ") || startTimeStr.length > 12)) {
-            startTime = "21.00";
+            startTime = "";
           }
           const provinceStr = String(province || "");
           if (provinceStr && /^\d{4}-\d{2}-\d{2}/.test(provinceStr.trim())) {
@@ -268,7 +279,7 @@ export default function Home() {
           unit_name: unitName,
           province: province || "-",
           start_date: startDate,
-          start_time: normalizeTimeStr(startTime, "21.00 น."),
+          start_time: normalizeTimeStr(startTime, ""),
           distance_km: distanceKm,
           tourist_count_est: touristCountEst,
           tourist_density: density,
@@ -417,7 +428,7 @@ export default function Home() {
         location: String(formData.location || formData.province || "-"),
         province: String(formData.province || "-"),
         start_date: String(formData.start_date || new Date().toISOString().split('T')[0]),
-        start_time: String(formData.start_time || "21.00"),
+        start_time: String(formData.start_time || ""),
         commander: "-",
         operators: String(formData.operators || "สายตรวจอากาศยานไร้คนขับ"),
         drone_id: String(formData.drone_id || "DJI Matrice 4T"),
@@ -462,7 +473,7 @@ export default function Home() {
       unit_name: payloadData.unit_name || currentUser.unit_name || currentUser.affiliation || "-",
       province: payloadData.province || "-",
       start_date: payloadData.start_date || new Date().toISOString().split('T')[0],
-      start_time: payloadData.start_time || "21.00 น.",
+      start_time: payloadData.start_time || "",
       distance_km: userDistance || payloadData.distance_km || "-",
       affiliation: userAffiliation,
       vehicle_type: isUav ? "UAV Mobile" : (payloadData.vehicle_type || "CCOC Mobile")
@@ -541,7 +552,7 @@ export default function Home() {
         ],
       });
 
-      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "21.00", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", vehicle_type: formVehicleTypeFilter };
+      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", vehicle_type: formVehicleTypeFilter };
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
       setUploadedFiles([]);
@@ -587,7 +598,7 @@ export default function Home() {
       incident_report: selectedMission.incident_report || "",
       remark: selectedMission.remark || "",
       location: selectedMission.location || "",
-      start_time: selectedMission.start_time || "21.00",
+      start_time: selectedMission.start_time || "",
       operators: selectedMission.operators || "",
       drone_id: selectedMission.drone_id || "Drone-01",
       sorties: selectedMission.sorties || 1,
@@ -1100,7 +1111,7 @@ export default function Home() {
               : (m.tourist_count_est && m.tourist_count_est !== "ปริมาณน้อย"
                   ? m.tourist_count_est
                   : (m.tourist_density || "-"));
-            const formattedTimeStr = normalizeTimeStr(m.start_time, "21.00 น.");
+            const formattedTimeStr = normalizeTimeStr(m.start_time, "-");
             html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
           });
         }
@@ -1369,18 +1380,51 @@ export default function Home() {
 }
 
   return (
-    <div className={`flex flex-col md:flex-row w-full min-h-screen font-sans transition-colors duration-500 relative overflow-hidden ${isDarkMode ? 'bg-depth-dark text-gray-200' : 'bg-depth-light text-gray-800'}`}>
+    <div className={`flex flex-col md:flex-row w-full min-h-screen font-sans transition-colors duration-500 relative overflow-hidden pb-16 md:pb-0 ${isDarkMode ? 'bg-depth-dark text-gray-200' : 'bg-depth-light text-gray-800'}`}>
       <style dangerouslySetInnerHTML={{ __html: realistic3DUICSS }} /> 
 
-      {/* แถบ Mobile (ด้านบน) */}
-      <div className={`md:hidden w-full flex items-center justify-between p-4 z-20 shrink-0 ${isDarkMode ? 'plate-3d-dark border-b-0' : 'plate-3d-light border-b-0'}`}>
-        <div className="text-xl font-black text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-fuchsia-500 tracking-widest">CCOC MOBILE</div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`p-2 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}>
-          {isMobileMenuOpen ? <X size={24} /> : <List size={24} />}
-        </button>
+      {/* Mobile Header (แสดงเฉพาะหน้าจอมือถือ < md) */}
+      <div className="block md:hidden w-full sticky top-0 z-30">
+        <MobileHeader
+          currentUser={currentUser}
+          isDarkMode={isDarkMode}
+          setIsDarkMode={setIsDarkMode}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+        />
       </div>
 
-      {/* แถบ Sidebar (แผงควบคุม 3D ด้านซ้าย) */}
+      {/* Mobile Bottom Navigation (แสดงเฉพาะหน้าจอมือถือ < md) */}
+      <div className="block md:hidden">
+        <MobileBottomNav
+          activeMenu={activeMenu}
+          setActiveMenu={setActiveMenu}
+          isDarkMode={isDarkMode}
+        />
+      </div>
+
+      {/* Mobile Slide Drawer Menu */}
+      <MobileDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        currentUser={currentUser}
+        activeMenu={activeMenu}
+        setActiveMenu={setActiveMenu}
+        isDarkMode={isDarkMode}
+        onExportExcel={handleExportExcel}
+        onOpenPdfModal={() => setShowPdfModal(true)}
+        onRefreshData={() => {
+          setLoading(true);
+          fetchData(true);
+        }}
+        onLogout={() => {
+          setCurrentUser(null);
+          try {
+            localStorage.removeItem('ccoc_current_user');
+          } catch (e) {}
+        }}
+      />
+
+      {/* แถบ Sidebar (แผงควบคุม 3D ด้านซ้ายสำหรับ Desktop) */}
       <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-56 lg:w-60 xl:w-72 flex-col z-20 shrink-0 transition-colors duration-500 md:m-2 lg:m-3 xl:m-4 md:rounded-3xl md:max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
         <div className="p-6 border-b border-white/5 flex flex-col items-center justify-center relative">
           <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-1 rounded shadow-inner ${currentUser.role === 'admin' ? 'bg-red-900/30 text-red-500 border border-red-500/30' : 'bg-cyan-900/30 text-cyan-500 border border-cyan-500/30'}`}>
@@ -1483,26 +1527,49 @@ export default function Home() {
           <div className="flex-1 flex flex-col">
           {showMapOverlay ? (
             <div className="w-full max-w-8xl mx-auto anim-fade-in flex-1">
-              <FleetRosterView
-                isDarkMode={isDarkMode}
-                currentUser={currentUser}
-                usersList={usersList}
-                missions={data?.missions || []}
-                onRecordMission={(vehicleId, affiliation, targetVehicleType) => {
-                  const isUav = targetVehicleType ? (targetVehicleType === "UAV Mobile") : String(vehicleId || "").toLowerCase().includes("uav");
-                  const vType = targetVehicleType || (isUav ? "UAV Mobile" : "CCOC Mobile");
-                  setFormVehicleTypeFilter(vType);
-                  const foundUser = usersList.find((u: any) => String(u.username || "").toLowerCase() === String(vehicleId || "").toLowerCase());
-                  setFormData(prev => ({
-                    ...prev,
-                    vehicle_id: vehicleId,
-                    vehicle_type: vType,
-                    unit_name: foundUser?.unit_name || prev.unit_name,
-                    affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation
-                  }));
-                  setShowMapOverlay(false);
-                }}
-              />
+              {isMobile ? (
+                <MobileFleetRosterView
+                  isDarkMode={isDarkMode}
+                  currentUser={currentUser}
+                  usersList={usersList}
+                  missions={data?.missions || []}
+                  onRecordMission={(vehicleId, affiliation, targetVehicleType) => {
+                    const isUav = targetVehicleType ? (targetVehicleType === "UAV Mobile") : String(vehicleId || "").toLowerCase().includes("uav");
+                    const vType = targetVehicleType || (isUav ? "UAV Mobile" : "CCOC Mobile");
+                    setFormVehicleTypeFilter(vType);
+                    const foundUser = usersList.find((u: any) => String(u.username || "").toLowerCase() === String(vehicleId || "").toLowerCase());
+                    setFormData(prev => ({
+                      ...prev,
+                      vehicle_id: vehicleId,
+                      vehicle_type: vType,
+                      unit_name: foundUser?.unit_name || prev.unit_name,
+                      affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation
+                    }));
+                    setShowMapOverlay(false);
+                  }}
+                />
+              ) : (
+                <FleetRosterView
+                  isDarkMode={isDarkMode}
+                  currentUser={currentUser}
+                  usersList={usersList}
+                  missions={data?.missions || []}
+                  onRecordMission={(vehicleId, affiliation, targetVehicleType) => {
+                    const isUav = targetVehicleType ? (targetVehicleType === "UAV Mobile") : String(vehicleId || "").toLowerCase().includes("uav");
+                    const vType = targetVehicleType || (isUav ? "UAV Mobile" : "CCOC Mobile");
+                    setFormVehicleTypeFilter(vType);
+                    const foundUser = usersList.find((u: any) => String(u.username || "").toLowerCase() === String(vehicleId || "").toLowerCase());
+                    setFormData(prev => ({
+                      ...prev,
+                      vehicle_id: vehicleId,
+                      vehicle_type: vType,
+                      unit_name: foundUser?.unit_name || prev.unit_name,
+                      affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation
+                    }));
+                    setShowMapOverlay(false);
+                  }}
+                />
+              )}
             </div>
           ) : (
             <div className="w-full max-w-8xl mx-auto flex flex-col gap-4 anim-fade-in">
@@ -1816,82 +1883,108 @@ export default function Home() {
           </div>
         )}
         {activeMenu === 2 && (
-          <div className={`w-full mx-auto min-h-[80vh] flex flex-col p-3.5 sm:p-5 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 pb-4 border-b border-white/10 shrink-0 anim-fade-in-down gap-3">
-              <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2.5 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
-                <div className={`p-2 sm:p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={22} /></div>
-                รายการบันทึกข้อมูล
-              </h2>
-              
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 lg:mt-0">
-                <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
-                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรชข้อมูล
-                </button>
-                <button onClick={() => setShowPdfModal(true)} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
-                  <Printer size={16} /> ดึงไฟล์ PDF
-                </button>
+          isMobile ? (
+            <MobileMissionLogsView
+              isDarkMode={isDarkMode}
+              filteredLogs={filteredLogs}
+              onSelectMission={(mission) => {
+                setSelectedMission(mission);
+                setIsEditing(false);
+              }}
+              onRefresh={() => {
+                setLoading(true);
+                fetchData(true);
+              }}
+              onOpenPdf={() => setShowPdfModal(true)}
+              logFilterStartDate={logFilterStartDate}
+              setLogFilterStartDate={setLogFilterStartDate}
+              logFilterEndDate={logFilterEndDate}
+              setLogFilterEndDate={setLogFilterEndDate}
+              logFilterAffiliation={logFilterAffiliation}
+              setLogFilterAffiliation={setLogFilterAffiliation}
+              pdfTypeFilter={pdfTypeFilter}
+              setPdfTypeFilter={setPdfTypeFilter}
+              formatRecordedDate={formatRecordedDate}
+              getAffiliationColor={getAffiliationColor}
+            />
+          ) : (
+            <div className={`w-full mx-auto min-h-[80vh] flex flex-col p-3.5 sm:p-5 rounded-3xl anim-fade-in ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 pb-4 border-b border-white/10 shrink-0 anim-fade-in-down gap-3">
+                <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2.5 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
+                  <div className={`p-2 sm:p-2.5 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><List size={22} /></div>
+                  รายการบันทึกข้อมูล
+                </h2>
+                
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 lg:mt-0">
+                  <button onClick={() => { setLoading(true); fetchData(); }} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-blue-400' : 'btn-menu-light text-blue-600'}`}>
+                    <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> รีเฟรชข้อมูล
+                  </button>
+                  <button onClick={() => setShowPdfModal(true)} className={`flex items-center gap-2 text-xs sm:text-sm font-bold px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-red-400' : 'btn-menu-light text-red-600'}`}>
+                    <Printer size={16} /> ดึงไฟล์ PDF
+                  </button>
 
-                <div 
-                  onClick={(e) => e.stopPropagation()} 
-                  className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl ml-0 sm:ml-2 transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
-                >
-                  <Calendar className={isDarkMode ? "text-cyan-500" : "text-cyan-600"} size={18} />
-                  <input type="date" value={logFilterStartDate} onChange={(e) => setLogFilterStartDate(e.target.value)} className="bg-transparent text-xs sm:text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
-                  <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>-</span>
-                  <input type="date" value={logFilterEndDate} onChange={(e) => setLogFilterEndDate(e.target.value)} className="bg-transparent text-xs sm:text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
-                </div>
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl ml-0 sm:ml-2 transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
+                  >
+                    <Calendar className={isDarkMode ? "text-cyan-500" : "text-cyan-600"} size={18} />
+                    <input type="date" value={logFilterStartDate} onChange={(e) => setLogFilterStartDate(e.target.value)} className="bg-transparent text-xs sm:text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                    <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>-</span>
+                    <input type="date" value={logFilterEndDate} onChange={(e) => setLogFilterEndDate(e.target.value)} className="bg-transparent text-xs sm:text-sm focus:outline-none cursor-pointer w-full h-full" style={{colorScheme: isDarkMode ? "dark" : "light"}} />
+                  </div>
 
-                <div 
-                  onClick={(e) => e.stopPropagation()} 
-                  className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
-                >
-                  <Filter className={isDarkMode ? "text-orange-500" : "text-orange-600"} size={18} />
-                  <select value={logFilterAffiliation} onChange={(e) => setLogFilterAffiliation(e.target.value)} className={`bg-transparent text-xs sm:text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
-                    <option value="ALL">ทุกสังกัด</option><option value="บช.ทท.">บช.ทท.</option><option value="บก.ทท.1">บก.ทท.1</option><option value="บก.ทท.2">บก.ทท.2</option><option value="บก.ทท.3">บก.ทท.3</option>
-                  </select>
-                </div>
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
+                  >
+                    <Filter className={isDarkMode ? "text-orange-500" : "text-orange-600"} size={18} />
+                    <select value={logFilterAffiliation} onChange={(e) => setLogFilterAffiliation(e.target.value)} className={`bg-transparent text-xs sm:text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                      <option value="ALL">ทุกสังกัด</option><option value="บช.ทท.">บช.ทท.</option><option value="บก.ทท.1">บก.ทท.1</option><option value="บก.ทท.2">บก.ทท.2</option><option value="บก.ทท.3">บก.ทท.3</option>
+                    </select>
+                  </div>
 
-                {/* PDF Type Filter */}
-                <div 
-                  onClick={(e) => e.stopPropagation()} 
-                  className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
-                >
-                  <Truck className={isDarkMode ? "text-fuchsia-400" : "text-fuchsia-600"} size={18} />
-                  <select value={pdfTypeFilter} onChange={(e) => setPdfTypeFilter(e.target.value)} className={`bg-transparent text-xs sm:text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
-                    <option value="ALL">ทุกประเภทรถ</option>
-                    <option value="CCOC Mobile">CCOC Mobile</option>
-                    <option value="UAV Mobile">UAV Mobile</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {loading ? ( <div className="flex justify-center items-center h-40"><p className="text-cyan-400 font-mono animate-pulse text-lg">&gt; กำลังดึงฐานข้อมูลอยู่จ้า!!</p></div> ) : (
-              <div className={`rounded-2xl overflow-hidden min-h-[400px] ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                <div className="overflow-x-auto overflow-y-auto max-h-[60vh] w-full custom-scrollbar p-2">
-                  <div className="min-w-[900px] flex flex-col">
-                    
-                    <div className={`grid grid-cols-12 gap-4 p-4 rounded-xl mb-2 text-sm tracking-wider shrink-0 font-bold ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-700'}`}>
-                      <div className="col-span-1 text-center">ลำดับ.</div><div className="col-span-4">MISSION NAME / ชื่อภารกิจ</div><div className="col-span-2 text-center">หน่วยงานที่ออกภารกิจ</div><div className="col-span-2">พิกัด / จังหวัด</div><div className="col-span-3 text-right">DATE RECORDED</div>
-                    </div>
-                    
-                    <div className="space-y-2 pr-2">
-                      {filteredLogs.map((mission: any, index: number) => (
-                        <div key={index} onClick={() => { setSelectedMission(mission); setIsEditing(false); }} style={{ animationDelay: `${Math.min(index, 15) * 30}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center cursor-pointer btn-3d anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light hover:brightness-95'}`}>
-                          <div className={`col-span-1 text-center font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{(index + 1).toString().padStart(3, '0')}</div>
-                          <div className={`col-span-4 font-bold truncate pr-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{mission.mission_name || "ไม่ระบุชื่อภารกิจ"}</div>
-                          <div className="col-span-2 text-center"><span className={`text-xs font-mono px-3 py-1.5 rounded-lg shadow-inner ${getAffiliationColor(mission.affiliation, isDarkMode)}`}>{mission.affiliation || "-"}</span></div>
-                          <div className={`col-span-2 truncate pr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{mission.province}</div>
-                          <div className={`col-span-3 text-right font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{formatRecordedDate(mission.timestamp)}</div>
-                        </div>
-                      ))}
-                      {filteredLogs.length === 0 && <div className="text-center py-10"><p className={isDarkMode ? 'text-gray-500 font-mono' : 'text-gray-400 font-mono'}>NO DATA FOUND</p></div>}
-                    </div>
+                  {/* PDF Type Filter */}
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 px-3 sm:px-5 rounded-xl transition-all cursor-pointer hover:brightness-110 ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}
+                  >
+                    <Truck className={isDarkMode ? "text-fuchsia-400" : "text-fuchsia-600"} size={18} />
+                    <select value={pdfTypeFilter} onChange={(e) => setPdfTypeFilter(e.target.value)} className={`bg-transparent text-xs sm:text-sm font-bold focus:outline-none cursor-pointer w-full h-full ${isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600'}`}>
+                      <option value="ALL">ทุกประเภทรถ</option>
+                      <option value="CCOC Mobile">CCOC Mobile</option>
+                      <option value="UAV Mobile">UAV Mobile</option>
+                    </select>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+
+              {loading ? ( <div className="flex justify-center items-center h-40"><p className="text-cyan-400 font-mono animate-pulse text-lg">&gt; กำลังดึงฐานข้อมูลอยู่จ้า!!</p></div> ) : (
+                <div className={`rounded-2xl overflow-hidden min-h-[400px] ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
+                  <div className="overflow-x-auto overflow-y-auto max-h-[60vh] w-full custom-scrollbar p-2">
+                    <div className="min-w-[900px] flex flex-col">
+                      
+                      <div className={`grid grid-cols-12 gap-4 p-4 rounded-xl mb-2 text-sm tracking-wider shrink-0 font-bold ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-700'}`}>
+                        <div className="col-span-1 text-center">ลำดับ.</div><div className="col-span-4">MISSION NAME / ชื่อภารกิจ</div><div className="col-span-2 text-center">หน่วยงานที่ออกภารกิจ</div><div className="col-span-2">พิกัด / จังหวัด</div><div className="col-span-3 text-right">DATE RECORDED</div>
+                      </div>
+                      
+                      <div className="space-y-2 pr-2">
+                        {filteredLogs.map((mission: any, index: number) => (
+                          <div key={index} onClick={() => { setSelectedMission(mission); setIsEditing(false); }} style={{ animationDelay: `${Math.min(index, 15) * 30}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center cursor-pointer btn-3d anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light hover:brightness-95'}`}>
+                            <div className={`col-span-1 text-center font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{(index + 1).toString().padStart(3, '0')}</div>
+                            <div className={`col-span-4 font-bold truncate pr-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{mission.mission_name || "ไม่ระบุชื่อภารกิจ"}</div>
+                            <div className="col-span-2 text-center"><span className={`text-xs font-mono px-3 py-1.5 rounded-lg shadow-inner ${getAffiliationColor(mission.affiliation, isDarkMode)}`}>{mission.affiliation || "-"}</span></div>
+                            <div className={`col-span-2 truncate pr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{mission.province}</div>
+                            <div className={`col-span-3 text-right font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{formatRecordedDate(mission.timestamp)}</div>
+                          </div>
+                        ))}
+                        {filteredLogs.length === 0 && <div className="text-center py-10"><p className={isDarkMode ? 'text-gray-500 font-mono' : 'text-gray-400 font-mono'}>NO DATA FOUND</p></div>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
         )}
 
         {/* หน้า 3: กราฟ (ดึง Component เดิมมาครอบกรอบ 3D) */}
@@ -1899,7 +1992,11 @@ export default function Home() {
           loading ? 
           <div className="flex justify-center items-center h-40"><p className="text-purple-400 font-mono animate-pulse text-lg">&gt; Loading Dashboard...</p></div> : 
           <div className={`p-4 sm:p-6 md:p-4 rounded-[30px] anim-fade-in-up min-h-[85vh] flex flex-col overflow-y-auto ${isDarkMode ? 'plate-3d-dark' : 'plate-3d-light'}`}>
-            <DashboardView missions={allowedMissions} refreshData={fetchData} /> 
+            {isMobile ? (
+              <MobileDashboardView missions={allowedMissions} refreshData={fetchData} />
+            ) : (
+              <DashboardView missions={allowedMissions} refreshData={fetchData} />
+            )}
           </div> 
         )}
 
@@ -2002,12 +2099,21 @@ export default function Home() {
 
         {/* หน้า 6: จัดการรถ/ผู้ใช้ (Admin เท่านั้น) */}
         {activeMenu === 6 && currentUser?.role === "admin" && (
-          <VehicleManagementView
-            isDarkMode={isDarkMode}
-            usersList={usersList}
-            fetchData={fetchData}
-            API_URL={API_URL}
-          />
+          isMobile ? (
+            <MobileVehicleManagementView
+              isDarkMode={isDarkMode}
+              usersList={usersList}
+              fetchData={fetchData}
+              API_URL={API_URL}
+            />
+          ) : (
+            <VehicleManagementView
+              isDarkMode={isDarkMode}
+              usersList={usersList}
+              fetchData={fetchData}
+              API_URL={API_URL}
+            />
+          )
         )}
       </div>
 
@@ -2111,7 +2217,7 @@ export default function Home() {
                         <div className="space-y-5">
                           <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
                             <p className="text-xs font-bold text-gray-500 mb-1"><Calendar className="inline mr-1.5" size={14}/>วันเวลาปฏิบัติการ</p>
-                            <p className={`text-base font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>วันที่ {formatModalDate(selectedMission.start_date)} เวลา {selectedMission.start_time || "21.00"} น.</p>
+                            <p className={`text-base font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>วันที่ {formatModalDate(selectedMission.start_date)} เวลา {selectedMission.start_time || "-"} น.</p>
                             <p className={`text-xs mt-2 font-mono ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>ระยะทางปฏิบัติภารกิจ: {selectedMission.distance_km ? `${selectedMission.distance_km} กม.` : "-"}</p>
                           </div>
 

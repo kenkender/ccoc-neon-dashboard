@@ -49,6 +49,14 @@ const DENSITY_OPTIONS = [
   "หนาแน่นแออัด"
 ];
 
+const TIME_PRESETS = [
+  "08.00 น.", "09.00 น.", "10.00 น.", "11.00 น.", "12.00 น.",
+  "13.00 น.", "14.00 น.", "15.00 น.", "16.00 น.", "17.00 น.",
+  "18.00 น.", "19.00 น.", "20.00 น.", "21.00 น.", "22.00 น.",
+  "23.00 น.", "00.00 น.", "01.00 น.", "02.00 น.", "03.00 น.",
+  "04.00 น.", "05.00 น.", "06.00 น.", "07.00 น."
+];
+
 interface DroneEntry {
   drone_id: string;
   custom_model?: string;
@@ -58,6 +66,17 @@ interface DroneEntry {
 }
 
 export { VEHICLE_UNIT_MAP };
+
+const formatToTimeInput = (val: string) => {
+  if (!val) return "";
+  let clean = String(val).replace(/\s*น\.?$/i, "").trim();
+  clean = clean.replace(".", ":");
+  if (/^\d{1,2}:\d{2}$/.test(clean)) {
+    const parts = clean.split(":");
+    return `${parts[0].padStart(2, "0")}:${parts[1]}`;
+  }
+  return clean;
+};
 
 const resolveSpecificUnitName = (user: any, formUnit: string, usersList: any[]) => {
   const isGeneric = (str: string) => !str || ["บช.ทท.", "บก.ทท.1", "บก.ทท.2", "บก.ทท.3", "ALL", "ADMIN"].includes(str.trim());
@@ -110,7 +129,7 @@ function UavMissionForm({
     location: formData.location || "",
     province: formData.province || "",
     start_date: formData.start_date || "",
-    start_time: formData.start_time ?? "21.00",
+    start_time: formData.start_time ?? "",
     tourist_density: formData.tourist_density || "ปริมาณน้อย",
     tourist_count_est: formData.tourist_count_est || "",
     distance_km: formData.distance_km || "",
@@ -376,17 +395,16 @@ function UavMissionForm({
               />
             </div>
 
-            {/* เวลาปฏิบัติการ */}
+            {/* เวลาปฏิบัติการ (Time Picker - เลือก ชม. นาที แบบเดียวกับวันที่) */}
             <div className="flex flex-col gap-1 min-w-0">
               <label className={`text-xs font-mono font-bold truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>เวลาปฏิบัติการ</label>
               <input
-                required
-                type="text"
+                type="time"
                 name="start_time"
-                value={localForm.start_time ?? ""}
+                value={formatToTimeInput(localForm.start_time || "")}
                 onChange={handleLocalChange}
-                placeholder="เช่น 21.00 น."
-                className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
+                className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all cursor-pointer w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
+                style={{ colorScheme: isDarkMode ? "dark" : "light" }}
               />
             </div>
 
