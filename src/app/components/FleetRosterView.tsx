@@ -325,7 +325,7 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
 
                       {/* Record Button — only shown if canRecord */}
                       {canRec && (
-                        (String(vehicle.vehicle_type || "").toUpperCase() === "ALL" && vehicle.username?.toLowerCase() !== "stc01") ? (
+                        (String(vehicle.vehicle_type || "").toUpperCase() === "ALL") ? (
                           <div className="grid grid-cols-2 gap-1.5 p-2 bg-black/40 border-t border-white/10">
                             <button
                               type="button"
