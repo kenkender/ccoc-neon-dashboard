@@ -156,15 +156,16 @@ export function enrichUserData(rawUser: any): UserAccount {
 }
 
 export function getUnifiedUsersList(gasUsers?: any[]): UserAccount[] {
-  const userMap = new Map<string, UserAccount>();
+  if (Array.isArray(gasUsers) && gasUsers.length > 0) {
+    const userMap = new Map<string, UserAccount>();
 
-  // 1. Initialize with all authoritative SYSTEM_USERS
-  SYSTEM_USERS.forEach(u => {
-    userMap.set(u.username.toLowerCase(), u);
-  });
+    // 1. Master admin fallback
+    const adminUser = SYSTEM_USERS.find(u => u.username === "admin");
+    if (adminUser) {
+      userMap.set("admin", adminUser);
+    }
 
-  // 2. Synchronize dynamic users from GAS with official SYSTEM_USERS entries
-  if (Array.isArray(gasUsers)) {
+    // 2. Populate dynamically from Google Sheets users
     gasUsers.forEach(u => {
       const uname = String(u.username || u.vehicle_id || "").trim().toLowerCase();
       if (uname && uname !== "undefined" && uname !== "null") {
@@ -174,7 +175,10 @@ export function getUnifiedUsersList(gasUsers?: any[]): UserAccount[] {
         }
       }
     });
+
+    return Array.from(userMap.values());
   }
 
-  return Array.from(userMap.values());
+  // Fallback if gasUsers is not available or empty
+  return SYSTEM_USERS;
 }
