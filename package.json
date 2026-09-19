@@ -12,6 +12,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
+    "@supabase/supabase-js": "^2.116.0",
     "@types/html2canvas": "^0.5.35",
     "dom-to-image-more": "^3.7.2",
     "echarts": "^6.0.0",

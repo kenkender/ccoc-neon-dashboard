@@ -1,164 +1,58 @@
 import { NextResponse } from "next/server";
 import { SYSTEM_USERS } from "@/app/data/users";
+import { supabase } from "@/lib/supabase";
 
-// ✅ ห้าม Vercel cache response ของ API นี้ (Hobby plan compatible)
 export const dynamic = "force-dynamic";
 
 const GOOGLE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwsLqrtjt9fU7P5XOERxEqrM5QAW8MKPrsPw_F5A40LfrvtLYgkY3UnKEDH3db6C8HK/exec";
 
-// In-Memory Cache (Stale-While-Revalidate)
-// หมายเหตุ: บน Vercel Serverless แต่ละ instance อาจไม่แชร์ cache กัน
-// แต่ในทางปฏิบัติ warm instance มักถูกใช้ซ้ำ ทำให้ยังช่วยลด request ได้
-let cachedData: any = null;
-let lastFetchTime = 0;
-const CACHE_TTL_MS = 120000; // แคชไว้ 2 นาที
-
-let isFetching = false;
-
-function combineAllMissions(data: any) {
-  if (!data || !data.data) return data;
-
-  const ccocMissions = Array.isArray(data.data.missions) ? data.data.missions : 
-                       Array.isArray(data.data.ccoc_missions) ? data.data.ccoc_missions : [];
-  const uavMissions = Array.isArray(data.data.uav_missions) ? data.data.uav_missions : [];
-
-  const missionMap = new Map<string, any>();
-
-  ccocMissions.forEach((m: any) => {
-    if (m && m.timestamp) {
-      const key = String(m.timestamp).trim();
-      missionMap.set(key, {
-        ...m,
-        vehicle_type: m.vehicle_type || (String(m.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile")
-      });
-    }
-  });
-
-  uavMissions.forEach((u: any) => {
-    if (u && u.timestamp) {
-      const key = String(u.timestamp).trim();
-      missionMap.set(key, {
-        ...u,
-        vehicle_type: u.vehicle_type || "UAV Mobile"
-      });
-    }
-  });
-
-  const mergedList = Array.from(missionMap.values());
-  mergedList.sort((a: any, b: any) => {
-    const timeA = new Date(a.timestamp || 0).getTime();
-    const timeB = new Date(b.timestamp || 0).getTime();
-    return timeB - timeA;
-  });
-
-  return {
-    ...data,
-    data: {
-      ...data.data,
-      missions: mergedList,
-    },
-  };
-}
-
-async function fetchFromGAS(timeoutMs = 25000) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-      redirect: "follow",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    const text = await response.text();
-    const data = JSON.parse(text);
-    return combineAllMissions(data);
-  } catch (err) {
-    clearTimeout(timeoutId);
-    throw err;
-  }
-}
-
-async function refreshCacheInBackground() {
-  if (isFetching) return;
-  isFetching = true;
-  try {
-    const data = await fetchFromGAS(25000);
-    if (data && data.status !== "error" && data.data?.missions) {
-      const freshMissions = data.data.missions || [];
-      if (cachedData?.data?.missions) {
-        const localMissions = cachedData.data.missions;
-        localMissions.forEach((loc: any) => {
-          const existsInFresh = freshMissions.some(
-            (f: any) => f.timestamp === loc.timestamp
-          );
-          if (!existsInFresh) {
-            freshMissions.unshift(loc);
-          }
-        });
-      }
-      cachedData = {
-        ...data,
-        data: {
-          ...data.data,
-          missions: freshMissions,
-        },
-      };
-      lastFetchTime = Date.now();
-      console.log("✅ Background refresh from Google Apps Script succeeded.");
-    }
-  } catch (err: any) {
-    console.warn("⚠️ Background refresh failed:", err?.message || err);
-  } finally {
-    isFetching = false;
-  }
-}
-
+// ── GET: ดึงข้อมูลจาก Supabase (ถ้าล้มเหลวจะ fallback ไป GAS) ───────────────
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const isRefresh = url.searchParams.get("refresh") === "true";
-  const now = Date.now();
-
-  // 1. ถ้าขอ refresh ให้ล้างแคชเพื่อดึงข้อมูลใหม่ทันที
-  if (isRefresh) {
-    cachedData = null;
-    lastFetchTime = 0;
-  }
-
-  // 2. ถ้ามีแคชอยู่แล้ว ตอบกลับทันที (Stale-While-Revalidate)
-  if (cachedData) {
-    if (now - lastFetchTime > CACHE_TTL_MS) {
-      refreshCacheInBackground();
-    }
-    return NextResponse.json(cachedData);
-  }
-
-  // 2. ยังไม่มีแคช — ดึงข้อมูลตรงๆ
   try {
-    const data = await fetchFromGAS(25000);
-    cachedData = data;
-    lastFetchTime = Date.now();
-    return NextResponse.json(data);
-  } catch (error: any) {
-    console.warn(
-      "⚠️ Proxy: Initial fetch from GAS failed/timed out. Reason:",
-      error?.message || error
-    );
+    // 1. Query Supabase Tables
+    const [missionsRes, usersRes, logsRes] = await Promise.all([
+      supabase.from("missions").select("*").order("created_at", { ascending: false }),
+      supabase.from("users").select("*"),
+      supabase.from("login_logs").select("*").order("timestamp", { ascending: false }).limit(100),
+    ]);
 
-    // 3. ป้องกัน 500 error — ส่งโครงสร้างว่างแล้วดึง background
-    refreshCacheInBackground();
+    const hasMissions = missionsRes.data && missionsRes.data.length > 0;
+    const hasUsers = usersRes.data && usersRes.data.length > 0;
+
+    // ถ้ามีข้อมูลใน Supabase ให้ส่งตอบกลับทันที (ความเร็วระดับ < 100ms)
+    if (hasMissions || hasUsers) {
+      return NextResponse.json({
+        status: "success",
+        source: "supabase",
+        data: {
+          missions: missionsRes.data || [],
+          users: (usersRes.data && usersRes.data.length > 0) ? usersRes.data : SYSTEM_USERS,
+          login_logs: logsRes.data || [],
+        },
+      });
+    }
+
+    // 2. ถ้า Supabase ยังว่างเปล่า ให้ fallback ไปดึงจาก GAS
+    console.log("ℹ️ Supabase empty, fetching initial data from Google Apps Script...");
+    const gasRes = await fetch(GOOGLE_SCRIPT_URL, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+
+    const text = await gasRes.text();
+    const data = JSON.parse(text);
 
     return NextResponse.json({
+      ...data,
+      source: "gas_fallback",
+    });
+  } catch (error: any) {
+    console.warn("⚠️ API GET error:", error?.message || error);
+    return NextResponse.json({
       status: "success",
+      source: "static_fallback",
       data: {
         missions: [],
         users: SYSTEM_USERS,
@@ -168,213 +62,135 @@ export async function GET(request: Request) {
   }
 }
 
-// ✅ แก้ไขปัญหา GAS POST redirect บน Vercel
-// Google Apps Script ส่ง 302 redirect กลับมา ซึ่งทำให้ POST ถูกแปลงเป็น GET
-// วิธีแก้: ส่ง POST ไปยัง URL แล้วจัดการ redirect ด้วยตัวเอง
-async function postToGAS(body: any, maxRetries = 2, timeoutMs = 25000) {
-  let lastError: any = null;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      console.log(
-        `🚀 Proxy: Sending POST to GAS (Attempt ${attempt}/${maxRetries})...`
-      );
-
-      const bodyStr = JSON.stringify(body);
-
-      // ส่ง POST โดยไม่ follow redirect อัตโนมัติ เพื่อจัดการเอง
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8",
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
-        body: bodyStr,
-        redirect: "follow", // ✅ follow redirect แต่ GAS จะ follow ไปยัง exec URL จริงๆ
-        cache: "no-store",
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      const text = await response.text();
-      console.log(
-        `📥 GAS Response (attempt ${attempt}): status=${response.status}, body=${text.substring(0, 200)}`
-      );
-
-      // ตรวจสอบ status code
-      if (response.status >= 500) {
-        console.warn(
-          `⚠️ GAS returned HTTP ${response.status} on attempt ${attempt}`
-        );
-        lastError = new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
-        continue;
-      }
-
-      // parse JSON response ถ้าได้
-      try {
-        const json = JSON.parse(text);
-        if (json.status === "error") {
-          console.warn(
-            `⚠️ GAS returned error status on attempt ${attempt}:`,
-            json.message
-          );
-          lastError = new Error(json.message || "GAS error response");
-          continue;
-        }
-      } catch (pErr) {
-        // Non-JSON response is OK as long as HTTP succeeded
-      }
-
-      console.log(
-        `✅ Proxy: POST to GAS succeeded on attempt ${attempt}. HTTP ${response.status}`
-      );
-      return { success: true, text };
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      lastError = err;
-      console.warn(
-        `⚠️ Proxy: POST attempt ${attempt} failed: ${err?.message || err}`
-      );
-
-      // ถ้า abort (timeout) ไม่ต้อง retry อีก
-      if (err?.name === "AbortError") {
-        console.warn(`⏱️ Request timed out after ${timeoutMs}ms`);
-        break;
-      }
-    }
+// ── Background POST ไปยัง Google Apps Script (เพื่อ Dual Sync) ──────────────
+async function postToGASBackground(body: any) {
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body),
+      redirect: "follow",
+      cache: "no-store",
+    });
+  } catch (err) {
+    console.warn("⚠️ GAS background sync warning:", err);
   }
-
-  return { success: false, error: lastError?.message || String(lastError) };
 }
 
+// ── POST: บันทึกข้อมูลลง Supabase (และ Background Sync ไป GAS) ─────────────
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const action = body.action || "add";
 
-    // 1. ส่งข้อมูลไปยัง Google Apps Script
-    const gasResult = await postToGAS(body, 2, 25000);
+    // 1. เพิ่ม/บันทึกรถใหม่ (addVehicle)
+    if (action === "addVehicle" && body.data) {
+      const newUser = {
+        username: String(body.data.username || "").trim().toLowerCase(),
+        password: body.data.password || "",
+        role: "user",
+        affiliation: body.data.affiliation || body.data.unit_name || "",
+        unit_name: body.data.unit_name || body.data.vehicle_name || "",
+        vehicle_name: body.data.vehicle_name || body.data.unit_name || "",
+        vehicle_type: body.data.vehicle_type || "CCOC Mobile",
+      };
 
-    // 2. ถ้า cachedData ยังไม่มี (เช่น Vercel instance เพิ่งขึ้นใหม่) ให้ดึงข้อมูลเต็มจาก GAS ก่อน
-    if (!cachedData || !cachedData.data || !Array.isArray(cachedData.data.missions)) {
-      try {
-        const fullData = await fetchFromGAS(15000);
-        if (fullData && fullData.data?.missions) {
-          cachedData = fullData;
-        }
-      } catch (err) {
-        console.warn("⚠️ Failed to pre-fetch cache during POST:", err);
-        cachedData = {
-          status: "success",
-          data: { missions: [], users: SYSTEM_USERS, login_logs: [] },
-        };
-      }
+      const { error } = await supabase.from("users").upsert([newUser], { onConflict: "username" });
+      if (error) console.error("⚠️ Supabase addVehicle error:", error.message);
+
+      postToGASBackground(body);
+      return NextResponse.json({ status: "success", message: "Vehicle added to Supabase" });
     }
 
-    if (cachedData && cachedData.data && Array.isArray(cachedData.data.missions)) {
-      if (body.action === "add" && body.data) {
-        const newRecord = {
+    // 2. แก้ไขรถเดิม (editVehicle)
+    if (action === "editVehicle" && body.data) {
+      const uname = String(body.data.username || "").trim().toLowerCase();
+      const updatePayload: any = {
+        unit_name: body.data.unit_name || "",
+        vehicle_name: body.data.unit_name || "",
+        affiliation: body.data.affiliation || "",
+        vehicle_type: body.data.vehicle_type || "CCOC Mobile",
+      };
+
+      if (body.data.password) {
+        updatePayload.password = body.data.password;
+      }
+
+      const { error } = await supabase.from("users").update(updatePayload).eq("username", uname);
+      if (error) console.error("⚠️ Supabase editVehicle error:", error.message);
+
+      postToGASBackground(body);
+      return NextResponse.json({ status: "success", message: "Vehicle updated in Supabase" });
+    }
+
+    // 3. แก้ไขภารกิจ (edit)
+    if (action === "edit" && body.data) {
+      const { error } = await supabase
+        .from("missions")
+        .update({
           ...body.data,
-          timestamp: body.timestamp || new Date().toISOString(),
-          vehicle_type: (body.sheet === "uav_missions" || String(body.data.vehicle_id || "").toLowerCase().includes("uav") || Boolean(body.data.drone_id))
-            ? "UAV Mobile"
-            : (body.data.vehicle_type || "CCOC Mobile")
-        };
-        const exists = cachedData.data.missions.some(
-          (m: any) => m.timestamp === newRecord.timestamp
-        );
-        if (!exists) {
-          cachedData.data.missions.unshift(newRecord);
-        }
-      } else if (body.action === "edit" && body.data) {
-        cachedData.data.missions = cachedData.data.missions.map((m: any) =>
-          m.timestamp === body.timestamp ? { ...m, ...body.data } : m
-        );
-      } else if (body.action === "addVehicle" && body.data) {
-        const newUser = {
-          username: body.data.username,
-          password: body.data.password,
-          role: "user",
-          affiliation: body.data.affiliation || body.data.unit_name,
-          vehicle_id: body.data.username,
-          unit_name: body.data.vehicle_name || body.data.unit_name,
-          vehicle_name: body.data.vehicle_name || body.data.unit_name,
           vehicle_type: body.data.vehicle_type || "CCOC Mobile",
-        };
-        if (!Array.isArray(cachedData.data.users)) {
-          cachedData.data.users = [];
-        }
-        const exists = cachedData.data.users.some(
-          (u: any) => String(u.username || "").toLowerCase() === String(newUser.username).toLowerCase()
-        );
-        if (!exists) {
-          cachedData.data.users.push(newUser);
-        }
-        lastFetchTime = 0;
-        refreshCacheInBackground();
+        })
+        .eq("timestamp", body.timestamp);
 
-      } else if (body.action === "editVehicle" && body.data) {
-        // อัปเดตข้อมูลผู้ใช้/รถใน cache
-        if (!Array.isArray(cachedData.data.users)) {
-          cachedData.data.users = [];
-        }
-        const targetUsername = String(body.data.username || "").toLowerCase();
-        let found = false;
-        cachedData.data.users = cachedData.data.users.map((u: any) => {
-          if (String(u.username || "").toLowerCase() === targetUsername) {
-            found = true;
-            return {
-              ...u,
-              password: body.data.password || u.password,
-              unit_name: body.data.unit_name || u.unit_name,
-              vehicle_name: body.data.vehicle_name || body.data.unit_name || u.vehicle_name,
-              affiliation: body.data.affiliation || u.affiliation,
-              vehicle_type: body.data.vehicle_type || u.vehicle_type,
-            };
-          }
-          return u;
-        });
-        // ถ้าไม่พบใน cache ให้เพิ่มใหม่
-        if (!found) {
-          cachedData.data.users.push({
-            username: targetUsername,
-            password: body.data.password || "",
-            role: "user",
-            affiliation: body.data.affiliation || "",
-            vehicle_id: targetUsername,
-            unit_name: body.data.unit_name || "",
-            vehicle_name: body.data.unit_name || "",
-            vehicle_type: body.data.vehicle_type || "CCOC Mobile",
-          });
-        }
-        lastFetchTime = 0;
-        refreshCacheInBackground();
-      } else if (body.action === "delete" && body.timestamp) {
-        cachedData.data.missions = cachedData.data.missions.filter(
-          (m: any) => m.timestamp !== body.timestamp
-        );
-      }
+      if (error) console.error("⚠️ Supabase edit mission error:", error.message);
+
+      postToGASBackground(body);
+      return NextResponse.json({ status: "success", message: "Mission updated in Supabase" });
     }
 
-    // ✅ ไม่ invalidate cache หลัง POST เพราะจะทำให้ GET ครั้งต่อไป fetch ใหม่จาก GAS แล้วอาจได้ข้อมูลไม่ครบ
-    // cache จะ expire เองตาม CACHE_TTL_MS (2 นาที) ตามปกติ
+    // 4. ลบภารกิจ (delete)
+    if (action === "delete" && body.timestamp) {
+      const { error } = await supabase.from("missions").delete().eq("timestamp", body.timestamp);
+      if (error) console.error("⚠️ Supabase delete mission error:", error.message);
 
-    return NextResponse.json({
-      status: gasResult.success ? "success" : "warning",
-      gasSuccess: gasResult.success,
-      message: gasResult.success
-        ? "Data saved to Google Sheets successfully"
-        : `Google Sheets sync warning: ${gasResult.error}`,
-    });
+      postToGASBackground(body);
+      return NextResponse.json({ status: "success", message: "Mission deleted from Supabase" });
+    }
+
+    // 5. เพิ่มภารกิจใหม่ (Default Add Mission)
+    if (body.data) {
+      const isUav =
+        body.sheet === "uav_missions" ||
+        String(body.data.vehicle_id || "").toLowerCase().includes("uav") ||
+        Boolean(body.data.drone_id);
+
+      const newMission = {
+        timestamp: body.timestamp || new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
+        affiliation: body.data.affiliation || "",
+        unit_name: body.data.unit_name || "",
+        vehicle_id: body.data.vehicle_id || "",
+        mission_name: body.data.mission_name || "",
+        province: body.data.province || "",
+        start_date: body.data.start_date || "",
+        end_date: body.data.end_date || "",
+        total_days: String(body.data.total_days || ""),
+        distance_km: String(body.data.distance_km || body.data.distance || body.data.km || ""),
+        people_per_day: String(body.data.people_per_day || ""),
+        people_total: String(body.data.people_total || body.data.people_per_day || ""),
+        incident_report: body.data.incident_report || "",
+        remark: body.data.remark || "",
+        location: body.data.location || "",
+        start_time: body.data.start_time || "",
+        operators: body.data.operators || "",
+        drone_id: body.data.drone_id || "",
+        sorties: Number(body.data.sorties || 0),
+        flight_duration_min: Number(body.data.flight_duration_min || 0),
+        coverage_detail: body.data.coverage_detail || "",
+        tourist_density: body.data.tourist_density || "",
+        vehicle_type: isUav ? "UAV Mobile" : (body.data.vehicle_type || "CCOC Mobile"),
+      };
+
+      const { error } = await supabase.from("missions").insert([newMission]);
+      if (error) console.error("⚠️ Supabase insert mission error:", error.message);
+
+      postToGASBackground(body);
+      return NextResponse.json({ status: "success", message: "Mission saved to Supabase" });
+    }
+
+    return NextResponse.json({ status: "success", message: "Processed" });
   } catch (error: any) {
-    console.error("⚠️ Proxy POST error:", error);
-    return NextResponse.json(
-      { status: "error", gasSuccess: false, message: error.toString() },
-      { status: 500 }
-    );
+    console.error("⚠️ Supabase POST handler error:", error);
+    return NextResponse.json({ status: "error", message: error.toString() }, { status: 500 });
   }
 }

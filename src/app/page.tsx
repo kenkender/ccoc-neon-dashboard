@@ -14,6 +14,7 @@ import UavMissionForm from "./components/UavMissionForm";
 import LineReportModal from "./components/LineReportModal";
 import { usePopup } from "./components/PopupContext";
 import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData, getUnifiedUsersList } from "./data/users";
+import { supabase } from "@/lib/supabase";
 import { useMobile } from "./hooks/useMobile";
 import MobileHeader from "./components/mobile/MobileHeader";
 import MobileBottomNav from "./components/mobile/MobileBottomNav";
@@ -302,7 +303,24 @@ export default function Home() {
 
   useEffect(() => { 
     // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ
-    fetchData(); 
+    fetchData();
+
+    // ⚡ Supabase Realtime: ซิงส์ข้อมูลอัตโนมัติเมื่อมีการเปลี่ยนแปลงใน Database
+    const channel = supabase
+      .channel("db-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "missions" }, () => {
+        console.log("⚡ Realtime update: missions changed");
+        fetchData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "users" }, () => {
+        console.log("⚡ Realtime update: users changed");
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // 💓 Heartbeat System: ส่งสัญญาณออนไลน์เฉพาะฝั่ง UI (ลบการส่งไปหลังบ้านออกเพื่อป้องกันชีตบวม)
