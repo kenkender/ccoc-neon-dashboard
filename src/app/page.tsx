@@ -1410,7 +1410,6 @@ export default function Home() {
         activeMenu={activeMenu}
         setActiveMenu={setActiveMenu}
         isDarkMode={isDarkMode}
-        onExportExcel={handleExportExcel}
         onOpenPdfModal={() => setShowPdfModal(true)}
         onRefreshData={() => {
           setLoading(true);

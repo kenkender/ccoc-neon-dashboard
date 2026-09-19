@@ -4,7 +4,6 @@ import React from "react";
 import {
   X,
   UserCircle,
-  FileSpreadsheet,
   Printer,
   RefreshCw,
   LogOut,
@@ -23,7 +22,6 @@ interface MobileDrawerProps {
   activeMenu: number;
   setActiveMenu: (menu: number) => void;
   isDarkMode: boolean;
-  onExportExcel: () => void;
   onOpenPdfModal: () => void;
   onRefreshData: () => void;
   onLogout: () => void;
@@ -36,7 +34,6 @@ export default function MobileDrawer({
   activeMenu,
   setActiveMenu,
   isDarkMode,
-  onExportExcel,
   onOpenPdfModal,
   onRefreshData,
   onLogout,
@@ -150,21 +147,6 @@ export default function MobileDrawer({
               เครื่องมือ & รายงาน
             </p>
             <div className="space-y-1">
-              <button
-                onClick={() => {
-                  onExportExcel();
-                  onClose();
-                }}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                  isDarkMode
-                    ? "text-emerald-400 hover:bg-emerald-950/30 border border-emerald-900/30"
-                    : "text-emerald-700 hover:bg-emerald-50 border border-emerald-200"
-                }`}
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                <span>ส่งออกไฟล์ Excel (CSV)</span>
-              </button>
-
               <button
                 onClick={() => {
                   onOpenPdfModal();
