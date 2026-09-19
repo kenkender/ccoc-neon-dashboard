@@ -260,7 +260,11 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
                                 : vehicle.username?.toUpperCase()}
                             </p>
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1 inline-block ${badgeColor}`}>
-                              {isUav ? "UAV Mobile" : "CCOC Mobile"}
+                              {String(vehicle.vehicle_type || "").toUpperCase() === "ALL"
+                                ? "CCOC & UAV Mobile"
+                                : isUav
+                                ? "UAV Mobile"
+                                : "CCOC Mobile"}
                             </span>
                           </div>
                         </div>
@@ -325,16 +329,35 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
 
                       {/* Record Button — only shown if canRecord */}
                       {canRec && (
-                        <button
-                          type="button"
-                          onClick={() => onRecordMission(vehicle.username, aff, isUav ? "UAV Mobile" : "CCOC Mobile")}
-                          className={`w-full py-3 px-4 font-black text-sm text-white flex items-center justify-center gap-2 transition-all duration-300 ${btnColor}`}
-                        >
-                          {isUav ? <Plane size={15} /> : <PenTool size={15} />}
-                          {currentUser?.role === "admin" && !isMine
-                            ? `บันทึกภารกิจ (${vehicle.username?.toUpperCase()})`
-                            : `➕ บันทึกภารกิจ ${isUav ? "UAV Mobile" : "CCOC Mobile"}`}
-                        </button>
+                        (String(vehicle.vehicle_type || "").toUpperCase() === "ALL") ? (
+                          <div className="grid grid-cols-2 gap-1.5 p-2 bg-black/40 border-t border-white/10">
+                            <button
+                              type="button"
+                              onClick={() => onRecordMission(vehicle.username, aff, "CCOC Mobile")}
+                              className="py-2.5 px-2 font-bold text-xs text-white bg-fuchsia-600 hover:bg-fuchsia-500 rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(217,70,239,0.3)] transition-all active:scale-95 cursor-pointer"
+                            >
+                              <Truck size={14} /> บันทึก CCOC
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onRecordMission(vehicle.username, aff, "UAV Mobile")}
+                              className="py-2.5 px-2 font-bold text-xs text-white bg-cyan-600 hover:bg-cyan-500 rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(34,211,238,0.3)] transition-all active:scale-95 cursor-pointer"
+                            >
+                              <Plane size={14} /> บันทึก UAV
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onRecordMission(vehicle.username, aff, isUav ? "UAV Mobile" : "CCOC Mobile")}
+                            className={`w-full py-3 px-4 font-black text-sm text-white flex items-center justify-center gap-2 transition-all duration-300 ${btnColor}`}
+                          >
+                            {isUav ? <Plane size={15} /> : <PenTool size={15} />}
+                            {currentUser?.role === "admin" && !isMine
+                              ? `บันทึกภารกิจ (${vehicle.username?.toUpperCase()})`
+                              : `➕ บันทึกภารกิจ ${isUav ? "UAV Mobile" : "CCOC Mobile"}`}
+                          </button>
+                        )
                       )}
 
                       {/* Read-only indicator for non-own vehicles */}
