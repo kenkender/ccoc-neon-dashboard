@@ -15,6 +15,7 @@ import {
   Shield,
   ChevronDown,
   ChevronUp,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 import {
   BarChart,
@@ -25,23 +26,26 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from "recharts";
 import IncidentModal from "../IncidentModal";
 import { VEHICLE_AFFILIATIONS } from "../../data/users";
 
 const VEHICLE_NAMES: Record<string, string> = {
-  stc01: "1. stc01 บช.ทท.",
-  stc02: "2. stc02 ภูเก็ต",
-  stc03: "3. stc03 อยุธยา",
-  stc04: "4. stc04 ชลบุรี",
-  stc05: "5. stc05 โคราช",
-  stc06: "6. stc06 เชียงใหม่",
-  stc07: "7. stc07 พิษณุโลก",
-  stc08: "8. stc08 หัวหิน",
-  stc09: "9. stc09 สนามศุภ",
-  stc10: "10. stc10 หาดใหญ่",
-  "uav mobile": "11. UAV Mobile",
-  "UAV Mobile": "11. UAV Mobile",
+  stc01: "stc01 บช.ทท.",
+  stc02: "stc02 ภูเก็ต",
+  stc03: "stc03 อยุธยา",
+  stc04: "stc04 ชลบุรี",
+  stc05: "stc05 โคราช",
+  stc06: "stc06 เชียงใหม่",
+  stc07: "stc07 พิษณุโลก",
+  stc08: "stc08 หัวหิน",
+  stc09: "stc09 สนามศุภ",
+  stc10: "stc10 หาดใหญ่",
+  "uav mobile": "UAV Mobile",
+  "UAV Mobile": "UAV Mobile",
 };
 
 const AFFILIATION_COLORS: Record<string, { fill: string }> = {
@@ -50,6 +54,70 @@ const AFFILIATION_COLORS: Record<string, { fill: string }> = {
   "บก.ทท.2": { fill: "#22c55e" },
   "บก.ทท.3": { fill: "#ea580c" },
 };
+
+const DONUT_COLORS = ["#d946ef", "#06b6d4", "#22c55e", "#ea580c", "#c084fc", "#f59e0b"];
+
+// Custom Tooltip สำหรับ Horizontal Bar Chart
+const HBarTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const d = payload[0].payload;
+    return (
+      <div
+        style={{
+          backgroundColor: "#090d16",
+          border: "1px solid #06b6d4",
+          borderRadius: "10px",
+          padding: "8px 12px",
+          fontSize: "11px",
+          color: "#e2e8f0",
+        }}
+      >
+        <p style={{ fontWeight: "bold", marginBottom: 2 }}>{d.fullName}</p>
+        <p style={{ color: d.fill }}>ภารกิจ: {d.count} ครั้ง</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom Tooltip สำหรับ Donut Chart
+const DonutTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        style={{
+          backgroundColor: "#090d16",
+          border: "1px solid #6366f1",
+          borderRadius: "10px",
+          padding: "8px 12px",
+          fontSize: "11px",
+          color: "#e2e8f0",
+        }}
+      >
+        <p style={{ fontWeight: "bold", color: payload[0].payload.fill }}>
+          {payload[0].name}
+        </p>
+        <p>ภารกิจ: {payload[0].value} ครั้ง</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom Label ตรงกลาง Donut
+const DonutCenterLabel = ({ cx, cy, total }: { cx: number; cy: number; total: number }) => (
+  <>
+    <text x={cx} y={cy - 8} textAnchor="middle" fill="#94a3b8" fontSize={10}>
+      ทั้งหมด
+    </text>
+    <text x={cx} y={cy + 10} textAnchor="middle" fill="#e2e8f0" fontSize={18} fontWeight="bold">
+      {total}
+    </text>
+    <text x={cx} y={cy + 24} textAnchor="middle" fill="#64748b" fontSize={9}>
+      ภารกิจ
+    </text>
+  </>
+);
 
 export default function MobileDashboardView({
   missions,
@@ -120,23 +188,44 @@ export default function MobileDashboardView({
     0
   );
 
+  // ── Vehicle stats → Horizontal Bar Chart data ────────────────────────────
   const vehicleStats = filteredMissions.reduce((acc: any, m: any) => {
     const v = String(m.vehicle_id || "Unknown").toLowerCase();
     acc[v] = (acc[v] || 0) + 1;
     return acc;
   }, {});
 
-  const chartDataVehicle = Object.keys(vehicleStats).map((key) => {
-    const aff = VEHICLE_AFFILIATIONS[key.toLowerCase()] || "บช.ทท.";
-    const colorInfo = AFFILIATION_COLORS[aff] || { fill: "#c084fc" };
-    return {
-      name: VEHICLE_NAMES[key] || key.toUpperCase(),
-      shortName: key.toUpperCase(),
-      count: vehicleStats[key],
-      fill: colorInfo.fill,
-    };
-  });
+  // เรียงจากมากไปน้อย สำหรับ Horizontal Bar Chart
+  const chartDataVehicle = Object.keys(vehicleStats)
+    .map((key) => {
+      const aff = VEHICLE_AFFILIATIONS[key.toLowerCase()] || "บช.ทท.";
+      const colorInfo = AFFILIATION_COLORS[aff] || { fill: "#c084fc" };
+      return {
+        fullName: VEHICLE_NAMES[key] || key.toUpperCase(),
+        name: key.toUpperCase(),
+        count: vehicleStats[key],
+        fill: colorInfo.fill,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
 
+  // ── Affiliation stats → Donut Chart data ─────────────────────────────────
+  const affiliationStats = filteredMissions.reduce((acc: any, m: any) => {
+    const aff = normalizeAffiliation(String(m.affiliation || ""));
+    acc[aff] = (acc[aff] || 0) + 1;
+    return acc;
+  }, {});
+
+  const donutData = Object.keys(affiliationStats).map((key, i) => ({
+    name: key,
+    value: affiliationStats[key],
+    fill: AFFILIATION_COLORS[key]?.fill || DONUT_COLORS[i % DONUT_COLORS.length],
+  }));
+
+  // dynamic chart height for horizontal bar chart based on number of vehicles
+  const hBarHeight = Math.max(160, chartDataVehicle.length * 34);
+
+  // ── Province & Incident stats ─────────────────────────────────────────────
   const provinceStats = filteredMissions.reduce((acc: any, m: any) => {
     const p = m.province || "ไม่ระบุ";
     acc[p] = (acc[p] || 0) + 1;
@@ -258,37 +347,151 @@ export default function MobileDashboardView({
         </div>
       </div>
 
-      {/* Mobile Vehicle Bar Chart */}
+      {/* ─── แนวทางที่ 1: Horizontal Bar Chart (สถิติตามคัน) ─────────────── */}
       <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl">
         <h3 className="text-xs font-bold text-cyan-400 mb-3 flex items-center space-x-2">
           <Car className="w-4 h-4" />
           <span>สถิติการปฏิบัติงานตามคัน</span>
         </h3>
-        <div className="h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartDataVehicle} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="shortName" stroke="#64748b" tick={{ fontSize: 9 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 9 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#090d16",
-                  borderColor: "#06b6d4",
-                  borderRadius: "12px",
-                  fontSize: "11px",
-                }}
-              />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {chartDataVehicle.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+
+        {chartDataVehicle.length === 0 ? (
+          <div className="flex items-center justify-center h-20 text-slate-500 text-xs">
+            ไม่มีข้อมูล
+          </div>
+        ) : (
+          <div style={{ height: hBarHeight }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                layout="vertical"
+                data={chartDataVehicle}
+                margin={{ top: 4, right: 40, left: 4, bottom: 4 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                <XAxis
+                  type="number"
+                  stroke="#475569"
+                  tick={{ fontSize: 9, fill: "#64748b" }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  stroke="#475569"
+                  tick={{ fontSize: 9, fill: "#94a3b8" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={62}
+                />
+                <Tooltip content={<HBarTooltip />} cursor={{ fill: "rgba(6,182,212,0.06)" }} />
+                <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={18} label={{ position: "right", fontSize: 9, fill: "#94a3b8" }}>
+                  {chartDataVehicle.map((entry, index) => (
+                    <Cell key={`hbar-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
-      {/* Top 5 Locations & Incidents Mobile Lists */}
+      {/* ─── แนวทางที่ 2: Donut Chart (สัดส่วนตามสังกัด) ────────────────── */}
+      <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl">
+        <h3 className="text-xs font-bold text-fuchsia-400 mb-3 flex items-center space-x-2">
+          <PieChartIcon className="w-4 h-4" />
+          <span>สัดส่วนภารกิจตามสังกัด</span>
+        </h3>
+
+        {donutData.length === 0 ? (
+          <div className="flex items-center justify-center h-20 text-slate-500 text-xs">
+            ไม่มีข้อมูล
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <div style={{ width: "100%", height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={3}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {donutData.map((entry, index) => (
+                      <Cell key={`donut-${index}`} fill={entry.fill} />
+                    ))}
+                    {/* Center label via SVG overlay */}
+                  </Pie>
+                  <Tooltip content={<DonutTooltip />} />
+                  <text
+                    x="50%"
+                    y="42%"
+                    textAnchor="middle"
+                    fill="#94a3b8"
+                    fontSize={10}
+                    dominantBaseline="middle"
+                  >
+                    ทั้งหมด
+                  </text>
+                  <text
+                    x="50%"
+                    y="52%"
+                    textAnchor="middle"
+                    fill="#e2e8f0"
+                    fontSize={20}
+                    fontWeight="bold"
+                    dominantBaseline="middle"
+                  >
+                    {kpiTotalMissions}
+                  </text>
+                  <text
+                    x="50%"
+                    y="62%"
+                    textAnchor="middle"
+                    fill="#64748b"
+                    fontSize={9}
+                    dominantBaseline="middle"
+                  >
+                    ภารกิจ
+                  </text>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Legend สังกัด */}
+            <div className="w-full grid grid-cols-2 gap-1.5 mt-1">
+              {donutData.map((item, i) => {
+                const pct = kpiTotalMissions > 0
+                  ? Math.round((item.value / kpiTotalMissions) * 100)
+                  : 0;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center space-x-2 bg-slate-950/70 border border-slate-800 rounded-xl px-2.5 py-2"
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: item.fill, boxShadow: `0 0 6px ${item.fill}` }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-slate-200 truncate">{item.name}</p>
+                      <p className="text-[10px] font-mono" style={{ color: item.fill }}>
+                        {item.value} ครั้ง ({pct}%)
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Top 5 Locations & Incidents (คงเดิม) ───────────────────────── */}
       <div className="grid grid-cols-1 gap-3">
         <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl">
           <h3 className="text-xs font-bold text-cyan-400 mb-2.5 flex items-center space-x-2">
