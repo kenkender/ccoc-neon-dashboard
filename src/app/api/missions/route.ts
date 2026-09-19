@@ -148,6 +148,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "success", message: "Mission deleted from Supabase" });
     }
 
+    // 4.5. บันทึกการเข้าใช้งาน (login)
+    if (action === "login" && body.data) {
+      const newLog = {
+        username: String(body.data.username || "").trim(),
+        affiliation: body.data.affiliation || "",
+        role: body.data.role || "user",
+        timestamp: body.timestamp || new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
+      };
+
+      const { error } = await supabase.from("login_logs").insert([newLog]);
+      if (error) console.error("⚠️ Supabase login_log insert error:", error.message);
+
+      postToGASBackground(body);
+      return NextResponse.json({ status: "success", message: "Login log recorded in Supabase" });
+    }
+
     // 5. เพิ่มภารกิจใหม่ (Default Add Mission)
     if (body.data) {
       const isUav =

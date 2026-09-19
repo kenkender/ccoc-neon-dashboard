@@ -316,6 +316,10 @@ export default function Home() {
         console.log("⚡ Realtime update: users changed");
         fetchData();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "login_logs" }, () => {
+        console.log("⚡ Realtime update: login_logs changed");
+        fetchData();
+      })
       .subscribe();
 
     return () => {
@@ -1382,12 +1386,12 @@ export default function Home() {
               // 3. ยิงข้อมูลไปบันทึกหลังบ้านแบบ Fire-and-Forget
               fetch(API_URL, { 
                 method: "POST", 
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                   action: "login", 
                   timestamp: currentTimestamp, 
                   data: { username: user.username, affiliation: user.affiliation, role: user.role } 
-                }), 
-                mode: "no-cors" 
+                })
               }).catch(err => console.error("Login log tracking failed", err));
             }} />
         )}
