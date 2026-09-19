@@ -18,66 +18,34 @@ async function migrate() {
     return;
   }
 
-  const { missions = [], ccoc_missions = [], uav_missions = [], users = [], login_logs = [] } = json.data;
-  const allMissions = [...missions, ...ccoc_missions, ...uav_missions];
+  const { missions = [], ccoc_missions = [], uav_missions = [], users = [] } = json.data;
 
-  console.log(`📦 Found ${allMissions.length} missions, ${users.length} users, ${login_logs.length} login logs.`);
+  // Deduplicate Users by username
+  const userMap = new Map();
+  users.forEach(u => {
+    const uname = String(u.username || u.vehicle_id || "").trim().toLowerCase();
+    if (uname && uname !== "undefined" && uname !== "null") {
+      userMap.set(uname, {
+        username: uname,
+        password: u.password || "",
+        role: u.role || "user",
+        affiliation: u.affiliation || "",
+        unit_name: u.unit_name || u.vehicle_name || "",
+        vehicle_name: u.vehicle_name || u.unit_name || "",
+        vehicle_type: u.vehicle_type || (uname.startsWith("uav") ? "UAV Mobile" : "CCOC Mobile"),
+      });
+    }
+  });
 
-  // 2. Insert Users
-  if (users.length > 0) {
-    const formattedUsers = users.map(u => ({
-      username: String(u.username || u.vehicle_id || "").trim().toLowerCase(),
-      password: u.password || "",
-      role: u.role || "user",
-      affiliation: u.affiliation || "",
-      unit_name: u.unit_name || u.vehicle_name || "",
-      vehicle_name: u.vehicle_name || u.unit_name || "",
-      vehicle_type: u.vehicle_type || (String(u.username).startsWith("uav") ? "UAV Mobile" : "CCOC Mobile"),
-    })).filter(u => u.username && u.username !== "undefined");
+  const uniqueUsers = Array.from(userMap.values());
 
-    console.log(`⏳ Uploading ${formattedUsers.length} users to Supabase...`);
-    const { error: userErr } = await supabase.from("users").upsert(formattedUsers, { onConflict: "username" });
+  if (uniqueUsers.length > 0) {
+    console.log(`⏳ Uploading ${uniqueUsers.length} unique users to Supabase...`);
+    const { error: userErr } = await supabase.from("users").upsert(uniqueUsers, { onConflict: "username" });
     if (userErr) {
       console.error("⚠️ Error uploading users:", userErr.message);
     } else {
       console.log("✅ Users migrated successfully!");
-    }
-  }
-
-  // 3. Insert Missions
-  if (allMissions.length > 0) {
-    const formattedMissions = allMissions.map(m => ({
-      timestamp: String(m.timestamp || "").trim(),
-      affiliation: m.affiliation || "",
-      unit_name: m.unit_name || "",
-      vehicle_id: m.vehicle_id || "",
-      mission_name: m.mission_name || "",
-      province: m.province || "",
-      start_date: m.start_date || "",
-      end_date: m.end_date || "",
-      total_days: String(m.total_days || ""),
-      distance_km: String(m.distance_km || m.distance || m.km || ""),
-      people_per_day: String(m.people_per_day || ""),
-      people_total: String(m.people_total || m.people_per_day || ""),
-      incident_report: m.incident_report || "",
-      remark: m.remark || "",
-      location: m.location || "",
-      start_time: m.start_time || "",
-      operators: m.operators || "",
-      drone_id: m.drone_id || "",
-      sorties: Number(m.sorties || 0),
-      flight_duration_min: Number(m.flight_duration_min || 0),
-      coverage_detail: m.coverage_detail || "",
-      tourist_density: m.tourist_density || "",
-      vehicle_type: m.vehicle_type || (String(m.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile"),
-    })).filter(m => m.timestamp);
-
-    console.log(`⏳ Uploading ${formattedMissions.length} missions to Supabase...`);
-    const { error: missionErr } = await supabase.from("missions").insert(formattedMissions);
-    if (missionErr) {
-      console.error("⚠️ Error uploading missions:", missionErr.message);
-    } else {
-      console.log("✅ Missions migrated successfully!");
     }
   }
 
