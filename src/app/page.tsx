@@ -1039,8 +1039,9 @@ export default function Home() {
       };
 
       const getTouristNumber = (m: any): number => {
-        // แสดงเฉพาะตัวเลขจำนวนที่กรอกเข้ามาเท่านั้น (ไม่ใช้ข้อความปริมาณน้อย/มาก)
-        const fields = [m.people_total, m.people_per_day];
+        // ดึงตัวเลขจาก tourist_count_est (ข้อมูลเก่า), people_total, people_per_day
+        // regex กรองเอาเฉพาะตัวเลขออก → ป้องกันไม่ให้แสดงข้อความ "ปริมาณน้อย/มาก"
+        const fields = [m.tourist_count_est, m.people_total, m.people_per_day];
         for (const f of fields) {
           if (f !== null && f !== undefined && f !== "") {
             const numStr = String(f).replace(/[^0-9]/g, "");
