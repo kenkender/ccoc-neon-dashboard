@@ -26,8 +26,6 @@ export const SYSTEM_USERS: UserAccount[] = [
   { username: "stc10", password: "ccocmobile10", role: "user", affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)", vehicle_type: "ALL" },
 
   // UAV Mobile (uav accounts)
-  // บช.ทท.
-  { username: "uav_bchtt", password: "uav@bchtt", role: "user", affiliation: "บช.ทท.", vehicle_id: "uav_bchtt", unit_name: "บช.ทท. (สายตรวจโดรน)", vehicle_name: "บช.ทท. (สายตรวจโดรน)", vehicle_type: "UAV Mobile" },
 
   // บก.ทท.1
   { username: "uav002", password: "uav@002", role: "user", affiliation: "บก.ทท.1", vehicle_id: "uav002", unit_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)", vehicle_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)", vehicle_type: "UAV Mobile" },

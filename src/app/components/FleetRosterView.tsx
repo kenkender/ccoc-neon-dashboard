@@ -81,13 +81,14 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
     setExpandedGroups(prev => ({ ...prev, [aff]: !prev[aff] }));
   };
 
-  // Filter out admin users, empty username rows, and unspecified affiliations
+  // Filter out admin users, empty username rows, unspecified affiliations, and uav_bchtt
   const vehicles = usersList.filter((u: any) => 
     u.role !== "admin" && 
     u.username && 
     String(u.username).trim() !== "" &&
     u.affiliation && 
-    u.affiliation !== "ไม่ระบุ"
+    u.affiliation !== "ไม่ระบุ" &&
+    String(u.username).trim().toLowerCase() !== "uav_bchtt"
   );
 
   // Build mission stats per vehicle
@@ -96,6 +97,9 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
     const vid = String(v.username || "").trim().toLowerCase();
     const vehicleMissions = missions.filter((m: any) => {
       const mvid = String(m.vehicle_id || "").trim().toLowerCase();
+      if (vid === "stc01") {
+        return mvid === "stc01" || mvid === "uav_bchtt";
+      }
       return mvid === vid || mvid === String(v.username || "").trim();
     });
     vehicleMissions.sort((a: any, b: any) => new Date(b.start_date || 0).getTime() - new Date(a.start_date || 0).getTime());
