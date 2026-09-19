@@ -1039,7 +1039,8 @@ export default function Home() {
       };
 
       const getTouristNumber = (m: any): number => {
-        const fields = [m.tourist_count_est, m.people_per_day, m.people_total];
+        // แสดงเฉพาะตัวเลขจำนวนที่กรอกเข้ามาเท่านั้น (ไม่ใช้ข้อความปริมาณน้อย/มาก)
+        const fields = [m.people_total, m.people_per_day];
         for (const f of fields) {
           if (f !== null && f !== undefined && f !== "") {
             const numStr = String(f).replace(/[^0-9]/g, "");
@@ -1106,11 +1107,8 @@ export default function Home() {
             const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
             const flightMin = getFlightDuration(m);
             const tNum = getTouristNumber(m);
-            const touristVal = tNum > 0
-              ? `${tNum.toLocaleString()} คน`
-              : (m.tourist_count_est && m.tourist_count_est !== "ปริมาณน้อย"
-                  ? m.tourist_count_est
-                  : (m.tourist_density || "-"));
+            // แสดงเฉพาะตัวเลขที่กรอกเข้ามา หากไม่มีให้แสดง "-" เท่านั้น
+            const touristVal = tNum > 0 ? `${tNum.toLocaleString()} คน` : "-";
             const formattedTimeStr = normalizeTimeStr(m.start_time, "-");
             html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
           });

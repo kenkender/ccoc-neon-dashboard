@@ -130,8 +130,6 @@ function UavMissionForm({
     province: formData.province || "",
     start_date: formData.start_date || "",
     start_time: formData.start_time ?? "",
-    tourist_density: formData.tourist_density || "ปริมาณน้อย",
-    tourist_count_est: formData.tourist_count_est || "",
     distance_km: formData.distance_km || "",
     incident_report: formData.incident_report || "",
     remark: formData.remark || "",
@@ -142,7 +140,7 @@ function UavMissionForm({
     setLocalForm((prev: any) => {
       let changed = false;
       const next = { ...prev };
-      const keys = ["mission_name", "location", "province", "start_date", "start_time", "tourist_density", "tourist_count_est", "distance_km", "incident_report", "remark"];
+      const keys = ["mission_name", "location", "province", "start_date", "start_time", "distance_km", "incident_report", "remark"];
       for (const key of keys) {
         if (formData[key] !== undefined && formData[key] !== prev[key]) {
           next[key] = formData[key];
@@ -157,8 +155,6 @@ function UavMissionForm({
     formData.province,
     formData.start_date,
     formData.start_time,
-    formData.tourist_density,
-    formData.tourist_count_est,
     formData.distance_km,
     formData.incident_report,
     formData.remark
@@ -405,32 +401,6 @@ function UavMissionForm({
                 onChange={handleLocalChange}
                 className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all cursor-pointer w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
                 style={{ colorScheme: isDarkMode ? "dark" : "light" }}
-              />
-            </div>
-
-            {/* ความหนาแน่นนักท่องเที่ยว (Dropdown) */}
-            <div className="flex flex-col gap-1 min-w-0">
-              <label className={`text-xs font-mono font-bold truncate ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>ปริมาณนักท่องเที่ยวในพื้นที่</label>
-              <select
-                name="tourist_density"
-                value={localForm.tourist_density || "ปริมาณน้อย"}
-                onChange={handleLocalChange}
-                className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all cursor-pointer w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
-              >
-                {DENSITY_OPTIONS.map((d, i) => <option key={i} value={d}>{d}</option>)}
-              </select>
-            </div>
-
-            {/* จำนวนนักท่องเที่ยวโดยประมาณ (Text/Number Input) */}
-            <div className="flex flex-col gap-1 min-w-0">
-              <label className={`text-xs font-mono font-bold truncate ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>ระบุจำนวนโดยประมาณ (คน)</label>
-              <input
-                type="text"
-                name="tourist_count_est"
-                value={localForm.tourist_count_est || ""}
-                onChange={handleLocalChange}
-                placeholder="เช่น ~100-150 คน"
-                className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
               />
             </div>
 
