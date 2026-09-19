@@ -316,6 +316,43 @@ export async function POST(req: Request) {
         }
         lastFetchTime = 0;
         refreshCacheInBackground();
+
+      } else if (body.action === "editVehicle" && body.data) {
+        // อัปเดตข้อมูลผู้ใช้/รถใน cache
+        if (!Array.isArray(cachedData.data.users)) {
+          cachedData.data.users = [];
+        }
+        const targetUsername = String(body.data.username || "").toLowerCase();
+        let found = false;
+        cachedData.data.users = cachedData.data.users.map((u: any) => {
+          if (String(u.username || "").toLowerCase() === targetUsername) {
+            found = true;
+            return {
+              ...u,
+              password: body.data.password || u.password,
+              unit_name: body.data.unit_name || u.unit_name,
+              vehicle_name: body.data.vehicle_name || body.data.unit_name || u.vehicle_name,
+              affiliation: body.data.affiliation || u.affiliation,
+              vehicle_type: body.data.vehicle_type || u.vehicle_type,
+            };
+          }
+          return u;
+        });
+        // ถ้าไม่พบใน cache ให้เพิ่มใหม่
+        if (!found) {
+          cachedData.data.users.push({
+            username: targetUsername,
+            password: body.data.password || "",
+            role: "user",
+            affiliation: body.data.affiliation || "",
+            vehicle_id: targetUsername,
+            unit_name: body.data.unit_name || "",
+            vehicle_name: body.data.unit_name || "",
+            vehicle_type: body.data.vehicle_type || "CCOC Mobile",
+          });
+        }
+        lastFetchTime = 0;
+        refreshCacheInBackground();
       } else if (body.action === "delete" && body.timestamp) {
         cachedData.data.missions = cachedData.data.missions.filter(
           (m: any) => m.timestamp !== body.timestamp
