@@ -135,9 +135,24 @@ export default function MobileDashboardView({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const normalizeAffiliation = (raw: string): string => {
-    const s = (raw || "").trim();
-    if (!s || s === "-") return "ไม่ระบุสังกัด";
+  const normalizeAffiliation = (raw: string, vehicleId?: string, unitName?: string): string => {
+    let s = (raw || "").trim();
+
+    if (!s || s === "-" || s === "ไม่ระบุ" || s === "ไม่ระบุสังกัด") {
+      const cleanKey = String(vehicleId || "").trim().toLowerCase();
+      if (cleanKey && VEHICLE_AFFILIATIONS[cleanKey]) {
+        s = VEHICLE_AFFILIATIONS[cleanKey];
+      } else {
+        const textToSearch = `${vehicleId || ""} ${unitName || ""}`;
+        if (textToSearch.includes("บก.ทท.1")) s = "บก.ทท.1";
+        else if (textToSearch.includes("บก.ทท.2")) s = "บก.ทท.2";
+        else if (textToSearch.includes("บก.ทท.3")) s = "บก.ทท.3";
+        else if (textToSearch.includes("บช.ทท.")) s = "บช.ทท.";
+      }
+    }
+
+    if (!s || s === "-" || s === "ไม่ระบุ" || s === "ไม่ระบุสังกัด") return "ไม่ระบุสังกัด";
+
     if (
       s === "ฝ่ายอำนวยการ 6" ||
       s === "ฝอ.6" ||
@@ -174,7 +189,7 @@ export default function MobileDashboardView({
     if (filterVehicle !== "ALL")
       passVehicle = String(m.vehicle_id).trim().toLowerCase() === filterVehicle.toLowerCase();
     if (filterAffiliation !== "ALL")
-      passAffiliation = normalizeAffiliation(String(m.affiliation || "")) === filterAffiliation;
+      passAffiliation = normalizeAffiliation(String(m.affiliation || ""), m.vehicle_id, m.unit_name) === filterAffiliation;
     return passDate && passVehicle && passAffiliation;
   });
 
@@ -211,7 +226,7 @@ export default function MobileDashboardView({
 
   // ── Affiliation stats → Donut Chart data ─────────────────────────────────
   const affiliationStats = filteredMissions.reduce((acc: any, m: any) => {
-    const aff = normalizeAffiliation(String(m.affiliation || ""));
+    const aff = normalizeAffiliation(String(m.affiliation || ""), m.vehicle_id, m.unit_name);
     acc[aff] = (acc[aff] || 0) + 1;
     return acc;
   }, {});

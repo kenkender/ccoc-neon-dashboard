@@ -215,9 +215,24 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   }
 
   // ─── 2. กรองข้อมูลภารกิจตามประเภทที่เลือก ───
-  const normalizeAffiliation = (raw: string): string => {
-    const s = raw.trim();
-    if (!s || s === "-") return "ไม่ระบุสังกัด";
+  const normalizeAffiliation = (raw: string, vehicleId?: string, unitName?: string): string => {
+    let s = String(raw || "").trim();
+
+    if (!s || s === "-" || s === "ไม่ระบุ" || s === "ไม่ระบุสังกัด") {
+      const cleanKey = String(vehicleId || "").trim().toLowerCase();
+      if (cleanKey && VEHICLE_AFFILIATIONS[cleanKey]) {
+        s = VEHICLE_AFFILIATIONS[cleanKey];
+      } else {
+        const textToSearch = `${vehicleId || ""} ${unitName || ""}`;
+        if (textToSearch.includes("บก.ทท.1")) s = "บก.ทท.1";
+        else if (textToSearch.includes("บก.ทท.2")) s = "บก.ทท.2";
+        else if (textToSearch.includes("บก.ทท.3")) s = "บก.ทท.3";
+        else if (textToSearch.includes("บช.ทท.")) s = "บช.ทท.";
+      }
+    }
+
+    if (!s || s === "-" || s === "ไม่ระบุ" || s === "ไม่ระบุสังกัด") return "ไม่ระบุสังกัด";
+
     if (
       s === "ฝ่ายอำนวยการ 6" ||
       s === "ฝอ.6" ||
@@ -247,7 +262,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       if (passDate && filterEndDate) passDate = mDateStr <= filterEndDate;
     }
     if (filterVehicle !== "ALL") passVehicle = String(m.vehicle_id).trim().toLowerCase() === filterVehicle.toLowerCase();
-    if (filterAffiliation !== "ALL") passAffiliation = normalizeAffiliation(String(m.affiliation || "")) === filterAffiliation;
+    if (filterAffiliation !== "ALL") passAffiliation = normalizeAffiliation(String(m.affiliation || ""), m.vehicle_id, m.unit_name) === filterAffiliation;
     return passDate && passVehicle && passAffiliation;
   });
 
@@ -258,13 +273,13 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const getVehicleAffiliation = (vehicleKey: string): string => {
     const cleanKey = vehicleKey.toLowerCase();
     if (VEHICLE_AFFILIATIONS[cleanKey]) {
-      return normalizeAffiliation(VEHICLE_AFFILIATIONS[cleanKey]);
+      return normalizeAffiliation(VEHICLE_AFFILIATIONS[cleanKey], vehicleKey);
     }
     const foundMission = filteredMissions.find((m: any) => String(m.vehicle_id || "").toLowerCase() === cleanKey);
-    if (foundMission && foundMission.affiliation) {
-      return normalizeAffiliation(foundMission.affiliation);
+    if (foundMission) {
+      return normalizeAffiliation(foundMission.affiliation, foundMission.vehicle_id, foundMission.unit_name);
     }
-    return "ไม่ระบุ";
+    return "ไม่ระบุสังกัด";
   };
 
   const vehicleStats = filteredMissions.reduce((acc: any, m: any) => { const v = String(m.vehicle_id || 'Unknown').toLowerCase(); acc[v] = (acc[v] || 0) + 1; return acc; }, {});
@@ -287,7 +302,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const topProvinces = [...chartDataProvince].sort((a, b) => b.count - a.count).slice(0, 10);
   
   const affiliationStats = filteredMissions.reduce((acc: any, m: any) => { 
-    const aff = normalizeAffiliation(String(m.affiliation || ""));
+    const aff = normalizeAffiliation(String(m.affiliation || ""), m.vehicle_id, m.unit_name);
     acc[aff] = (acc[aff] || 0) + 1; 
     return acc; 
   }, {});
