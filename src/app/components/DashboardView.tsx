@@ -346,8 +346,8 @@ export default function DashboardView({ missions, refreshData }: { missions: any
       fill: colorInfo.fill,
       glow: colorInfo.glow,
     };
-  });
-  const topVehicles = [...chartDataVehicle].sort((a, b) => b.count - a.count).slice(0, 10);
+  }).sort((a, b) => b.count - a.count);
+  const topVehicles = [...chartDataVehicle].slice(0, 10);
 
   const provinceStats = filteredMissions.reduce((acc: any, m: any) => { const p = m.province || 'ไม่ระบุ'; acc[p] = (acc[p] || 0) + 1; return acc; }, {});
   const chartDataProvince = Object.keys(provinceStats).map(key => ({ name: key, count: provinceStats[key] }));
@@ -358,13 +358,6 @@ export default function DashboardView({ missions, refreshData }: { missions: any
     acc[aff] = (acc[aff] || 0) + 1; 
     return acc; 
   }, {});
-
-  const orderWeight: Record<string, number> = {
-    "บช.ทท.": 1,
-    "บก.ทท.1": 2,
-    "บก.ทท.2": 3,
-    "บก.ทท.3": 4
-  };
 
   const chartDataAffiliation = Object.keys(affiliationStats)
     .map((key) => {
@@ -377,11 +370,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
         glow: colorInfo.glow,
       };
     })
-    .sort((a, b) => {
-      const weightA = orderWeight[a.name] || 99;
-      const weightB = orderWeight[b.name] || 99;
-      return weightA - weightB;
-    });
+    .sort((a, b) => b.count - a.count);
 
   const incidentStats = filteredMissions.reduce((acc: any, m: any) => {
     let report = String(m.incident_report || "").trim();
