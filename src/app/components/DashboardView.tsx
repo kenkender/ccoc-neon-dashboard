@@ -7,6 +7,58 @@ import IncidentModal from "./IncidentModal";
 import { usePopup } from "./PopupContext";
 import { VEHICLE_AFFILIATIONS } from "../data/users";
 
+// ─── Custom 3D Bar Shapes (SVG Perspective) ────────────────────────────────
+const Bar3DVertical = (props: any) => {
+  const { x, y, width, height, fill } = props;
+  if (!fill || !width || !height || height <= 0 || width <= 0) return null;
+  const dep = Math.min(width * 0.40, 14); // depth of the 3D extrusion
+  const dh  = dep * 0.50;                 // vertical rise of the extrusion
+  return (
+    <g style={{ filter: `drop-shadow(0 6px 12px ${fill}55)` }}>
+      {/* Right side face (darkest) */}
+      <path
+        d={`M ${x + width} ${y} L ${x + width + dep} ${y - dh} L ${x + width + dep} ${y + height - dh} L ${x + width} ${y + height} Z`}
+        fill={fill} fillOpacity={0.28}
+      />
+      {/* Top face (brightest) */}
+      <path
+        d={`M ${x} ${y} L ${x + dep} ${y - dh} L ${x + width + dep} ${y - dh} L ${x + width} ${y} Z`}
+        fill={fill} fillOpacity={0.90}
+      />
+      {/* Front face */}
+      <rect x={x} y={y} width={width} height={height} fill={fill} rx={5} />
+      {/* Shine highlight on top of front face */}
+      <rect x={x + 2} y={y + 2} width={Math.max(width - 4, 0)} height={4} fill="white" fillOpacity={0.18} rx={2} />
+    </g>
+  );
+};
+
+const Bar3DHorizontal = (props: any) => {
+  const { x, y, width, height, fill } = props;
+  if (!fill || !width || !height || width <= 0 || height <= 0) return null;
+  const dep = Math.min(height * 1.0, 12);
+  const dw  = dep * 0.65;
+  const r   = Math.min(Math.floor(height / 2), 6);
+  return (
+    <g style={{ filter: `drop-shadow(0 3px 8px ${fill}66)` }}>
+      {/* Top face */}
+      <path
+        d={`M ${x} ${y} L ${x + dw} ${y - dep} L ${x + width + dw} ${y - dep} L ${x + width} ${y} Z`}
+        fill={fill} fillOpacity={0.78}
+      />
+      {/* Right side face */}
+      <path
+        d={`M ${x + width} ${y} L ${x + width + dw} ${y - dep} L ${x + width + dw} ${y + height - dep} L ${x + width} ${y + height} Z`}
+        fill={fill} fillOpacity={0.35}
+      />
+      {/* Front face */}
+      <rect x={x} y={y} width={width} height={height} fill={fill} rx={r} />
+      {/* Shine highlight */}
+      <rect x={x + 2} y={y + 1} width={Math.max(width - 8, 0)} height={Math.max(height - 2, 1)} fill="white" fillOpacity={0.12} rx={r} />
+    </g>
+  );
+};
+
 const VEHICLE_NAMES: Record<string, string> = {
   "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
   "stc04": "4. stc04 ชลบุรี", "stc05": "5. stc05 โคราช", "stc06": "6. stc06 เชียงใหม่",
@@ -435,33 +487,27 @@ export default function DashboardView({ missions, refreshData }: { missions: any
           </h3>
           <div className="flex-1 min-h-[220px] w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
-              <BarChart data={chartDataVehicle} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                <XAxis dataKey="shortName" stroke="#666" tick={{fill: '#888', fontSize: 11}} axisLine={false} tickLine={false} interval={0} />
-                <YAxis stroke="#666" tick={{fill: '#888', fontSize: 10}} allowDecimals={false} axisLine={false} tickLine={false} />
+              <BarChart data={chartDataVehicle} margin={{ top: 18, right: 22, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
+                <XAxis dataKey="shortName" stroke="#555" tick={{fill: '#777', fontSize: 11}} axisLine={false} tickLine={false} interval={0} />
+                <YAxis stroke="#555" tick={{fill: '#777', fontSize: 10}} allowDecimals={false} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#a855f7', borderRadius: '10px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.7)', color: '#ffffff'}} 
-                  labelStyle={{color: '#ffffff', fontWeight: 'bold', marginBottom: '2px'}}
+                  contentStyle={{backgroundColor: '#060d18', borderColor: '#a855f7', borderRadius: '12px', fontSize: '12px', boxShadow: '0 10px 35px rgba(168,85,247,0.4)', color: '#ffffff', backdropFilter: 'blur(8px)'}} 
+                  labelStyle={{color: '#c084fc', fontWeight: 'bold', marginBottom: '4px'}}
                   itemStyle={{color: '#38bdf8', fontWeight: 'bold'}}
-                  cursor={{fill: '#ffffff0a'}}
+                  cursor={{fill: '#ffffff06'}}
                   labelFormatter={(label: any, payload: any) => {
-                    if (payload && payload.length > 0) {
-                      return payload[0].payload.name;
-                    }
+                    if (payload && payload.length > 0) return payload[0].payload.name;
                     return label;
                   }}
                   formatter={(value: any, name: any, item: any) => [
                     `${value} ภารกิจ (${item?.payload?.affiliation || "ไม่ระบุสังกัด"})`,
                     'จำนวน'
                   ]}
-                />                
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                />
+                <Bar dataKey="count" shape={(p: any) => <Bar3DVertical {...p} />} isAnimationActive={true}>
                   {chartDataVehicle.map((entry, index) => (
-                    <Cell 
-                      key={`cell-v-${index}`} 
-                      fill={entry.fill} 
-                      style={{ filter: `drop-shadow(0px 0px 6px ${entry.fill})` }}
-                    />
+                    <Cell key={`cell-v-${index}`} fill={entry.fill} />
                   ))}
                 </Bar>
               </BarChart>
@@ -476,25 +522,21 @@ export default function DashboardView({ missions, refreshData }: { missions: any
               <BarChart 
                 data={chartDataAffiliation} 
                 layout="vertical"
-                margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
+                margin={{ top: 14, right: 28, left: 10, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={true} vertical={false} />
-                <XAxis type="number" stroke="#666" tick={{fill: '#888', fontSize: 10}} axisLine={false} tickLine={false} />
-                <YAxis dataKey="name" type="category" stroke="#e5e7eb" tick={{fill: '#e5e7eb', fontSize: 11, fontWeight: 'bold'}} axisLine={false} tickLine={false} width={110} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" horizontal={true} vertical={false} />
+                <XAxis type="number" stroke="#555" tick={{fill: '#777', fontSize: 10}} axisLine={false} tickLine={false} />
+                <YAxis dataKey="name" type="category" stroke="#e5e7eb" tick={{fill: '#e5e7eb', fontSize: 12, fontWeight: 'bold'}} axisLine={false} tickLine={false} width={110} />
                 <Tooltip 
-                  cursor={{fill: '#ffffff0a'}}
-                  contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#06b6d4', borderRadius: '10px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.7)', color: '#ffffff'}} 
-                  labelStyle={{color: '#ffffff', fontWeight: 'bold', marginBottom: '2px'}}
+                  cursor={{fill: '#ffffff06'}}
+                  contentStyle={{backgroundColor: '#060d18', borderColor: '#06b6d4', borderRadius: '12px', fontSize: '12px', boxShadow: '0 10px 35px rgba(6,182,212,0.4)', color: '#ffffff', backdropFilter: 'blur(8px)'}} 
+                  labelStyle={{color: '#22d3ee', fontWeight: 'bold', marginBottom: '4px'}}
                   itemStyle={{color: '#38bdf8', fontWeight: 'bold'}} 
                   formatter={(value: any) => [`${value} ภารกิจ`, 'จำนวน']}
                 />
-                <Bar dataKey="count" barSize={10} radius={[0, 10, 10, 0]}>
+                <Bar dataKey="count" barSize={18} shape={(p: any) => <Bar3DHorizontal {...p} />} isAnimationActive={true}>
                   {chartDataAffiliation.map((entry, index) => (
-                    <Cell 
-                      key={`cell-affil-${index}`} 
-                      fill={entry.fill} 
-                      style={{ filter: `drop-shadow(0px 0px 8px ${entry.fill})` }}
-                    />
+                    <Cell key={`cell-affil-${index}`} fill={entry.fill} />
                   ))}
                 </Bar>
               </BarChart>

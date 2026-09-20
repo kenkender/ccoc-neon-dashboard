@@ -194,6 +194,7 @@ export async function POST(req: Request) {
         flight_duration_min: Number(body.data.flight_duration_min || 0),
         coverage_detail: body.data.coverage_detail || "",
         tourist_density: body.data.tourist_density || "",
+        tourist_count_est: body.data.tourist_count_est || "",
         vehicle_type: isUav ? "UAV Mobile" : (body.data.vehicle_type || "CCOC Mobile"),
       };
 

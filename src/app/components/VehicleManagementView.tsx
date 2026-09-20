@@ -50,6 +50,7 @@ export default function VehicleManagementView({
   const [showPassword, setShowPassword] = useState(false);
   const [editMode, setEditMode] = useState(false); // false = add, true = edit
   const [formData, setFormData] = useState(emptyForm);
+  const [activeListTab, setActiveListTab] = useState<"ALL" | "CCOC" | "UAV">("ALL");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -692,73 +693,138 @@ export default function VehicleManagementView({
             isDarkMode ? "plate-3d-dark" : "plate-3d-light"
           }`}
         >
-          <h3
-            className={`text-base font-bold flex items-center gap-2 pb-2.5 border-b border-white/10 ${
-              isDarkMode ? "text-cyan-400" : "text-cyan-600"
-            }`}
-          >
-            <Users size={18} /> รายการรถ/ผู้ใช้ในระบบ ({vehicleList.length} คัน)
-          </h3>
+          {/* Header การ์ดขวา พร้อมแท็บปุ่มแยกประเภท */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-white/10">
+            <h3
+              className={`text-base font-bold flex items-center gap-2 ${
+                isDarkMode ? "text-cyan-400" : "text-cyan-600"
+              }`}
+            >
+              <Users size={18} /> รายการรถ/ผู้ใช้ในระบบ ({vehicleList.length} คัน)
+            </h3>
+
+            {/* ปุ่มแถบแยกประเภท (Category Tabs) */}
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setActiveListTab("ALL")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeListTab === "ALL"
+                    ? isDarkMode
+                      ? "bg-slate-700 text-white shadow-sm border border-slate-600"
+                      : "bg-white text-gray-900 shadow-sm border border-gray-200"
+                    : isDarkMode
+                    ? "text-gray-400 hover:text-white"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <span>ทั้งหมด</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 font-mono">
+                  {vehicleList.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveListTab("CCOC")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeListTab === "CCOC"
+                    ? "bg-fuchsia-900/70 text-fuchsia-300 border border-fuchsia-500/50 shadow-[0_0_12px_rgba(217,70,239,0.35)]"
+                    : isDarkMode
+                    ? "text-gray-400 hover:text-fuchsia-400"
+                    : "text-gray-600 hover:text-fuchsia-600"
+                }`}
+              >
+                <Truck size={13} />
+                <span>CCOC</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-fuchsia-500/20 font-mono text-fuchsia-300">
+                  {ccocVehicles.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveListTab("UAV")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeListTab === "UAV"
+                    ? "bg-cyan-900/70 text-cyan-300 border border-cyan-500/50 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
+                    : isDarkMode
+                    ? "text-gray-400 hover:text-cyan-400"
+                    : "text-gray-600 hover:text-cyan-600"
+                }`}
+              >
+                <Shield size={13} />
+                <span>UAV</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 font-mono text-cyan-300">
+                  {uavVehicles.length}
+                </span>
+              </button>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-3 overflow-y-auto max-h-[65vh] custom-scrollbar pr-1">
 
             {/* CCOC Mobile Section */}
-            <div>
-              <div
-                className={`flex items-center gap-2 mb-2 px-2.5 py-1 rounded-lg ${
-                  isDarkMode ? "bg-fuchsia-900/20" : "bg-fuchsia-50"
-                }`}
-              >
-                <Truck size={14} className="text-fuchsia-400" />
-                <span className="text-fuchsia-400 font-bold text-xs sm:text-sm tracking-wider">
-                  CCOC Mobile ({ccocVehicles.length} คัน)
-                </span>
-              </div>
-              {ccocVehicles.length === 0 ? (
-                <p
-                  className={`text-center text-xs py-3 ${
-                    isDarkMode ? "text-gray-600" : "text-gray-400"
+            {(activeListTab === "ALL" || activeListTab === "CCOC") && (
+              <div>
+                <div
+                  className={`flex items-center gap-2 mb-2 px-2.5 py-1 rounded-lg ${
+                    isDarkMode ? "bg-fuchsia-900/20" : "bg-fuchsia-50"
                   }`}
                 >
-                  ไม่พบข้อมูลรถ CCOC Mobile
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {ccocVehicles.map((u: any, i: number) => (
-                    <UserCard key={i} u={u} accentColor="fuchsia" />
-                  ))}
+                  <Truck size={14} className="text-fuchsia-400" />
+                  <span className="text-fuchsia-400 font-bold text-xs sm:text-sm tracking-wider">
+                    CCOC Mobile ({ccocVehicles.length} คัน)
+                  </span>
                 </div>
-              )}
-            </div>
+                {ccocVehicles.length === 0 ? (
+                  <p
+                    className={`text-center text-xs py-3 ${
+                      isDarkMode ? "text-gray-600" : "text-gray-400"
+                    }`}
+                  >
+                    ไม่พบข้อมูลรถ CCOC Mobile
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {ccocVehicles.map((u: any, i: number) => (
+                      <UserCard key={i} u={u} accentColor="fuchsia" />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* UAV Mobile Section */}
-            <div>
-              <div
-                className={`flex items-center gap-2 mb-2 px-2.5 py-1 rounded-lg ${
-                  isDarkMode ? "bg-cyan-900/20" : "bg-cyan-50"
-                }`}
-              >
-                <Shield size={14} className="text-cyan-400" />
-                <span className="text-cyan-400 font-bold text-xs sm:text-sm tracking-wider">
-                  UAV Mobile ({uavVehicles.length} คัน)
-                </span>
-              </div>
-              {uavVehicles.length === 0 ? (
-                <p
-                  className={`text-center text-xs py-3 ${
-                    isDarkMode ? "text-gray-600" : "text-gray-400"
+            {(activeListTab === "ALL" || activeListTab === "UAV") && (
+              <div>
+                <div
+                  className={`flex items-center gap-2 mb-2 px-2.5 py-1 rounded-lg ${
+                    isDarkMode ? "bg-cyan-900/20" : "bg-cyan-50"
                   }`}
                 >
-                  ไม่พบข้อมูลรถ UAV Mobile
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {uavVehicles.map((u: any, i: number) => (
-                    <UserCard key={i} u={u} accentColor="cyan" />
-                  ))}
+                  <Shield size={14} className="text-cyan-400" />
+                  <span className="text-cyan-400 font-bold text-xs sm:text-sm tracking-wider">
+                    UAV Mobile ({uavVehicles.length} คัน)
+                  </span>
                 </div>
-              )}
-            </div>
+                {uavVehicles.length === 0 ? (
+                  <p
+                    className={`text-center text-xs py-3 ${
+                      isDarkMode ? "text-gray-600" : "text-gray-400"
+                    }`}
+                  >
+                    ไม่พบข้อมูลรถ UAV Mobile
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {uavVehicles.map((u: any, i: number) => (
+                      <UserCard key={i} u={u} accentColor="cyan" />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {vehicleList.length === 0 && (
               <div
@@ -806,7 +872,7 @@ export default function VehicleManagementView({
           </li>
           <li className="flex items-start gap-1.5">
             <span className="text-yellow-400 mt-0.5">•</span>
-            หลังเพิ่มหรือแก้ไขรถสำเร็จ ข้อมูลจะถูกบันทึกลง Google Sheets ทันที
+            หลังเพิ่มหรือแก้ไขรถสำเร็จ ข้อมูลจะถูกบันทึกลง <strong>Supabase (และ Sync สำรองไปยัง Google Sheets)</strong> ทันที
           </li>
           <li className="flex items-start gap-1.5">
             <span className="text-yellow-400 mt-0.5">•</span>

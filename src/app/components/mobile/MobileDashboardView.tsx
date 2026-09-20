@@ -57,6 +57,33 @@ const AFFILIATION_COLORS: Record<string, { fill: string }> = {
 
 const DONUT_COLORS = ["#d946ef", "#06b6d4", "#22c55e", "#ea580c", "#c084fc", "#f59e0b"];
 
+// ─── Custom 3D Bar Shape for Mobile Horizontal Chart ───────────────────────
+const Bar3DHorizontal = (props: any) => {
+  const { x, y, width, height, fill } = props;
+  if (!fill || !width || !height || width <= 0 || height <= 0) return null;
+  const dep = Math.min(height * 0.8, 10);
+  const dw  = dep * 0.6;
+  const r   = Math.min(Math.floor(height / 2), 5);
+  return (
+    <g style={{ filter: `drop-shadow(0 2px 6px ${fill}55)` }}>
+      {/* Top face */}
+      <path
+        d={`M ${x} ${y} L ${x + dw} ${y - dep} L ${x + width + dw} ${y - dep} L ${x + width} ${y} Z`}
+        fill={fill} fillOpacity={0.75}
+      />
+      {/* Right side face */}
+      <path
+        d={`M ${x + width} ${y} L ${x + width + dw} ${y - dep} L ${x + width + dw} ${y + height - dep} L ${x + width} ${y + height} Z`}
+        fill={fill} fillOpacity={0.35}
+      />
+      {/* Front face */}
+      <rect x={x} y={y} width={width} height={height} fill={fill} rx={r} />
+      {/* Highlight shine */}
+      <rect x={x + 2} y={y + 1} width={Math.max(width - 6, 0)} height={Math.max(height - 2, 1)} fill="white" fillOpacity={0.12} rx={r} />
+    </g>
+  );
+};
+
 // Custom Tooltip สำหรับ Horizontal Bar Chart
 const HBarTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -399,7 +426,7 @@ export default function MobileDashboardView({
                   width={62}
                 />
                 <Tooltip content={<HBarTooltip />} cursor={{ fill: "rgba(6,182,212,0.06)" }} />
-                <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={18} label={{ position: "right", fontSize: 9, fill: "#94a3b8" }}>
+                <Bar dataKey="count" shape={(p: any) => <Bar3DHorizontal {...p} />} barSize={18} label={{ position: "right", fontSize: 9, fill: "#94a3b8" }}>
                   {chartDataVehicle.map((entry, index) => (
                     <Cell key={`hbar-${index}`} fill={entry.fill} />
                   ))}

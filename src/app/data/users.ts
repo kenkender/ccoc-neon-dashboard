@@ -180,3 +180,51 @@ export function getUnifiedUsersList(gasUsers?: any[]): UserAccount[] {
   // Fallback if gasUsers is not available or empty
   return SYSTEM_USERS;
 }
+
+export function getMissionUnitDisplay(mission: any): string {
+  if (!mission) return "-";
+
+  const rawVeh = String(mission.raw_vehicle_id || mission.vehicle_id || "").trim();
+  const sysUser = findSystemUser(rawVeh) || findSystemUser(mission.vehicle_id);
+
+  let station = mission.unit_name;
+  if (!station || ["บช.ทท.", "บก.ทท.1", "บก.ทท.2", "บก.ทท.3", "-", "ไม่ระบุ"].includes(String(station).trim())) {
+    station = sysUser?.unit_name || mission.affiliation || "-";
+  }
+
+  let vehCode = rawVeh;
+  if (vehCode.toLowerCase() === "uav mobile" || vehCode.toLowerCase() === "ccoc mobile") {
+    if (sysUser && sysUser.vehicle_id && sysUser.vehicle_id.toLowerCase() !== "uav mobile") {
+      vehCode = sysUser.vehicle_id;
+    }
+  }
+
+  if (station !== "-" && vehCode && vehCode !== "-" && !station.toLowerCase().includes(vehCode.toLowerCase())) {
+    return `${station} (${vehCode})`;
+  }
+  return station || vehCode || "-";
+}
+
+export function getTouristCountDisplay(mission: any): string {
+  if (!mission) return "-";
+
+  const count = mission.tourist_count_est || mission.people_total || mission.people_per_day;
+  if (count && count !== "-" && !String(count).includes("ไม่ได้") && !String(count).includes("ปริมาณ")) {
+    const numStr = String(count).trim();
+    const extracted = numStr.match(/\d+/g)?.join("") || numStr;
+    if (/^\d+$/.test(extracted)) {
+      return `${Number(extracted).toLocaleString()} คน`;
+    }
+    return numStr.includes("คน") ? numStr : `${numStr} คน`;
+  }
+
+  // If tourist_density has digits in parentheses e.g. " (500 คน)"
+  const density = mission.tourist_density || "";
+  const match = String(density).match(/(\d+)\s*คน/);
+  if (match && match[1]) {
+    return `${Number(match[1]).toLocaleString()} คน`;
+  }
+
+  return "-";
+}
+

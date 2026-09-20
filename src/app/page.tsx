@@ -13,7 +13,7 @@ import FleetRosterView from "./components/FleetRosterView";
 import UavMissionForm from "./components/UavMissionForm";
 import LineReportModal from "./components/LineReportModal";
 import { usePopup } from "./components/PopupContext";
-import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData, getUnifiedUsersList } from "./data/users";
+import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData, getUnifiedUsersList, getMissionUnitDisplay, getTouristCountDisplay } from "./data/users";
 import { supabase } from "@/lib/supabase";
 import { useMobile } from "./hooks/useMobile";
 import MobileHeader from "./components/mobile/MobileHeader";
@@ -173,7 +173,7 @@ export default function Home() {
   const [formData, setFormData] = useState({
     affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "",
     location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ",
-    drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", vehicle_type: "CCOC Mobile"
+    drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: "CCOC Mobile"
   });
 
   const API_URL = "/api/missions";
@@ -458,6 +458,7 @@ export default function Home() {
         flight_duration_min: Number(formData.flight_duration_min ?? 45),
         coverage_detail: coverageDetail,
         tourist_density: String(combinedDensity),
+        tourist_count_est: touristCountEst,
         incident_report: cleanIncident,
         remark: cleanRemark,
         status: userAffiliation
@@ -574,7 +575,7 @@ export default function Home() {
         ],
       });
 
-      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", vehicle_type: formVehicleTypeFilter };
+      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: formVehicleTypeFilter };
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
       setUploadedFiles([]);
@@ -627,6 +628,7 @@ export default function Home() {
       flight_duration_min: selectedMission.flight_duration_min || 45,
       coverage_detail: selectedMission.coverage_detail || "",
       tourist_density: selectedMission.tourist_density || "",
+      tourist_count_est: selectedMission.tourist_count_est || "",
       vehicle_type: selectedMission.vehicle_type || (String(selectedMission.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile")
     });
     setIsEditing(true);
@@ -1984,19 +1986,26 @@ export default function Home() {
                     <div className="min-w-[900px] flex flex-col">
                       
                       <div className={`grid grid-cols-12 gap-4 p-4 rounded-xl mb-2 text-sm tracking-wider shrink-0 font-bold ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-700'}`}>
-                        <div className="col-span-1 text-center">ลำดับ.</div><div className="col-span-4">MISSION NAME / ชื่อภารกิจ</div><div className="col-span-2 text-center">หน่วยงานที่ออกภารกิจ</div><div className="col-span-2">พิกัด / จังหวัด</div><div className="col-span-3 text-right">DATE RECORDED</div>
+                        <div className="col-span-1 text-center">ลำดับ.</div><div className="col-span-3">MISSION NAME / ชื่อภารกิจ</div><div className="col-span-4 text-center">หน่วยงานและคันรถที่ออกภารกิจ</div><div className="col-span-2">พิกัด / จังหวัด</div><div className="col-span-2 text-right">DATE RECORDED</div>
                       </div>
                       
                       <div className="space-y-2 pr-2">
-                        {filteredLogs.map((mission: any, index: number) => (
-                          <div key={index} onClick={() => { setSelectedMission(mission); setIsEditing(false); }} style={{ animationDelay: `${Math.min(index, 15) * 30}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center cursor-pointer btn-3d anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light hover:brightness-95'}`}>
-                            <div className={`col-span-1 text-center font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{(index + 1).toString().padStart(3, '0')}</div>
-                            <div className={`col-span-4 font-bold truncate pr-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{mission.mission_name || "ไม่ระบุชื่อภารกิจ"}</div>
-                            <div className="col-span-2 text-center"><span className={`text-xs font-mono px-3 py-1.5 rounded-lg shadow-inner ${getAffiliationColor(mission.affiliation, isDarkMode)}`}>{mission.affiliation || "-"}</span></div>
-                            <div className={`col-span-2 truncate pr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{mission.province}</div>
-                            <div className={`col-span-3 text-right font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{formatRecordedDate(mission.timestamp)}</div>
-                          </div>
-                        ))}
+                        {filteredLogs.map((mission: any, index: number) => {
+                          const unitDisplayStr = getMissionUnitDisplay(mission);
+                          return (
+                            <div key={index} onClick={() => { setSelectedMission(mission); setIsEditing(false); }} style={{ animationDelay: `${Math.min(index, 15) * 30}ms` }} className={`grid grid-cols-12 gap-4 p-4 rounded-xl items-center cursor-pointer btn-3d anim-fade-in-up ${isDarkMode ? 'list-item-3d-dark' : 'btn-menu-light hover:brightness-95'}`}>
+                              <div className={`col-span-1 text-center font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{(index + 1).toString().padStart(3, '0')}</div>
+                              <div className={`col-span-3 font-bold truncate pr-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{mission.mission_name || "ไม่ระบุชื่อภารกิจ"}</div>
+                              <div className="col-span-4 text-center truncate px-1" title={unitDisplayStr}>
+                                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-inner truncate inline-block max-w-full ${getAffiliationColor(mission.affiliation, isDarkMode)}`}>
+                                  {unitDisplayStr}
+                                </span>
+                              </div>
+                              <div className={`col-span-2 truncate pr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{mission.province}</div>
+                              <div className={`col-span-2 text-right font-mono text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{formatRecordedDate(mission.timestamp)}</div>
+                            </div>
+                          );
+                        })}
                         {filteredLogs.length === 0 && <div className="text-center py-10"><p className={isDarkMode ? 'text-gray-500 font-mono' : 'text-gray-400 font-mono'}>NO DATA FOUND</p></div>}
                       </div>
                     </div>
@@ -2196,21 +2205,21 @@ export default function Home() {
                 </div>
                 
                 {/* เนื้อหาด้านใน Modal */}
-                {!isEditing ? (
-                  (() => {
-                    const isSelectedUav = String(selectedMission.vehicle_type || "").toLowerCase().includes("uav") ||
-                                          String(selectedMission.vehicle_id || "").toLowerCase().includes("uav") ||
-                                          Boolean(selectedMission.drone_id);
+                {(() => {
+                  const isSelectedUav = String(selectedMission?.vehicle_type || "").toLowerCase().includes("uav") ||
+                                        String(selectedMission?.vehicle_id || "").toLowerCase().includes("uav") ||
+                                        Boolean(selectedMission?.drone_id);
 
-                    const formatModalDate = (dStr: string) => {
-                      if (!dStr) return "-";
-                      try {
-                        const d = new Date(dStr);
-                        if (isNaN(d.getTime())) return dStr;
-                        return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-                      } catch { return dStr; }
-                    };
+                  const formatModalDate = (dStr: string) => {
+                    if (!dStr) return "-";
+                    try {
+                      const d = new Date(dStr);
+                      if (isNaN(d.getTime())) return dStr;
+                      return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                    } catch { return dStr; }
+                  };
 
+                  if (!isEditing) {
                     return isSelectedUav ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-5">
@@ -2228,8 +2237,8 @@ export default function Home() {
                           <div className="flex items-center gap-3">
                             <div className={`p-3 rounded-xl btn-3d shrink-0 ${isDarkMode ? 'btn-menu-dark text-orange-400' : 'btn-menu-light text-orange-600'}`}><Shield size={20} /></div>
                             <div>
-                              <p className="text-xs font-bold text-gray-500">สังกัด / รหัสโดรน</p>
-                              <p className="mt-0.5 font-mono font-bold text-orange-400">{selectedMission.affiliation || "บช.ทท."} | {selectedMission.unit_name ? `${selectedMission.unit_name} (${selectedMission.raw_vehicle_id || selectedMission.vehicle_id})` : (selectedMission.raw_vehicle_id || selectedMission.vehicle_id)}</p>
+                              <p className="text-xs font-bold text-gray-500">สถานีปฏิบัติการ / รหัสรถ-โดรน</p>
+                              <p className="mt-0.5 font-mono font-bold text-orange-400">{getMissionUnitDisplay(selectedMission)}</p>
                             </div>
                           </div>
                         </div>
@@ -2251,23 +2260,9 @@ export default function Home() {
                           </div>
 
                           <div className={`p-5 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
-                            <p className="text-xs font-bold text-gray-500 mb-1"><Users className="inline mr-1.5" size={14}/>ปริมาณ / จำนวนนักท่องเที่ยวโดยประมาณ</p>
+                            <p className="text-xs font-bold text-gray-500 mb-1"><Users className="inline mr-1.5" size={14}/>จำนวนนักท่องเที่ยวโดยประมาณ</p>
                             <p className={`text-xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                              {(() => {
-                                const count = selectedMission.tourist_count_est || selectedMission.people_total || selectedMission.people_per_day;
-                                if (count && count !== "-" && !String(count).includes("ไม่ได้")) {
-                                  const numStr = String(count).trim();
-                                  if (/^\d+$/.test(numStr)) {
-                                    return `${Number(numStr).toLocaleString()} คน`;
-                                  }
-                                  return numStr.includes("คน") ? numStr : `${numStr} คน`;
-                                }
-                                const density = selectedMission.tourist_density || "-";
-                                if (density !== "-" && !density.includes("ไม่ได้")) {
-                                  return density;
-                                }
-                                return "-";
-                              })()}
+                              {getTouristCountDisplay(selectedMission)}
                             </p>
                           </div>
                         </div>
@@ -2296,7 +2291,7 @@ export default function Home() {
                          <div className="space-y-6">
                             <div><p className={`text-xs font-bold tracking-widest mb-1 ${isDarkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>ชื่อภารกิจ</p><p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{selectedMission.mission_name || "-"}</p></div>
                             <div className="flex items-center gap-4"><div className={`p-4 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}><MapPin /></div><div><p className="text-xs font-bold text-gray-500">พิกัด / จังหวัด</p><p className={`text-lg font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{selectedMission.province || "-"}</p></div></div>
-                            <div className="flex items-center gap-4"><div className={`p-4 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><Shield /></div><div><p className="text-xs font-bold text-gray-500">สังกัด / รหัสรถ</p><p className="mt-1 font-mono font-bold text-fuchsia-500">{selectedMission.affiliation || "บช.ทท."} | {VEHICLE_NAMES[selectedMission.vehicle_id] || selectedMission.vehicle_id}</p></div></div>
+                            <div className="flex items-center gap-4"><div className={`p-4 rounded-xl btn-3d ${isDarkMode ? 'btn-menu-dark text-fuchsia-400' : 'btn-menu-light text-fuchsia-600'}`}><Shield /></div><div><p className="text-xs font-bold text-gray-500">สถานีปฏิบัติการ / รหัสรถ</p><p className="mt-1 font-mono font-bold text-fuchsia-500">{getMissionUnitDisplay(selectedMission)}</p></div></div>
                          </div>
                          <div className="space-y-6">
                             <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
@@ -2309,11 +2304,7 @@ export default function Home() {
                             <div className={`p-6 rounded-2xl ${isDarkMode ? 'input-3d-dark' : 'input-3d-light'}`}>
                               <p className="text-xs font-bold text-gray-500 mb-2"><Users className="inline mr-2" size={14}/>จำนวนผู้เข้าร่วมงานโดยประมาณ</p>
                               <p className={`text-3xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                                {!isNaN(Number(selectedMission.people_total)) && Number(selectedMission.people_total) > 0 
-                                  ? Number(selectedMission.people_total).toLocaleString() 
-                                  : !isNaN(Number(selectedMission.people_per_day)) 
-                                  ? Number(selectedMission.people_per_day).toLocaleString() 
-                                  : "-"} <span className="text-sm font-normal text-gray-500">คน</span>
+                                {getTouristCountDisplay(selectedMission)}
                               </p>
                             </div>
                          </div>
@@ -2330,34 +2321,99 @@ export default function Home() {
                          </div>
                       </div>
                     );
-                  })()
-                ) : (
-                  <form onSubmit={(e) => handleSubmit(e, "edit")} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* ... ฟอร์ม Edit ... */}
-                    <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">ชื่อภารกิจ</label><input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ...ออกตรวจดูแลนักท่องเที่ยว หรือ ภารกิจสนับสนุน ของบช.ทท." className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
-                    <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">จังหวัด/พิกัด</label><input required type="text" name="province" value={formData.province} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
-                    <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">ระยะทาง (กม.)</label><input type="number" name="distance_km" value={formData.distance_km} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
-                    <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">วันที่เริ่ม</label><input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}}/></div>
-                    <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">วันที่สิ้นสุด</label><input required type="date" name="end_date" value={formData.end_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}}/></div>
-                    <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">จำนวนคน (ต่อวัน)</label><input type="number" name="people_per_day" value={formData.people_per_day} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
-                    <div className="flex flex-col gap-2"><label className="text-sm font-bold text-green-500">รวมผู้เข้าร่วมงานทั้งหมด</label><input readOnly type="text" name="people_total" value={formData.people_total} className={`p-4 rounded-xl font-bold focus:outline-none cursor-not-allowed ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`} /></div>
-                    <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">เหตุสำคัญ / รับแจ้ง</label><input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
-                    <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">หมายเหตุ</label><input type="text" name="remark" value={formData.remark} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
-                    <div className="flex flex-col gap-2 md:col-span-2">
-                      <PhotoUploadZone
-                        files={uploadedFiles}
-                        setFiles={setUploadedFiles}
-                        isDarkMode={isDarkMode}
-                      />
-                    </div>
-                    <div className={`md:col-span-2 mt-6 flex justify-end gap-4 pt-6 border-t border-white/10`}>
-                      <button type="button" onClick={() => setIsEditing(false)} className={`px-8 py-4 rounded-xl font-bold btn-3d ${isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600'}`}>ยกเลิก</button>
-                      <button disabled={isSubmitting} type="submit" className="btn-3d px-10 py-4 rounded-xl font-bold text-gray-900" style={{ background: 'linear-gradient(145deg, #facc15, #ca8a04)', boxShadow: '5px 5px 15px rgba(0,0,0,0.5), -2px -2px 8px rgba(250,204,21,0.5)' }}>
-                        {isSubmitting ? "SAVING..." : "UPDATE DATA"}
-                      </button>
-                    </div>
-                  </form>
-                )}
+                  }
+
+                  // ─── หน้าจอแก้ไข (isEditing === true) ───
+                  return (
+                    <form onSubmit={(e) => handleSubmit(e, "edit")} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {isSelectedUav ? (
+                        <>
+                          {/* ฟอร์มแก้ไขสำหรับ UAV Mobile */}
+                          <div className="flex flex-col gap-2 md:col-span-2">
+                            <label className="text-sm font-bold text-cyan-400">ชื่อภารกิจ / โค้ดการปฏิบัติ (UAV)</label>
+                            <input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ว.10 ป้องกันเหตุ Walking Street" className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-cyan-400' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-cyan-400">สถานที่ปฏิบัติการ</label>
+                            <input required type="text" name="location" value={formData.location || ""} onChange={handleChange} placeholder="Walking Street พัทยา" className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-cyan-400' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-cyan-400">พิกัด / จังหวัด</label>
+                            <input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="ชลบุรี" className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-cyan-400' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-cyan-400">วันที่ปฏิบัติการ</label>
+                            <input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}}/>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-cyan-400">เวลาปฏิบัติการ</label>
+                            <input type="text" name="start_time" value={formData.start_time || ""} onChange={handleChange} placeholder="เช่น 14.30 น." className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-cyan-400' : 'input-3d-light text-black'}`}/>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-purple-400">ระยะทางออกปฏิบัติภารกิจ (รวมไป-กลับ กม.)</label>
+                            <input type="text" name="distance_km" value={formData.distance_km} onChange={handleChange} placeholder="เช่น 25 กม." className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-purple-400' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-emerald-400">รุ่นอุปกรณ์โดรน</label>
+                            <select name="drone_id" value={formData.drone_id || "DJI Matrice 4T"} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-emerald-400' : 'input-3d-light text-black'}`}>
+                              <option value="DJI Matrice 4T">DJI Matrice 4T</option>
+                              <option value="DJI Matrice 4E">DJI Matrice 4E</option>
+                              <option value="DJI Air 3s">DJI Air 3s</option>
+                              <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-emerald-400">จำนวนรอบบิน (Sorties)</label>
+                            <input type="number" name="sorties" min={1} value={formData.sorties || 1} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-emerald-400">เวลาบินรวม (นาที)</label>
+                            <input type="number" name="flight_duration_min" min={1} value={formData.flight_duration_min || 45} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold text-green-400">จำนวนนักท่องเที่ยวโดยประมาณ (คน)</label>
+                            <input type="number" name="tourist_count_est" min={0} value={formData.tourist_count_est || ""} onChange={handleChange} placeholder="กรอกจำนวนคน เช่น 500" className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-green-400' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2 md:col-span-2">
+                            <label className="text-sm font-bold text-cyan-400">ผลการปฏิบัติ / เหตุการณ์สำคัญ</label>
+                            <input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-cyan-400' : 'input-3d-light text-black'}`} />
+                          </div>
+                          <div className="flex flex-col gap-2 md:col-span-2">
+                            <label className="text-sm font-bold text-cyan-400">หมายเหตุ</label>
+                            <input type="text" name="remark" value={formData.remark} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-cyan-400' : 'input-3d-light text-black'}`} />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* ฟอร์มแก้ไขสำหรับ CCOC Mobile */}
+                          <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">ชื่อภารกิจ</label><input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ...ออกตรวจดูแลนักท่องเที่ยว หรือ ภารกิจสนับสนุน ของบช.ทท." className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">จังหวัด/พิกัด</label><input required type="text" name="province" value={formData.province} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">ระยะทาง (กม.)</label><input type="number" name="distance_km" value={formData.distance_km} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">วันที่เริ่ม</label><input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}}/></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">วันที่สิ้นสุด</label><input required type="date" name="end_date" value={formData.end_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}}/></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">จำนวนคน (ต่อวัน)</label><input type="number" name="people_per_day" value={formData.people_per_day} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-green-500">รวมผู้เข้าร่วมงานทั้งหมด</label><input readOnly type="text" name="people_total" value={formData.people_total} className={`p-4 rounded-xl font-bold focus:outline-none cursor-not-allowed ${isDarkMode ? 'input-3d-dark text-green-400' : 'input-3d-light text-green-600'}`} /></div>
+                          <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">เหตุสำคัญ / รับแจ้ง</label><input type="text" name="incident_report" value={formData.incident_report} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                          <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">หมายเหตุ</label><input type="text" name="remark" value={formData.remark} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                        </>
+                      )}
+
+                      <div className="flex flex-col gap-2 md:col-span-2">
+                        <PhotoUploadZone
+                          files={uploadedFiles}
+                          setFiles={setUploadedFiles}
+                          isDarkMode={isDarkMode}
+                        />
+                      </div>
+                      <div className={`md:col-span-2 mt-6 flex justify-end gap-4 pt-6 border-t border-white/10`}>
+                        <button type="button" onClick={() => setIsEditing(false)} className={`px-8 py-4 rounded-xl font-bold btn-3d ${isDarkMode ? 'btn-menu-dark text-gray-400' : 'btn-menu-light text-gray-600'}`}>ยกเลิก</button>
+                        <button disabled={isSubmitting} type="submit" className="btn-3d px-10 py-4 rounded-xl font-bold text-gray-900" style={{ background: 'linear-gradient(145deg, #facc15, #ca8a04)', boxShadow: '5px 5px 15px rgba(0,0,0,0.5), -2px -2px 8px rgba(250,204,21,0.5)' }}>
+                          {isSubmitting ? "SAVING..." : "UPDATE DATA"}
+                        </button>
+                      </div>
+                    </form>
+                  );
+                })()}
               </>
             )}
           </div>

@@ -131,6 +131,8 @@ function UavMissionForm({
     start_date: formData.start_date || "",
     start_time: formData.start_time ?? "",
     distance_km: formData.distance_km || "",
+    tourist_density: formData.tourist_density || "ปริมาณน้อย",
+    tourist_count_est: formData.tourist_count_est || "",
     incident_report: formData.incident_report || "",
     remark: formData.remark || "",
   });
@@ -140,7 +142,7 @@ function UavMissionForm({
     setLocalForm((prev: any) => {
       let changed = false;
       const next = { ...prev };
-      const keys = ["mission_name", "location", "province", "start_date", "start_time", "distance_km", "incident_report", "remark"];
+      const keys = ["mission_name", "location", "province", "start_date", "start_time", "distance_km", "tourist_density", "tourist_count_est", "incident_report", "remark"];
       for (const key of keys) {
         if (formData[key] !== undefined && formData[key] !== prev[key]) {
           next[key] = formData[key];
@@ -156,6 +158,8 @@ function UavMissionForm({
     formData.start_date,
     formData.start_time,
     formData.distance_km,
+    formData.tourist_density,
+    formData.tourist_count_est,
     formData.incident_report,
     formData.remark
   ]);
@@ -414,6 +418,21 @@ function UavMissionForm({
                 onChange={handleLocalChange}
                 placeholder="เช่น 25 กม."
                 className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
+              />
+            </div>
+
+
+            {/* ปริมาณ/จำนวนนักท่องเที่ยวโดยประมาณ (คน) */}
+            <div className="flex flex-col gap-1 min-w-0">
+              <label className={`text-xs font-mono font-bold leading-tight ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>จำนวนนักท่องเที่ยวโดยประมาณ (คน)</label>
+              <input
+                type="number"
+                min={0}
+                name="tourist_count_est"
+                value={localForm.tourist_count_est || ""}
+                onChange={handleLocalChange}
+                placeholder="กรอกจำนวนคน เช่น 500"
+                className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-green-400 focus:border-green-400' : 'input-3d-light text-green-700'}`}
               />
             </div>
           </div>

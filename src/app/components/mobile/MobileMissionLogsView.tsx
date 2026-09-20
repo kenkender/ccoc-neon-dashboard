@@ -13,6 +13,7 @@ import {
   MapPin,
   Clock,
 } from "lucide-react";
+import { getMissionUnitDisplay } from "../../data/users";
 
 interface MobileMissionLogsViewProps {
   isDarkMode: boolean;
@@ -185,22 +186,19 @@ export default function MobileMissionLogsView({
                       {isUav ? "UAV Mobile" : "CCOC Mobile"}
                     </span>
                     <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${getAffiliationColor(
+                      className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md truncate max-w-[200px] ${getAffiliationColor(
                         mission.affiliation,
                         isDarkMode
                       )}`}
+                      title={getMissionUnitDisplay(mission)}
                     >
-                      {mission.affiliation || "-"}
+                      {getMissionUnitDisplay(mission)}
                     </span>
                   </div>
                   <h3 className="font-bold text-sm text-slate-100 line-clamp-2 leading-snug">
                     {mission.mission_name || "ไม่ระบุชื่อภารกิจ"}
                   </h3>
                 </div>
-
-                <span className="text-[11px] font-mono text-cyan-400 font-bold bg-cyan-950/60 px-2 py-1 rounded-lg border border-cyan-800/50 shrink-0">
-                  {mission.vehicle_id?.toUpperCase()}
-                </span>
               </div>
 
               {/* Location & Date Details */}
