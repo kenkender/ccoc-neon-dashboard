@@ -60,8 +60,8 @@ const TIME_PRESETS = [
 interface DroneEntry {
   drone_id: string;
   custom_model?: string;
-  sorties: number;
-  flight_duration_min: number;
+  sorties: number | string;
+  flight_duration_min: number | string;
   coverage_detail: string;
 }
 
@@ -180,8 +180,8 @@ function UavMissionForm({
   const [droneEntries, setDroneEntries] = useState<DroneEntry[]>([
     {
       drone_id: "DJI Matrice 4T",
-      sorties: 1,
-      flight_duration_min: 45,
+      sorties: "1",
+      flight_duration_min: "",
       coverage_detail: ""
     }
   ]);
@@ -223,8 +223,8 @@ function UavMissionForm({
       ...prev,
       {
         drone_id: nextModel,
-        sorties: 1,
-        flight_duration_min: 45,
+        sorties: "1",
+        flight_duration_min: "",
         coverage_detail: ""
       }
     ]);
@@ -518,10 +518,17 @@ function UavMissionForm({
                   <div className="flex flex-col gap-1 min-w-0">
                     <label className={`text-xs font-mono font-bold truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>จำนวนรอบบิน (Sorties)</label>
                     <input
-                      type="number"
-                      value={entry.sorties || 1}
-                      onChange={(e) => updateDroneEntry(index, 'sorties', Math.max(1, parseInt(e.target.value) || 1))}
-                      min={1}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={entry.sorties !== undefined && entry.sorties !== null ? entry.sorties : ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*$/.test(val)) {
+                          updateDroneEntry(index, 'sorties', val);
+                        }
+                      }}
+                      placeholder="กรอกจำนวนรอบบิน..."
                       className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
                     />
                   </div>
@@ -530,10 +537,17 @@ function UavMissionForm({
                   <div className="flex flex-col gap-1 min-w-0">
                     <label className={`text-xs font-mono font-bold truncate ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>เวลาบินรวม (นาที)</label>
                     <input
-                      type="number"
-                      value={entry.flight_duration_min || 45}
-                      onChange={(e) => updateDroneEntry(index, 'flight_duration_min', Math.max(1, parseInt(e.target.value) || 0))}
-                      placeholder="45"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={entry.flight_duration_min !== undefined && entry.flight_duration_min !== null ? entry.flight_duration_min : ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*$/.test(val)) {
+                          updateDroneEntry(index, 'flight_duration_min', val);
+                        }
+                      }}
+                      placeholder="กรอกเวลาบินรวม (นาที)..."
                       className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-emerald-400' : 'input-3d-light text-emerald-600'}`}
                     />
                   </div>

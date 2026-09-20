@@ -2364,11 +2364,39 @@ export default function Home() {
                           </div>
                           <div className="flex flex-col gap-2">
                             <label className="text-sm font-bold text-emerald-400">จำนวนรอบบิน (Sorties)</label>
-                            <input type="number" name="sorties" min={1} value={formData.sorties || 1} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              name="sorties"
+                              value={formData.sorties !== undefined && formData.sorties !== null ? formData.sorties : ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "" || /^\d*$/.test(val)) {
+                                  handleChange(e);
+                                }
+                              }}
+                              placeholder="กรอกจำนวนรอบบิน..."
+                              className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
+                            />
                           </div>
                           <div className="flex flex-col gap-2">
                             <label className="text-sm font-bold text-emerald-400">เวลาบินรวม (นาที)</label>
-                            <input type="number" name="flight_duration_min" min={1} value={formData.flight_duration_min || 45} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              name="flight_duration_min"
+                              value={formData.flight_duration_min !== undefined && formData.flight_duration_min !== null ? formData.flight_duration_min : ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "" || /^\d*$/.test(val)) {
+                                  handleChange(e);
+                                }
+                              }}
+                              placeholder="กรอกเวลาบินรวม (นาที)..."
+                              className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
+                            />
                           </div>
                           <div className="flex flex-col gap-2">
                             <label className="text-sm font-bold text-green-400">จำนวนนักท่องเที่ยวโดยประมาณ (คน)</label>
