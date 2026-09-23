@@ -125,10 +125,15 @@ export async function POST(req: Request) {
 
     // 3. แก้ไขภารกิจ (edit)
     if (action === "edit" && body.data) {
+      const editPayload = { ...body.data };
+      delete editPayload.tourist_count_est;
+      delete editPayload.id;
+      delete editPayload.created_at;
+
       const { error } = await supabase
         .from("missions")
         .update({
-          ...body.data,
+          ...editPayload,
           vehicle_type: body.data.vehicle_type || "CCOC Mobile",
         })
         .eq("timestamp", body.timestamp);
@@ -194,7 +199,6 @@ export async function POST(req: Request) {
         flight_duration_min: Number(body.data.flight_duration_min || 0),
         coverage_detail: body.data.coverage_detail || "",
         tourist_density: body.data.tourist_density || "",
-        tourist_count_est: body.data.tourist_count_est || "",
         vehicle_type: isUav ? "UAV Mobile" : (body.data.vehicle_type || "CCOC Mobile"),
       };
 
