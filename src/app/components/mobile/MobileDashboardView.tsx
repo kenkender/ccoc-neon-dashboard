@@ -44,6 +44,10 @@ const VEHICLE_NAMES: Record<string, string> = {
   stc08: "stc08 หัวหิน",
   stc09: "stc09 สนามศุภ",
   stc10: "stc10 หาดใหญ่",
+  stc11: "stc11 ขอนแก่น",
+  stc12: "stc12 กรุงเทพใต้",
+  stc13: "stc13 กาญจนบุรี",
+  stc14: "stc14 เกาะสมุย",
   "uav mobile": "UAV Mobile",
   "UAV Mobile": "UAV Mobile",
 };
@@ -56,6 +60,14 @@ const AFFILIATION_COLORS: Record<string, { fill: string }> = {
 };
 
 const DONUT_COLORS = ["#d946ef", "#06b6d4", "#22c55e", "#ea580c", "#c084fc", "#f59e0b"];
+
+const parseNumericVal = (val: any): number => {
+  if (val === null || val === undefined || val === "" || val === "-") return 0;
+  const num = Number(val);
+  if (!isNaN(num)) return num;
+  const match = String(val).replace(/,/g, "").match(/[\d.]+/);
+  return match ? Number(match[0]) || 0 : 0;
+};
 
 // ─── Custom 3D Bar Shape for Mobile Horizontal Chart ───────────────────────
 const Bar3DHorizontal = (props: any) => {
@@ -194,7 +206,8 @@ export default function MobileDashboardView({
     if (selectedType === "ALL") return true;
     const uname = String(m.vehicle_id || "").trim().toLowerCase();
     const vtype = String(m.vehicle_type || "").toLowerCase();
-    if (selectedType === "CCOC") return uname.startsWith("stc") || vtype === "ccoc mobile";
+    if (selectedType === "CCOC")
+      return (uname.startsWith("stc") && vtype !== "uav mobile") || vtype === "ccoc mobile";
     if (selectedType === "UAV")
       return uname.startsWith("uav") || uname === "uav mobile" || vtype === "uav mobile";
     return true;
@@ -206,12 +219,16 @@ export default function MobileDashboardView({
     let passAffiliation = true;
     if (m.start_date) {
       const mDate = new Date(m.start_date);
-      const mDateStr = `${mDate.getFullYear()}-${String(mDate.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}-${String(mDate.getDate()).padStart(2, "0")}`;
-      if (filterStartDate) passDate = mDateStr >= filterStartDate;
-      if (passDate && filterEndDate) passDate = mDateStr <= filterEndDate;
+      if (!isNaN(mDate.getTime())) {
+        let yr = mDate.getFullYear();
+        if (yr > 2400) yr -= 543;
+        const mDateStr = `${yr}-${String(mDate.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(mDate.getDate()).padStart(2, "0")}`;
+        if (filterStartDate) passDate = mDateStr >= filterStartDate;
+        if (passDate && filterEndDate) passDate = mDateStr <= filterEndDate;
+      }
     }
     if (filterVehicle !== "ALL")
       passVehicle = String(m.vehicle_id).trim().toLowerCase() === filterVehicle.toLowerCase();
@@ -221,12 +238,11 @@ export default function MobileDashboardView({
   });
 
   const kpiTotalMissions = filteredMissions.length;
-  const kpiTotalDistance = filteredMissions.reduce(
-    (sum: number, m: any) => sum + Number(m.distance_km || 0),
-    0
-  );
+  const kpiTotalDistance = Math.round(
+    filteredMissions.reduce((sum: number, m: any) => sum + parseNumericVal(m.distance_km), 0) * 100
+  ) / 100;
   const kpiTotalPeople = filteredMissions.reduce(
-    (sum: number, m: any) => sum + Number(m.people_total || 0),
+    (sum: number, m: any) => sum + parseNumericVal(m.people_total || m.tourist_count_est || m.people_per_day),
     0
   );
 

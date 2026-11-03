@@ -165,7 +165,7 @@ export default function MobileMissionLogsView({
           const isUav =
             String(mission.vehicle_type || "").toLowerCase().includes("uav") ||
             String(mission.vehicle_id || "").toLowerCase().includes("uav") ||
-            Boolean(mission.drone_id);
+            (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01");
 
           return (
             <div

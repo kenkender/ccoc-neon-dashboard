@@ -63,7 +63,9 @@ const VEHICLE_NAMES: Record<string, string> = {
   "stc01": "1. stc01 บช.ทท.", "stc02": "2. stc02 ภูเก็ต", "stc03": "3. stc03 อยุธยา",
   "stc04": "4. stc04 ชลบุรี", "stc05": "5. stc05 โคราช", "stc06": "6. stc06 เชียงใหม่",
   "stc07": "7. stc07 พิษณุโลก", "stc08": "8. stc08 หัวหิน", "stc09": "9. stc09 สนามศุภชลาศัย",
-  "stc10": "10. stc10 หาดใหญ่", "uav mobile": "11. UAV Mobile", "UAV Mobile": "11. UAV Mobile"
+  "stc10": "10. stc10 หาดใหญ่", "stc11": "11. stc11 ขอนแก่น", "stc12": "12. stc12 กรุงเทพใต้",
+  "stc13": "13. stc13 กาญจนบุรี", "stc14": "14. stc14 เกาะสมุย",
+  "uav mobile": "15. UAV Mobile", "UAV Mobile": "15. UAV Mobile"
 };
 
 const AFFILIATION_COLORS: Record<string, { fill: string; glow: string; border: string }> = {
@@ -71,6 +73,14 @@ const AFFILIATION_COLORS: Record<string, { fill: string; glow: string; border: s
   "บก.ทท.1": { fill: "#06b6d4", glow: "rgba(6, 182, 212, 0.6)",  border: "#22d3ee" }, // Cyan / Blue
   "บก.ทท.2": { fill: "#22c55e", glow: "rgba(34, 197, 94, 0.6)",  border: "#4ade80" }, // Green
   "บก.ทท.3": { fill: "#ea580c", glow: "rgba(234, 88, 12, 0.6)", border: "#fb923c" }, // Orange
+};
+
+const parseNumericVal = (val: any): number => {
+  if (val === null || val === undefined || val === "" || val === "-") return 0;
+  const num = Number(val);
+  if (!isNaN(num)) return num;
+  const match = String(val).replace(/,/g, "").match(/[\d.]+/);
+  return match ? Number(match[0]) || 0 : 0;
 };
 
 export default function DashboardView({ missions, refreshData }: { missions: any[], refreshData?: any }) {
@@ -87,7 +97,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   const ccocMissionsCount = missions.filter((m: any) => {
     const uname = String(m.vehicle_id || "").trim().toLowerCase();
     const vtype = String(m.vehicle_type || "").toLowerCase();
-    return uname.startsWith("stc") || vtype === "ccoc mobile";
+    return (uname.startsWith("stc") && vtype !== "uav mobile") || vtype === "ccoc mobile";
   }).length;
 
   const uavMissionsCount = missions.filter((m: any) => {
@@ -198,7 +208,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
               <h3 className="text-2xl font-bold text-white group-hover:text-fuchsia-300 transition-colors">
                 รถ CCOC Mobile
               </h3>
-              <p className="text-xs font-mono text-fuchsia-400/80 mt-1">stc01 - stc10</p>
+              <p className="text-xs font-mono text-fuchsia-400/80 mt-1">stc01 - stc14</p>
               <p className="text-sm text-gray-400 mt-3 leading-relaxed">
                 รายงานสถิติวิเคราะห์ภารกิจการปฏิบัติงานเฉพาะรถปฏิบัติการเคลื่อนที่ CCOC Mobile
               </p>
@@ -300,7 +310,7 @@ export default function DashboardView({ missions, refreshData }: { missions: any
     if (selectedType === "ALL") return true;
     const uname = String(m.vehicle_id || "").trim().toLowerCase();
     const vtype = String(m.vehicle_type || "").toLowerCase();
-    if (selectedType === "CCOC") return uname.startsWith("stc") || vtype === "ccoc mobile";
+    if (selectedType === "CCOC") return (uname.startsWith("stc") && vtype !== "uav mobile") || vtype === "ccoc mobile";
     if (selectedType === "UAV") return uname.startsWith("uav") || uname === "uav mobile" || vtype === "uav mobile";
     return true;
   });
@@ -309,9 +319,13 @@ export default function DashboardView({ missions, refreshData }: { missions: any
     let passDate = true; let passVehicle = true; let passAffiliation = true;
     if (m.start_date) {
       const mDate = new Date(m.start_date);
-      const mDateStr = `${mDate.getFullYear()}-${String(mDate.getMonth() + 1).padStart(2, '0')}-${String(mDate.getDate()).padStart(2, '0')}`;
-      if (filterStartDate) passDate = mDateStr >= filterStartDate;
-      if (passDate && filterEndDate) passDate = mDateStr <= filterEndDate;
+      if (!isNaN(mDate.getTime())) {
+        let yr = mDate.getFullYear();
+        if (yr > 2400) yr -= 543;
+        const mDateStr = `${yr}-${String(mDate.getMonth() + 1).padStart(2, '0')}-${String(mDate.getDate()).padStart(2, '0')}`;
+        if (filterStartDate) passDate = mDateStr >= filterStartDate;
+        if (passDate && filterEndDate) passDate = mDateStr <= filterEndDate;
+      }
     }
     if (filterVehicle !== "ALL") passVehicle = String(m.vehicle_id).trim().toLowerCase() === filterVehicle.toLowerCase();
     if (filterAffiliation !== "ALL") passAffiliation = normalizeAffiliation(String(m.affiliation || ""), m.vehicle_id, m.unit_name) === filterAffiliation;
@@ -319,8 +333,13 @@ export default function DashboardView({ missions, refreshData }: { missions: any
   });
 
   const kpiTotalMissions = filteredMissions.length;
-  const kpiTotalDistance = filteredMissions.reduce((sum: number, m: any) => sum + Number(m.distance_km || 0), 0);
-  const kpiTotalPeople = filteredMissions.reduce((sum: number, m: any) => sum + Number(m.people_total || 0), 0);
+  const kpiTotalDistance = Math.round(
+    filteredMissions.reduce((sum: number, m: any) => sum + parseNumericVal(m.distance_km), 0) * 100
+  ) / 100;
+  const kpiTotalPeople = filteredMissions.reduce(
+    (sum: number, m: any) => sum + parseNumericVal(m.people_total || m.tourist_count_est || m.people_per_day),
+    0
+  );
 
   const getVehicleAffiliation = (vehicleKey: string): string => {
     const cleanKey = vehicleKey.toLowerCase();

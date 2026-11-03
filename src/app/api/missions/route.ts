@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SYSTEM_USERS } from "@/app/data/users";
+import { SYSTEM_USERS, VEHICLE_AFFILIATIONS } from "@/app/data/users";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -127,14 +127,29 @@ export async function POST(req: Request) {
     if (action === "edit" && body.data) {
       const editPayload = { ...body.data };
       delete editPayload.tourist_count_est;
+      delete editPayload.status;
       delete editPayload.id;
       delete editPayload.created_at;
+
+      const vIdKey = String(body.data.vehicle_id || "").trim().toLowerCase();
+      const resolvedAffil =
+        body.data.affiliation ||
+        body.data.status ||
+        VEHICLE_AFFILIATIONS[vIdKey] ||
+        "";
+
+      const isUavEdit =
+        body.sheet === "uav_missions" ||
+        String(body.data.vehicle_type || "").toLowerCase() === "uav mobile" ||
+        vIdKey.includes("uav") ||
+        (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01");
 
       const { error } = await supabase
         .from("missions")
         .update({
           ...editPayload,
-          vehicle_type: body.data.vehicle_type || "CCOC Mobile",
+          affiliation: resolvedAffil,
+          vehicle_type: isUavEdit ? "UAV Mobile" : (body.data.vehicle_type || "CCOC Mobile"),
         })
         .eq("timestamp", body.timestamp);
 
@@ -171,32 +186,50 @@ export async function POST(req: Request) {
 
     // 5. เพิ่มภารกิจใหม่ (Default Add Mission)
     if (body.data) {
+      const vIdKey = String(body.data.vehicle_id || "").trim().toLowerCase();
       const isUav =
         body.sheet === "uav_missions" ||
-        String(body.data.vehicle_id || "").toLowerCase().includes("uav") ||
-        Boolean(body.data.drone_id);
+        String(body.data.vehicle_type || "").toLowerCase() === "uav mobile" ||
+        vIdKey.includes("uav") ||
+        (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01");
+
+      let distKm = String(body.data.distance_km || body.data.distance || body.data.km || "").trim();
+      if ((!distKm || distKm === "-") && body.data.coverage_detail) {
+        const matchDist =
+          String(body.data.coverage_detail).match(/(?:ระยะทาง(?:รวม)?(?:ไป-กลับ)?|ความยาว)\s*:?\s*([\d.]+)/i) ||
+          String(body.data.coverage_detail).match(/([\d.]+)\s*กม/i);
+        if (matchDist && matchDist[1]) {
+          distKm = matchDist[1];
+        }
+      }
+
+      const resolvedAffil =
+        body.data.affiliation ||
+        body.data.status ||
+        VEHICLE_AFFILIATIONS[vIdKey] ||
+        "";
 
       const newMission = {
         timestamp: body.timestamp || new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
-        affiliation: body.data.affiliation || "",
+        affiliation: resolvedAffil,
         unit_name: body.data.unit_name || "",
         vehicle_id: body.data.vehicle_id || "",
         mission_name: body.data.mission_name || "",
         province: body.data.province || "",
         start_date: body.data.start_date || "",
-        end_date: body.data.end_date || "",
-        total_days: String(body.data.total_days || ""),
-        distance_km: String(body.data.distance_km || body.data.distance || body.data.km || ""),
+        end_date: body.data.end_date || (isUav ? "" : (body.data.start_date || "")),
+        total_days: String(body.data.total_days || (isUav ? "" : "1")),
+        distance_km: distKm,
         people_per_day: String(body.data.people_per_day || ""),
-        people_total: String(body.data.people_total || body.data.people_per_day || ""),
+        people_total: String(body.data.people_total || body.data.people_per_day || body.data.tourist_count_est || ""),
         incident_report: body.data.incident_report || "",
         remark: body.data.remark || "",
         location: body.data.location || "",
         start_time: body.data.start_time || "",
         operators: body.data.operators || "",
-        drone_id: body.data.drone_id || "",
-        sorties: Number(body.data.sorties || 0),
-        flight_duration_min: Number(body.data.flight_duration_min || 0),
+        drone_id: isUav ? (body.data.drone_id || "") : "",
+        sorties: isUav ? Number(body.data.sorties || 0) : 0,
+        flight_duration_min: isUav ? Number(body.data.flight_duration_min || 0) : 0,
         coverage_detail: body.data.coverage_detail || "",
         tourist_density: body.data.tourist_density || "",
         vehicle_type: isUav ? "UAV Mobile" : (body.data.vehicle_type || "CCOC Mobile"),

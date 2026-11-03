@@ -61,12 +61,27 @@ export const SYSTEM_USERS: UserAccount[] = [
 export const VEHICLE_AFFILIATIONS: Record<string, string> = SYSTEM_USERS.reduce((acc, user) => {
   acc[user.username.toLowerCase()] = user.affiliation;
   return acc;
-}, {} as Record<string, string>);
+}, {
+  "uav_bchtt": "บช.ทท.",
+  "uav01": "บช.ทท.",
+  "uav777": "บก.ทท.1",
+  "stc12": "บก.ทท.1",
+  "stc11": "บก.ทท.2",
+  "stc13": "บก.ทท.3",
+  "stc14": "บก.ทท.3",
+} as Record<string, string>);
 
 export const VEHICLE_UNIT_MAP: Record<string, string> = SYSTEM_USERS.reduce((acc, user) => {
   acc[user.username.toLowerCase()] = user.unit_name;
   return acc;
-}, {} as Record<string, string>);
+}, {
+  "uav_bchtt": "บช.ทท. (สายตรวจโดรน)",
+  "uav777": "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)",
+  "stc12": "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)",
+  "stc11": "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)",
+  "stc13": "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)",
+  "stc14": "ส.ทท.5 กก.2 บก.ทท.3 (เกาะสมุย)",
+} as Record<string, string>);
 
 export const VEHICLE_NAMES: Record<string, string> = SYSTEM_USERS.reduce((acc, user) => {
   acc[user.username.toLowerCase()] = `${user.username} ${user.unit_name}`;
@@ -74,6 +89,12 @@ export const VEHICLE_NAMES: Record<string, string> = SYSTEM_USERS.reduce((acc, u
 }, {
   "uav mobile": "UAV Mobile สายตรวจโดรน",
   "UAV Mobile": "UAV Mobile สายตรวจโดรน",
+  "uav_bchtt": "uav_bchtt บช.ทท. (สายตรวจโดรน)",
+  "uav777": "uav777 ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)",
+  "stc12": "stc12 ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)",
+  "stc11": "stc11 ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)",
+  "stc13": "stc13 ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)",
+  "stc14": "stc14 ส.ทท.5 กก.2 บก.ทท.3 (เกาะสมุย)",
 } as Record<string, string>);
 
 export function findSystemUser(username: string): UserAccount | undefined {
@@ -130,7 +151,9 @@ export function enrichUserData(rawUser: any): UserAccount {
     if (role === "admin") {
       affiliation = "ALL";
     } else {
-      if (isGenericAffilUnit) affiliation = rawUnitName;
+      const cleanUname = username.toLowerCase();
+      if (VEHICLE_AFFILIATIONS[cleanUname]) affiliation = VEHICLE_AFFILIATIONS[cleanUname];
+      else if (isGenericAffilUnit) affiliation = rawUnitName;
       else if (finalUnitName.includes("บก.ทท.1")) affiliation = "บก.ทท.1";
       else if (finalUnitName.includes("บก.ทท.2")) affiliation = "บก.ทท.2";
       else if (finalUnitName.includes("บก.ทท.3")) affiliation = "บก.ทท.3";
@@ -186,10 +209,11 @@ export function getMissionUnitDisplay(mission: any): string {
 
   const rawVeh = String(mission.raw_vehicle_id || mission.vehicle_id || "").trim();
   const sysUser = findSystemUser(rawVeh) || findSystemUser(mission.vehicle_id);
+  const cleanVeh = rawVeh.toLowerCase();
 
   let station = mission.unit_name;
   if (!station || ["บช.ทท.", "บก.ทท.1", "บก.ทท.2", "บก.ทท.3", "-", "ไม่ระบุ"].includes(String(station).trim())) {
-    station = sysUser?.unit_name || mission.affiliation || "-";
+    station = sysUser?.unit_name || VEHICLE_UNIT_MAP[cleanVeh] || mission.affiliation || "-";
   }
 
   let vehCode = rawVeh;
@@ -227,4 +251,3 @@ export function getTouristCountDisplay(mission: any): string {
 
   return "-";
 }
-

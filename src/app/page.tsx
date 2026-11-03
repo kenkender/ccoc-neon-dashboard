@@ -173,7 +173,7 @@ export default function Home() {
   const [formData, setFormData] = useState({
     affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "",
     location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ",
-    drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: "CCOC Mobile"
+    drone_id: "", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: "CCOC Mobile"
   });
 
   const API_URL = "/api/missions";
@@ -197,17 +197,38 @@ export default function Home() {
         return;
       }
       
+      const normalizeDateValue = (dVal: any): string => {
+        if (!dVal) return "";
+        const s = String(dVal).trim();
+        const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (isoMatch) {
+          let yr = parseInt(isoMatch[1], 10);
+          if (yr > 2400) yr -= 543;
+          return `${yr}-${isoMatch[2]}-${isoMatch[3]}`;
+        }
+        return s;
+      };
+
       const cleanedMissions = (result.data.missions || []).map((m: any) => {
-        let isUav = String(m.vehicle_type || "").toLowerCase().includes("uav") || 
-                    String(m.vehicle_id || "").toLowerCase().includes("uav") ||
-                    Boolean(m.drone_id);
+        const rawDroneId = String(m.drone_id || "").trim();
+        const rawVidLower = String(m.vehicle_id || "").trim().toLowerCase();
+        // 🛠️ กู้คืนภารกิจ CCOC Mobile ที่เคยถูกบันทึกผิดเป็น UAV เนื่องจากค่าเริ่มต้น drone_id === "Drone-01"
+        const isMisclassifiedCcoc = rawDroneId === "Drone-01" && !rawVidLower.includes("uav");
+
+        let isUav = !isMisclassifiedCcoc && (
+          String(m.vehicle_type || "").toLowerCase().includes("uav") || 
+          rawVidLower.includes("uav") ||
+          (Boolean(rawDroneId) && rawDroneId !== "Drone-01")
+        );
 
         let missionName = m.mission_name;
         let vehicleId = m.vehicle_id;
         let unitName = m.unit_name;
         let province = m.province;
         let location = m.location;
-        let startDate = m.start_date;
+        let startDate = normalizeDateValue(m.start_date);
+        let endDate = normalizeDateValue(m.end_date) || (isUav ? "" : startDate);
+        let totalDays = m.total_days || (isUav ? "" : "1");
         let startTime = m.start_time;
         let distanceKm = m.distance_km || m.distance || m.km;
         let affil = m.affiliation || m.status || m.affil;
@@ -227,6 +248,16 @@ export default function Home() {
           touristCountEst = m.people_total || m.people_per_day || "";
         }
 
+        // ดึงระยะทางจาก coverage_detail หาก distance_km ว่างเปล่า (ทั้ง UAV และ CCOC ที่ถูกบันทึกผ่าน UAV payload เดิม)
+        if (!distanceKm || distanceKm === "-" || distanceKm === "0") {
+          if (m.coverage_detail) {
+            const matchDist = String(m.coverage_detail).match(/(?:ระยะทาง(?:รวม)?(?:ไป-กลับ)?|ความยาว)\s*:?\s*([\d.]+)/i) || String(m.coverage_detail).match(/([\d.]+)\s*กม/i);
+            if (matchDist && matchDist[1]) {
+              distanceKm = matchDist[1];
+            }
+          }
+        }
+
         // 🛠️ Auto-Fix: แก้ไขปัญหาคอลัมน์ใน Google Sheet UAV เคลื่อนสลับตำแหน่งอัตโนมัติ
         if (isUav) {
           const startTimeStr = String(startTime || "");
@@ -235,16 +266,8 @@ export default function Home() {
           }
           const provinceStr = String(province || "");
           if (provinceStr && /^\d{4}-\d{2}-\d{2}/.test(provinceStr.trim())) {
-            startDate = province;
+            startDate = normalizeDateValue(province);
             province = (location && !/^\d+/.test(String(location))) ? location : (m.mission_type || "กทม.");
-          }
-          if (!distanceKm || distanceKm === "-" || distanceKm === "0") {
-            if (m.coverage_detail) {
-              const matchDist = String(m.coverage_detail).match(/(?:ระยะทาง(?:รวม)?(?:ไป-กลับ)?|ความยาว)\s*:?\s*([\d.]+)/i) || String(m.coverage_detail).match(/([\d.]+)\s*กม/i);
-              if (matchDist && matchDist[1]) {
-                distanceKm = matchDist[1];
-              }
-            }
           }
         }
 
@@ -258,34 +281,54 @@ export default function Home() {
           } else {
             vId = String(vehicleId || "").trim();
           }
-          if (!finalAffil || finalAffil === "-") finalAffil = "บช.ทท.";
         } else if (vId.includes("อยุธยา") || uName.includes("อยุธยา")) {
           vId = "stc03";
-          if (!finalAffil) finalAffil = "บก.ทท.1";
         } else if (vId.includes("สนามศุภ") || uName.includes("สนามศุภ")) {
           vId = "stc09";
-          if (!finalAffil) finalAffil = "บก.ทท.1";
         } else if (vId.includes("ฝอ.6") || uName.includes("ฝอ.6") || vId === "stc01") {
           vId = "stc01";
-          if (!finalAffil) finalAffil = "บช.ทท.";
         } else {
           vId = String(vehicleId || "").trim();
         }
 
+        const vIdLookup = vId.toLowerCase();
+        if (!finalAffil || finalAffil === "-" || finalAffil === "ไม่ระบุ" || finalAffil === "ไม่ระบุสังกัด") {
+          if (VEHICLE_AFFILIATIONS[vIdLookup]) {
+            finalAffil = VEHICLE_AFFILIATIONS[vIdLookup];
+          } else if (uName.includes("บก.ทท.1")) {
+            finalAffil = "บก.ทท.1";
+          } else if (uName.includes("บก.ทท.2")) {
+            finalAffil = "บก.ทท.2";
+          } else if (uName.includes("บก.ทท.3")) {
+            finalAffil = "บก.ทท.3";
+          } else if (uName.includes("บช.ทท") || uName.includes("ฝอ.6")) {
+            finalAffil = "บช.ทท.";
+          } else if (vIdLookup.includes("uav")) {
+            finalAffil = "บช.ทท.";
+          }
+        }
+
+        if (finalAffil === "ฝ่ายอำนวยการ 6" || finalAffil === "ฝ่ายอำนวยการ 6." || finalAffil.includes("ฝอ.6")) {
+          finalAffil = "บช.ทท.";
+        }
+
         return {
           ...m,
-          mission_name: missionName || "ว.43 สายตรวจโดรนมุมสูง",
+          mission_name: missionName || (isUav ? "ว.43 สายตรวจโดรนมุมสูง" : "ภารกิจ CCOC Mobile"),
           vehicle_id: vId,
-          raw_vehicle_id: vehicleId || "UAV Mobile",
-          unit_name: unitName,
+          raw_vehicle_id: vehicleId || (isUav ? "UAV Mobile" : "CCOC Mobile"),
+          unit_name: unitName || VEHICLE_UNIT_MAP[vIdLookup] || "",
           province: province || "-",
           start_date: startDate,
+          end_date: endDate,
+          total_days: totalDays,
           start_time: normalizeTimeStr(startTime, ""),
           distance_km: distanceKm,
+          drone_id: isUav ? rawDroneId : "",
           tourist_count_est: touristCountEst,
           tourist_density: density,
           affiliation: finalAffil,
-          vehicle_type: isUav ? "UAV Mobile" : (m.vehicle_type || "CCOC Mobile")
+          vehicle_type: isUav ? "UAV Mobile" : "CCOC Mobile"
         };
       });
 
@@ -395,10 +438,10 @@ export default function Home() {
     }
 
     const currentTimestamp = action === "edit" ? selectedMission.timestamp : new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' });
-    const isUav = String(payloadData.vehicle_type || "").toLowerCase().includes("uav") || 
+    const isUav = formVehicleTypeFilter === "UAV Mobile" ||
+                  String(payloadData.vehicle_type || "").toLowerCase().includes("uav") || 
                   String(payloadData.vehicle_id || "").toLowerCase().includes("uav") ||
-                  Boolean(payloadData.drone_id) ||
-                  formVehicleTypeFilter === "UAV Mobile"; // ✅ ใช้ formVehicleTypeFilter detect UAV สำหรับ ALL-type user เช่น stc01
+                  (Boolean(payloadData.drone_id) && payloadData.drone_id !== "Drone-01"); // ✅ ป้องกันไม่ให้ค่าเริ่มต้น Drone-01 ทำให้ภารกิจ CCOC กลายเป็น UAV
 
     // 🛠️ FIX COLUMN MISALIGNMENT FOR GOOGLE SHEETS uav_missions SHEET:
     // Strictly match Row 1 Header columns A to R:
@@ -459,9 +502,19 @@ export default function Home() {
         coverage_detail: coverageDetail,
         tourist_density: String(combinedDensity),
         tourist_count_est: touristCountEst,
+        distance_km: userDist,
+        affiliation: userAffiliation,
+        vehicle_type: "UAV Mobile",
         incident_report: cleanIncident,
         remark: cleanRemark,
         status: userAffiliation
+      };
+    } else {
+      payloadData = {
+        ...payloadData,
+        affiliation: userAffiliation,
+        drone_id: "",
+        vehicle_type: "CCOC Mobile",
       };
     }
 
@@ -575,7 +628,7 @@ export default function Home() {
         ],
       });
 
-      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "Drone-01", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: formVehicleTypeFilter };
+      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: formVehicleTypeFilter };
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
       setUploadedFiles([]);
@@ -623,7 +676,7 @@ export default function Home() {
       location: selectedMission.location || "",
       start_time: selectedMission.start_time || "",
       operators: selectedMission.operators || "",
-      drone_id: selectedMission.drone_id || "Drone-01",
+      drone_id: (selectedMission.drone_id && selectedMission.drone_id !== "Drone-01") ? selectedMission.drone_id : "",
       sorties: selectedMission.sorties || 1,
       flight_duration_min: selectedMission.flight_duration_min || 45,
       coverage_detail: selectedMission.coverage_detail || "",
@@ -674,18 +727,24 @@ export default function Home() {
   const parseMissionDateStr = (dateVal: any) => {
     if (!dateVal) return "";
     const str = String(dateVal).trim();
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      let y = parseInt(isoMatch[1], 10);
+      if (y > 2400) y -= 543;
+      return `${y}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
     const thaiMatch = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (thaiMatch) {
       const d = thaiMatch[1].padStart(2, '0');
       const m = thaiMatch[2].padStart(2, '0');
       let y = parseInt(thaiMatch[3], 10);
-      if (y > 2500) y -= 543;
+      if (y > 2400) y -= 543;
       return `${y}-${m}-${d}`;
     }
     const dt = new Date(str);
     if (!isNaN(dt.getTime())) {
       let y = dt.getFullYear();
-      if (y > 2500) y -= 543;
+      if (y > 2400) y -= 543;
       return `${y}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     }
     return str;
@@ -814,45 +873,75 @@ export default function Home() {
     };
 
 
-    // ─── master list CCOC (ลำดับตาม SYSTEM_USERS) ────────────────────────────
+    const parseNumericPdf = (val: any): number => {
+      if (val === null || val === undefined || val === "" || val === "-") return 0;
+      const num = Number(val);
+      if (!isNaN(num)) return num;
+      const match = String(val).replace(/,/g, "").match(/[\d.]+/);
+      return match ? Number(match[0]) || 0 : 0;
+    };
+
+    const formatPdfThaiDate = (dateStr: any): string => {
+      if (!dateStr) return "-";
+      const normalized = parseMissionDateStr(dateStr);
+      if (!normalized) return "-";
+      const dt = new Date(normalized);
+      if (isNaN(dt.getTime())) return String(dateStr);
+      return dt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' });
+    };
+
+    // ─── master list CCOC (ลำดับตาม SYSTEM_USERS + สถานีรถโมบายทั้งหมด) ────────
     const CCOC_MASTER_ORDER = [
       { affiliation: "บช.ทท.",  vehicle_id: "stc01", unit_name: "บช.ทท." },
       { affiliation: "บก.ทท.1", vehicle_id: "stc09", unit_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc12", unit_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)" },
       { affiliation: "บก.ทท.1", vehicle_id: "stc03", unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)" },
       { affiliation: "บก.ทท.1", vehicle_id: "stc04", unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc11", unit_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)" },
       { affiliation: "บก.ทท.2", vehicle_id: "stc05", unit_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)" },
       { affiliation: "บก.ทท.2", vehicle_id: "stc06", unit_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)" },
       { affiliation: "บก.ทท.2", vehicle_id: "stc07", unit_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc13", unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)" },
       { affiliation: "บก.ทท.3", vehicle_id: "stc08", unit_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)" },
       { affiliation: "บก.ทท.3", vehicle_id: "stc02", unit_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc14", unit_name: "ส.ทท.5 กก.2 บก.ทท.3 (เกาะสมุย)" },
       { affiliation: "บก.ทท.3", vehicle_id: "stc10", unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)" },
     ];
 
-    // ─── master list UAV (ลำดับตาม SYSTEM_USERS) ─────────────────────────────
+    // ─── master list UAV (ลำดับตาม SYSTEM_USERS รวมสถานี ALL ที่มีชุดโดรนประจำสถานี) ───
     const UAV_MASTER_ORDER = [
       { affiliation: "บช.ทท.",  vehicle_id: "uav_bchtt", unit_name: "บช.ทท. (สายตรวจโดรน)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc09",     unit_name: "กก.1 บก.ทท.1 (สนามศุภชลาศัย)" },
       { affiliation: "บก.ทท.1", vehicle_id: "uav002",    unit_name: "ส.ทท.1 กก.1 บก.ทท.1 (กรุงเทพเหนือ)" },
       { affiliation: "บก.ทท.1", vehicle_id: "uav008",    unit_name: "ส.ทท.2 กก.1 บก.ทท.1 (กรุงเทพใต้)" },
       { affiliation: "บก.ทท.1", vehicle_id: "uav004",    unit_name: "ส.ทท.3 กก.1 บก.ทท.1 (ธนบุรี)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc03",     unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (อยุธยา)" },
       { affiliation: "บก.ทท.1", vehicle_id: "uav006",    unit_name: "ส.ทท.2 กก.2 บก.ทท.1 (ลพบุรี)" },
       { affiliation: "บก.ทท.1", vehicle_id: "uav007",    unit_name: "ส.ทท.3 กก.2 บก.ทท.1 (สระแก้ว)" },
+      { affiliation: "บก.ทท.1", vehicle_id: "stc04",     unit_name: "ส.ทท.4 กก.2 บก.ทท.1 (ชลบุรี/พัทยา)" },
       { affiliation: "บก.ทท.1", vehicle_id: "uav009",    unit_name: "ส.ทท.5 กก.2 บก.ทท.1 (ระยอง)" },
       { affiliation: "บก.ทท.1", vehicle_id: "uav010",    unit_name: "ส.ทท.6 กก.2 บก.ทท.1 (ตราด)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav011",    unit_name: "ส.ทท.1 กก.1 บก.ทท.2 (ขอนแก่น)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc05",     unit_name: "ส.ทท.2 กก.1 บก.ทท.2 (นครราชสีมา)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav025",    unit_name: "ส.ทท.3 กก.1 บก.ทท.2 (อุบลราชธานี)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav001",    unit_name: "ส.ทท.4 กก.1 บก.ทท.2 (นครพนม)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav013",    unit_name: "ส.ทท.5 กก.1 บก.ทท.2 (อุดรธานี)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav028",    unit_name: "ส.ทท.6 กก.1 บก.ทท.2 (เลย)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc06",     unit_name: "ส.ทท.1 กก.2 บก.ทท.2 (เชียงใหม่)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav026",    unit_name: "ส.ทท.2 กก.2 บก.ทท.2 (เชียงราย)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav003",    unit_name: "ส.ทท.3 กก.2 บก.ทท.2 (น่าน)" },
+      { affiliation: "บก.ทท.2", vehicle_id: "stc07",     unit_name: "ส.ทท.1 กก.3 บก.ทท.2 (พิษณุโลก)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav016",    unit_name: "ส.ทท.2 กก.3 บก.ทท.2 (นครสวรรค์)" },
       { affiliation: "บก.ทท.2", vehicle_id: "uav017",    unit_name: "ส.ทท.3 กก.3 บก.ทท.2 (ตาก)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uav018",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uav019",    unit_name: "ส.ทท.1 กก.1 บก.ทท.3 (กาญจนบุรี) - ชุด 2" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc08",     unit_name: "ส.ทท.2 กก.1 บก.ทท.3 (ประจวบคีรีขันธ์/หัวหิน)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc02",     unit_name: "ส.ทท.1 กก.2 บก.ทท.3 (ภูเก็ต)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uav021",    unit_name: "ส.ทท.2 กก.2 บก.ทท.3 (ระนอง)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uav022",    unit_name: "ส.ทท.3 กก.2 บก.ทท.3 (กระบี่)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uav023",    unit_name: "ส.ทท.4 กก.2 บก.ทท.3 (สุราษฎร์ธานี)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uavsamui",  unit_name: "ส.ทท.5 กก.2 บก.ทท.3 (เกาะสมุย)" },
+      { affiliation: "บก.ทท.3", vehicle_id: "stc10",     unit_name: "ส.ทท.1 กก.3 บก.ทท.3 (สงขลา/หาดใหญ่)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uav027",    unit_name: "ส.ทท.2 กก.3 บก.ทท.3 (ตรัง)" },
       { affiliation: "บก.ทท.3", vehicle_id: "uav005",    unit_name: "ส.ทท.3 กก.3 บก.ทท.3 (นราธิวาส)" },
     ];
@@ -863,25 +952,32 @@ export default function Home() {
       const affil = String(m.affiliation || "").toLowerCase().trim();
       const prov = String(m.province || "").toLowerCase().trim();
 
+      const aliasMap: Record<string, string> = {
+        "stc01": "uav_bchtt",
+        "stc11": "uav011",
+        "stc12": "uav008",
+        "stc13": "uav018",
+        "stc14": "uavsamui",
+        "uav777": "uav008",
+        "uav01": "uav001",
+      };
+      if (aliasMap[vid]) return aliasMap[vid];
+
       for (const station of UAV_MASTER_ORDER) {
         const svid = station.vehicle_id.toLowerCase().trim();
         if (vid === svid) return svid;
-        if (vid.replace(/^uav0*/, 'uav') === svid.replace(/^uav0*/, 'uav')) return svid;
+        if (vid.startsWith("uav") && svid.startsWith("uav") && vid.replace(/^uav0*/, 'uav') === svid.replace(/^uav0*/, 'uav')) return svid;
       }
 
-      const stcToUavMap: Record<string, string> = {
-        "stc01": "uav_bchtt",
-        "stc09": "uav002",
-        "stc03": "uav006",
-        "stc04": "uav009",
-        "stc05": "uav011",
-        "stc06": "uav026",
-        "stc07": "uav016",
-        "stc08": "uav018",
-        "stc02": "uav022",
-        "stc10": "uav027",
-      };
-      if (stcToUavMap[vid]) return stcToUavMap[vid];
+      if (unit.includes("สนามศุภ")) return "stc09";
+      if (unit.includes("อยุธยา")) return "stc03";
+      if (unit.includes("ชลบุรี") || unit.includes("พัทยา")) return "stc04";
+      if (unit.includes("นครราชสีมา") || unit.includes("โคราช")) return "stc05";
+      if (unit.includes("เชียงใหม่")) return "stc06";
+      if (unit.includes("พิษณุโลก")) return "stc07";
+      if (unit.includes("หัวหิน") || unit.includes("ประจวบ")) return "stc08";
+      if (unit.includes("ภูเก็ต")) return "stc02";
+      if (unit.includes("หาดใหญ่") || unit.includes("สงขลา")) return "stc10";
 
       if (unit.includes("กรุงเทพเหนือ")) return "uav002";
       if (unit.includes("กรุงเทพใต้")) return "uav008";
@@ -926,6 +1022,10 @@ export default function Home() {
         if (vid === svid) return svid;
       }
 
+      if (unit.includes("กรุงเทพใต้")) return "stc12";
+      if (unit.includes("ขอนแก่น") || prov.includes("ขอนแก่น")) return "stc11";
+      if (unit.includes("กาญจนบุรี") || prov.includes("กาญจนบุรี")) return "stc13";
+      if (unit.includes("สมุย")) return "stc14";
       if (unit.includes("สนามศุภ") || prov.includes("กทม")) return "stc09";
       if (unit.includes("อยุธยา") || prov.includes("อยุธยา")) return "stc03";
       if (unit.includes("ชลบุรี") || unit.includes("พัทยา") || prov.includes("ชลบุรี")) return "stc04";
@@ -1036,16 +1136,19 @@ export default function Home() {
           stationMissions.forEach((m: any) => {
             const unitName = `${m.unit_name || station.unit_name}<br/><small>${VEHICLE_NAMES[m.vehicle_id] || m.vehicle_id}</small>`;
             const missionAndProv = `${m.mission_name || "-"}<br/><b>${m.province || "-"}</b>`;
-            const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
-            const eDate = m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
-            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndProv)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(eDate)}</td><td class="text-center">${toThaiNumber(m.total_days || 0)}</td><td class="text-center">${toThaiNumber(m.distance_km || 0)}</td><td class="text-right">${toThaiNumber(Number(m.people_per_day || 0).toLocaleString())}</td><td class="text-right">${toThaiNumber(Number(m.people_total || 0).toLocaleString())}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+            const sDate = formatPdfThaiDate(m.start_date);
+            const eDate = formatPdfThaiDate(m.end_date || m.start_date);
+            const pplDayNum = parseNumericPdf(m.people_per_day);
+            const pplTotalNum = parseNumericPdf(m.people_total || m.tourist_count_est || m.people_per_day);
+            const distVal = parseNumericPdf(m.distance_km);
+            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndProv)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(eDate)}</td><td class="text-center">${toThaiNumber(m.total_days || 1)}</td><td class="text-center">${toThaiNumber(distVal > 0 ? distVal.toLocaleString() : "-")}</td><td class="text-right">${toThaiNumber(pplDayNum > 0 ? pplDayNum.toLocaleString() : "-")}</td><td class="text-right">${toThaiNumber(pplTotalNum > 0 ? pplTotalNum.toLocaleString() : "-")}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
           });
         }
       });
 
-      const totDist = logs.reduce((s, m) => s + Number(m.distance_km || 0), 0);
-      const totPplDay = logs.reduce((s, m) => s + Number(m.people_per_day || 0), 0);
-      const totPplAll = logs.reduce((s, m) => s + Number(m.people_total || 0), 0);
+      const totDist = Math.round(logs.reduce((s, m) => s + parseNumericPdf(m.distance_km), 0) * 100) / 100;
+      const totPplDay = logs.reduce((s, m) => s + parseNumericPdf(m.people_per_day), 0);
+      const totPplAll = logs.reduce((s, m) => s + parseNumericPdf(m.people_total || m.tourist_count_est || m.people_per_day), 0);
       html += `<tr style="background-color:#d1d5db;font-weight:bold;font-size:12px;"><td colspan="6" class="text-right">รวมสถิติทั้งหมด ${toThaiNumber(logs.length.toLocaleString())} ภารกิจ :</td><td class="text-center">${toThaiNumber(totDist.toLocaleString())}</td><td class="text-right">${toThaiNumber(totPplDay.toLocaleString())}</td><td class="text-right">${toThaiNumber(totPplAll.toLocaleString())}</td><td colspan="2"></td></tr>`;
       html += `</tbody></table>`;
       return html;
@@ -1129,18 +1232,20 @@ export default function Home() {
           stationMissions.forEach((m: any) => {
             const unitName = `${m.unit_name || station.unit_name}<br/><small>${m.raw_vehicle_id || m.vehicle_id || "UAV"}</small>`;
             const missionAndPlace = `${m.mission_name || "-"}<br/><small>${m.location || ""}</small><br/><b>${m.province || "-"}</b>`;
-            const sDate = m.start_date ? new Date(m.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'2-digit'}) : "-";
+            const sDate = formatPdfThaiDate(m.start_date);
             const flightMin = getFlightDuration(m);
             const tNum = getTouristNumber(m);
             // แสดงเฉพาะตัวเลขที่กรอกเข้ามา หากไม่มีให้แสดง "-" เท่านั้น
             const touristVal = tNum > 0 ? `${tNum.toLocaleString()} คน` : "-";
             const formattedTimeStr = normalizeTimeStr(m.start_time, "-");
-            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(m.distance_km || "-")}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+            const distNum = parseNumericPdf(m.distance_km);
+            const distDisplay = distNum > 0 ? distNum.toLocaleString() : (m.distance_km || "-");
+            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(distDisplay)}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
           });
         }
       });
 
-      const totDist = logs.reduce((s, m) => s + Number(m.distance_km || 0), 0);
+      const totDist = Math.round(logs.reduce((s, m) => s + parseNumericPdf(m.distance_km), 0) * 100) / 100;
       const totFlight = logs.reduce((s, m) => s + getFlightDuration(m), 0);
       const totTourists = logs.reduce((s, m) => s + getTouristNumber(m), 0);
 
@@ -2208,7 +2313,7 @@ export default function Home() {
                 {(() => {
                   const isSelectedUav = String(selectedMission?.vehicle_type || "").toLowerCase().includes("uav") ||
                                         String(selectedMission?.vehicle_id || "").toLowerCase().includes("uav") ||
-                                        Boolean(selectedMission?.drone_id);
+                                        (Boolean(selectedMission?.drone_id) && selectedMission.drone_id !== "Drone-01");
 
                   const formatModalDate = (dStr: string) => {
                     if (!dStr) return "-";
