@@ -24,6 +24,7 @@ import MobileFleetRosterView from "./components/mobile/MobileFleetRosterView";
 import MobileVehicleManagementView from "./components/mobile/MobileVehicleManagementView";
 import MobileUavMissionForm from "./components/mobile/MobileUavMissionForm";
 import MobileMissionLogsView from "./components/mobile/MobileMissionLogsView";
+import NotificationManager from "./components/NotificationManager";
 
 const getAffiliationColor = (affiliation: string, isDark: boolean) => {
   switch (affiliation) {
@@ -1518,6 +1519,8 @@ export default function Home() {
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
           onOpenDrawer={() => setIsDrawerOpen(true)}
+          missions={allowedMissions}
+          usersList={usersList}
         />
       </div>
 
@@ -1609,8 +1612,18 @@ export default function Home() {
             </span>
           </a>
 
+          {/* ปุ่มตั้งค่าและตรวจสอบแจ้งเตือนภารกิจ (17:00 น. / เตือนขาดส่ง 5 วัน) */}
+          <NotificationManager
+            currentUser={currentUser}
+            missions={allowedMissions}
+            usersList={usersList}
+            isDarkMode={isDarkMode}
+            fullWidthSidebar={true}
+            enableScheduler={true}
+          />
+
           {/* ปุ่มสลับธีม 3D */}
-          <button onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d mt-4 ${isDarkMode ? 'btn-menu-dark text-yellow-500' : 'btn-menu-light text-indigo-600'}`}>
+          <button onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center gap-3 p-4 rounded-xl font-bold btn-3d mt-2 ${isDarkMode ? 'btn-menu-dark text-yellow-500' : 'btn-menu-light text-indigo-600'}`}>
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />} <span>{isDarkMode ? 'สลับเป็นธีมสว่าง' : 'สลับเป็นธีมมืด'}</span>
           </button>
         </div>

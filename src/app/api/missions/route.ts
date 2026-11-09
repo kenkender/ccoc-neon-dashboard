@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const [missionsRes, usersRes, logsRes] = await Promise.all([
       supabase.from("missions").select("*").order("created_at", { ascending: false }),
       supabase.from("users").select("*"),
-      supabase.from("login_logs").select("*").order("timestamp", { ascending: false }).limit(100),
+      supabase.from("login_logs").select("*").neq("role", "push_sub").order("timestamp", { ascending: false }).limit(100),
     ]);
 
     const hasMissions = missionsRes.data && missionsRes.data.length > 0;

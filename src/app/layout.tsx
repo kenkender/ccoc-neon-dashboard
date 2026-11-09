@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CCOC NEON DASHBOARD",
   description: "ระบบบริหารจัดการและติดตามภารกิจ CCOC",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -34,4 +35,3 @@ export default function RootLayout({
     </html>
   );
 }
-

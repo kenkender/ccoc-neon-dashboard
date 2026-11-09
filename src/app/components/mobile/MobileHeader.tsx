@@ -2,12 +2,15 @@
 
 import React from "react";
 import { Menu, Sun, Moon, Shield, UserCircle } from "lucide-react";
+import NotificationManager from "../NotificationManager";
 
 interface MobileHeaderProps {
   currentUser: any;
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean | ((prev: boolean) => boolean)) => void;
   onOpenDrawer: () => void;
+  missions?: any[];
+  usersList?: any[];
 }
 
 export default function MobileHeader({
@@ -15,6 +18,8 @@ export default function MobileHeader({
   isDarkMode,
   setIsDarkMode,
   onOpenDrawer,
+  missions = [],
+  usersList = [],
 }: MobileHeaderProps) {
   const getAffiliationBadge = (aff: string) => {
     switch (aff) {
@@ -68,6 +73,15 @@ export default function MobileHeader({
             <span className="truncate max-w-[90px]">{currentUser.affiliation}</span>
           </div>
         )}
+
+        <NotificationManager
+          currentUser={currentUser}
+          missions={missions}
+          usersList={usersList}
+          isDarkMode={isDarkMode}
+          compact={true}
+          enableScheduler={false}
+        />
 
         <button
           onClick={() => setIsDarkMode(prev => !prev)}

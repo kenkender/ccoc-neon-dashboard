@@ -1,0 +1,23 @@
+{
+  "name": "CCOC & UAV Mobile Dashboard — ตำรวจท่องเที่ยว",
+  "short_name": "CCOC Mobile",
+  "description": "ระบบบริหารจัดการและติดตามภารกิจรถปฏิบัติการเคลื่อนที่ CCOC Mobile และสายตรวจโดรน UAV",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050b14",
+  "theme_color": "#06b6d4",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/stc_vehicle_front.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/stc_vehicle_front.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
