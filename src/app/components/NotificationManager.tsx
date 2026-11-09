@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Bell,
   BellRing,
@@ -86,6 +87,7 @@ export default function NotificationManager({
 }: NotificationManagerProps) {
   const { showNotification } = usePopup();
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
@@ -93,6 +95,21 @@ export default function NotificationManager({
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [activeTab, setActiveTab] = useState<"CCOC" | "UAV">("CCOC");
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [isOpen]);
 
   const userKey = useMemo(() => {
     const raw = currentUser?.vehicle_id || currentUser?.username || "stc01";
@@ -529,246 +546,259 @@ export default function NotificationManager({
         ) : null}
       </button>
 
-      {/* Modal ศูนย์จัดการแจ้งเตือน */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md anim-fade-in"
-          onClick={() => setIsOpen(false)}
-        >
+      {/* Modal ศูนย์จัดการแจ้งเตือน — ใช้ createPortal เพื่อไม่ให้ติดกรอบ backdrop-blur ของ MobileHeader */}
+      {isOpen &&
+        mounted &&
+        createPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
-            className={`w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6 border shadow-2xl custom-scrollbar ${
-              isDarkMode
-                ? "bg-slate-950/95 border-cyan-500/30 text-white"
-                : "bg-white border-slate-300 text-slate-900"
-            }`}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-2.5 sm:p-6 bg-black/80 backdrop-blur-md anim-fade-in"
+            onClick={() => setIsOpen(false)}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3 pb-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  <BellRing size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-black tracking-wide">
-                    ระบบแจ้งเตือนภารกิจ (Notification Bar)
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    แจ้งเตือนอัตโนมัติทุกวัน เวลา 17:00 น. และเตือนเมื่อหน่วยไม่มีภารกิจเคลื่อนไหวภายใน 5 วัน
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-2 rounded-xl bg-slate-800/80 text-slate-400 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4 mt-4">
-              {/* กล่องที่ 1: สถานะการเปิดแจ้งเตือนบนอุปกรณ์นี้ */}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-[calc(100vw-20px)] sm:max-w-2xl max-h-[84dvh] sm:max-h-[88vh] flex flex-col rounded-2xl sm:rounded-3xl border shadow-2xl overflow-hidden ${
+                isDarkMode
+                  ? "bg-slate-950/95 border-cyan-500/30 text-white"
+                  : "bg-white border-slate-300 text-slate-900"
+              }`}
+            >
+              {/* Header (Sticky ด้านบนสุด ไม่โดนตัดขอบ) */}
               <div
-                className={`p-4 rounded-2xl border ${
-                  permission === "granted"
-                    ? "bg-emerald-950/30 border-emerald-500/30"
-                    : "bg-amber-950/30 border-amber-500/40"
+                className={`shrink-0 flex items-start justify-between gap-2.5 p-3.5 sm:p-5 border-b ${
+                  isDarkMode ? "border-white/10 bg-slate-950/95" : "border-slate-200 bg-white"
                 }`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    {permission === "granted" ? (
-                      <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5" size={22} />
-                    ) : (
-                      <BellOff className="text-amber-400 shrink-0 mt-0.5" size={22} />
-                    )}
-                    <div>
-                      <p className="font-bold text-sm">
-                        สถานะแถบแจ้งเตือนบนอุปกรณ์นี้:{" "}
-                        <span
-                          className={
-                            permission === "granted" ? "text-emerald-400" : "text-amber-400"
-                          }
-                        >
-                          {permission === "granted"
-                            ? "เปิดใช้งานแล้ว (พร้อมรับแจ้งเตือน 17:00 น.)"
-                            : permission === "denied"
-                            ? "ถูกปิดกั้นในเบราว์เซอร์"
-                            : "ยังไม่ได้กดเปิดรับการแจ้งเตือน"}
-                        </span>
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        • เตือนประจำวัน: <b>ทุกวัน เวลา 17:00 น. (1 ครั้ง/วัน)</b>
-                        <br />• เตือนความเคลื่อนไหว: <b>เมื่อไม่มีภารกิจในระบบติดต่อกันครบ 5 วัน</b>
-                      </p>
-                    </div>
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                    <BellRing size={20} className="sm:w-6 sm:h-6" />
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    {permission !== "granted" ? (
-                      <button
-                        type="button"
-                        disabled={isSubscribing}
-                        onClick={handleEnableNotifications}
-                        className="px-4 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
-                      >
-                        <Smartphone size={16} />
-                        {isSubscribing ? "กำลังเปิด..." : "เปิดแจ้งเตือนบนเครื่องนี้"}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={isTesting}
-                        onClick={handleTestNotification}
-                        className="px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 active:scale-95 transition-all flex items-center gap-1.5"
-                      >
-                        <BellRing size={15} />
-                        {isTesting ? "กำลังส่ง..." : "ทดสอบเด้งแถบ Noti ทันที"}
-                      </button>
-                    )}
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-xl font-black tracking-wide leading-snug">
+                      ระบบแจ้งเตือนภารกิจ (Notification Bar)
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 leading-relaxed">
+                      เตือนอัตโนมัติทุกวัน 17:00 น. และเตือนเมื่อหน่วยไม่มีภารกิจภายใน 5 วัน
+                    </p>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  aria-label="ปิดหน้าต่าง"
+                  className="p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white active:scale-95 transition-all shrink-0"
+                >
+                  <X size={18} />
+                </button>
               </div>
 
-              {/* กล่องที่ 2: สถานะความเคลื่อนไหวของหน่วยผู้ใช้งานปัจจุบัน */}
-              {myUnitStatus && (
+              {/* Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3 sm:space-y-4 custom-scrollbar">
+                {/* กล่องที่ 1: สถานะการเปิดแจ้งเตือนบนอุปกรณ์นี้ */}
                 <div
-                  className={`p-4 rounded-2xl border ${
-                    myUnitStatus.isInactive5Days
-                      ? "bg-rose-950/30 border-rose-500/40"
-                      : "bg-slate-900/80 border-slate-800"
+                  className={`p-3 sm:p-4 rounded-2xl border ${
+                    permission === "granted"
+                      ? "bg-emerald-950/30 border-emerald-500/30"
+                      : "bg-amber-950/30 border-amber-500/40"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
-                      <Clock size={14} /> สถานะความเคลื่อนไหวของหน่วยคุณ ({myUnitStatus.short_name})
-                    </span>
-                    <span
-                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                        myUnitStatus.isInactive5Days
-                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
-                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                      }`}
-                    >
-                      {myUnitStatus.isInactive5Days
-                        ? "⚠️ ไม่มีภารกิจเกิน 5 วัน"
-                        : "✅ มีการบันทึกภารกิจปกติ"}
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold">{myUnitStatus.unit_name}</p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {myUnitStatus.lastMissionDate
-                      ? `ลงภารกิจล่าสุดเมื่อวันที่ ${myUnitStatus.lastMissionDate} (${myUnitStatus.daysInactive} วันที่ผ่านมา) — "${myUnitStatus.lastMissionName}"`
-                      : "ยังไม่มีประวัติการบันทึกภารกิจในระบบ"}
-                  </p>
-                </div>
-              )}
-
-              {/* กล่องที่ 3: รายชื่อหน่วยที่ไม่มีภารกิจเคลื่อนไหวภายใน 5 วัน */}
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="text-amber-400" size={18} />
-                    <h4 className="font-bold text-sm">
-                      หน่วยที่ไม่มีภารกิจเคลื่อนไหวภายใน 5 วันล่าสุด
-                    </h4>
-                  </div>
-
-                  {/* ปุ่มสลับดู CCOC / UAV */}
-                  <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs font-bold">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("CCOC")}
-                      className={`px-3 py-1 rounded-lg transition-all ${
-                        activeTab === "CCOC"
-                          ? "bg-fuchsia-600 text-white"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      CCOC Mobile ({inactiveCcocUnits.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("UAV")}
-                      className={`px-3 py-1 rounded-lg transition-all ${
-                        activeTab === "UAV"
-                          ? "bg-cyan-600 text-white"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      UAV Mobile ({inactiveUavUnits.length})
-                    </button>
-                  </div>
-                </div>
-
-                <div className="max-h-56 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                  {(activeTab === "CCOC" ? inactiveCcocUnits : inactiveUavUnits).map((u) => (
-                    <div
-                      key={u.username}
-                      className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-xs"
-                    >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-2.5 sm:gap-3">
+                      {permission === "granted" ? (
+                        <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5" size={20} />
+                      ) : (
+                        <BellOff className="text-amber-400 shrink-0 mt-0.5" size={20} />
+                      )}
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-200 truncate">
-                          <span className="text-amber-400 font-mono mr-1.5">[{u.username}]</span>
-                          {u.unit_name}
+                        <p className="font-bold text-xs sm:text-sm leading-snug">
+                          สถานะแถบแจ้งเตือนบนอุปกรณ์นี้:{" "}
+                          <span
+                            className={
+                              permission === "granted" ? "text-emerald-400" : "text-amber-400"
+                            }
+                          >
+                            {permission === "granted"
+                              ? "เปิดใช้งานแล้ว (พร้อมรับแจ้งเตือน 17:00 น.)"
+                              : permission === "denied"
+                              ? "ถูกปิดกั้นในเบราว์เซอร์"
+                              : "ยังไม่ได้กดเปิดรับการแจ้งเตือน"}
+                          </span>
                         </p>
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                          สังกัด: {u.affiliation} |{" "}
-                          {u.lastMissionDate
-                            ? `ภารกิจล่าสุด: ${u.lastMissionDate}`
-                            : "ยังไม่เคยบันทึกภารกิจ"}
+                        <p className="text-[11px] sm:text-xs text-slate-400 mt-1 leading-relaxed">
+                          • เตือนประจำวัน: <b>ทุกวัน เวลา 17:00 น. (1 ครั้ง/วัน)</b>
+                          <br />• เตือนความเคลื่อนไหว: <b>เมื่อไม่มีภารกิจติดต่อกันครบ 5 วัน</b>
                         </p>
                       </div>
-                      <span className="px-2.5 py-1 rounded-lg bg-rose-950 text-rose-300 border border-rose-800 font-mono font-bold text-[11px] shrink-0">
-                        {u.daysInactive === null ? "ไม่มีข้อมูล" : `ขาด ${u.daysInactive} วัน`}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
+                      {permission !== "granted" ? (
+                        <button
+                          type="button"
+                          disabled={isSubscribing}
+                          onClick={handleEnableNotifications}
+                          className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
+                        >
+                          <Smartphone size={16} />
+                          {isSubscribing ? "กำลังเปิด..." : "เปิดแจ้งเตือนบนเครื่องนี้"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isTesting}
+                          onClick={handleTestNotification}
+                          className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 active:scale-95 transition-all flex items-center gap-1.5"
+                        >
+                          <BellRing size={15} />
+                          {isTesting ? "กำลังส่ง..." : "ทดสอบเด้งแถบ Noti ทันที"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* กล่องที่ 2: สถานะความเคลื่อนไหวของหน่วยผู้ใช้งานปัจจุบัน */}
+                {myUnitStatus && (
+                  <div
+                    className={`p-3 sm:p-4 rounded-2xl border ${
+                      myUnitStatus.isInactive5Days
+                        ? "bg-rose-950/30 border-rose-500/40"
+                        : "bg-slate-900/80 border-slate-800"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
+                      <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                        <Clock size={14} className="shrink-0" />
+                        <span>สถานะหน่วยของคุณ ({myUnitStatus.short_name})</span>
+                      </span>
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shrink-0 ${
+                          myUnitStatus.isInactive5Days
+                            ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                        }`}
+                      >
+                        {myUnitStatus.isInactive5Days
+                          ? "⚠️ ไม่มีภารกิจเกิน 5 วัน"
+                          : "✅ มีการบันทึกภารกิจปกติ"}
                       </span>
                     </div>
-                  ))}
+                    <p className="text-xs sm:text-sm font-bold break-words">
+                      {myUnitStatus.unit_name}
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-slate-400 mt-1 leading-relaxed break-words">
+                      {myUnitStatus.lastMissionDate
+                        ? `ลงภารกิจล่าสุดเมื่อวันที่ ${myUnitStatus.lastMissionDate} (${myUnitStatus.daysInactive} วันที่ผ่านมา) — "${myUnitStatus.lastMissionName}"`
+                        : "ยังไม่มีประวัติการบันทึกภารกิจในระบบ"}
+                    </p>
+                  </div>
+                )}
 
-                  {(activeTab === "CCOC" ? inactiveCcocUnits : inactiveUavUnits).length === 0 && (
-                    <div className="text-center py-6 text-emerald-400 text-xs font-bold">
-                      🎉 ทุกหน่วยมีการบันทึกภารกิจภายใน 5 วันล่าสุดครบถ้วน!
+                {/* กล่องที่ 3: รายชื่อหน่วยที่ไม่มีภารกิจเคลื่อนไหวภายใน 5 วัน */}
+                <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 sm:space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert className="text-amber-400 shrink-0" size={17} />
+                      <h4 className="font-bold text-xs sm:text-sm">
+                        หน่วยที่ไม่มีภารกิจเคลื่อนไหวภายใน 5 วันล่าสุด
+                      </h4>
+                    </div>
+
+                    {/* ปุ่มสลับดู CCOC / UAV */}
+                    <div className="grid grid-cols-2 sm:flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-[11px] sm:text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("CCOC")}
+                        className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg transition-all text-center ${
+                          activeTab === "CCOC"
+                            ? "bg-fuchsia-600 text-white"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        CCOC Mobile ({inactiveCcocUnits.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("UAV")}
+                        className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg transition-all text-center ${
+                          activeTab === "UAV"
+                            ? "bg-cyan-600 text-white"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        UAV Mobile ({inactiveUavUnits.length})
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-44 sm:max-h-56 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                    {(activeTab === "CCOC" ? inactiveCcocUnits : inactiveUavUnits).map((u) => (
+                      <div
+                        key={u.username}
+                        className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-slate-200 truncate text-[11px] sm:text-xs">
+                            <span className="text-amber-400 font-mono mr-1.5">[{u.username}]</span>
+                            {u.unit_name}
+                          </p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
+                            สังกัด: {u.affiliation} |{" "}
+                            {u.lastMissionDate
+                              ? `ล่าสุด: ${u.lastMissionDate}`
+                              : "ยังไม่เคยบันทึกภารกิจ"}
+                          </p>
+                        </div>
+                        <span className="px-2 py-1 rounded-lg bg-rose-950 text-rose-300 border border-rose-800 font-mono font-bold text-[10px] sm:text-[11px] shrink-0 whitespace-nowrap">
+                          {u.daysInactive === null ? "ไม่มีข้อมูล" : `ขาด ${u.daysInactive} วัน`}
+                        </span>
+                      </div>
+                    ))}
+
+                    {(activeTab === "CCOC" ? inactiveCcocUnits : inactiveUavUnits).length === 0 && (
+                      <div className="text-center py-6 text-emerald-400 text-xs font-bold">
+                        🎉 ทุกหน่วยมีการบันทึกภารกิจภายใน 5 วันล่าสุดครบถ้วน!
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ปุ่มสั่งยิง Push Notification ทันทีสำหรับ Admin */}
+                  {currentUser?.role === "admin" && (
+                    <div className="pt-2.5 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-[11px] text-slate-400">
+                        สำหรับผู้ดูแลระบบ (บช.ทท.): ส่งแจ้งเตือน Push ไปยังทุกเครื่องทันที
+                      </span>
+                      <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto">
+                        <button
+                          type="button"
+                          disabled={isBroadcasting}
+                          onClick={() => handleAdminBroadcast("inactivity_only")}
+                          className="justify-center px-3 py-2 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 flex items-center gap-1.5"
+                        >
+                          <AlertTriangle size={14} />
+                          {isBroadcasting ? "กำลังส่ง..." : "เตือนเฉพาะหน่วยเกิน 5 วัน"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isBroadcasting}
+                          onClick={() => handleAdminBroadcast("daily_1700")}
+                          className="justify-center px-3 py-2 rounded-xl text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 flex items-center gap-1.5"
+                        >
+                          {isBroadcasting ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : (
+                            <Send size={14} />
+                          )}
+                          ส่งแจ้งเตือนทุกเครื่องทันที
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
-
-                {/* ปุ่มสั่งยิง Push Notification ทันทีสำหรับ Admin */}
-                {currentUser?.role === "admin" && (
-                  <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] text-slate-400">
-                      สำหรับผู้ดูแลระบบ (บช.ทท.): สั่งส่งแจ้งเตือน Push ไปยังทุกเครื่องทันที
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={isBroadcasting}
-                        onClick={() => handleAdminBroadcast("inactivity_only")}
-                        className="px-3 py-2 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 flex items-center gap-1.5"
-                      >
-                        <AlertTriangle size={14} />
-                        {isBroadcasting ? "กำลังส่ง..." : "เตือนเฉพาะหน่วยเกิน 5 วัน"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isBroadcasting}
-                        onClick={() => handleAdminBroadcast("daily_1700")}
-                        className="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 flex items-center gap-1.5"
-                      >
-                        {isBroadcasting ? (
-                          <RefreshCw size={14} className="animate-spin" />
-                        ) : (
-                          <Send size={14} />
-                        )}
-                        ส่งแจ้งเตือนทุกเครื่องทันที
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
