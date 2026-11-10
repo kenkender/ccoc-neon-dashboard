@@ -152,14 +152,13 @@ export async function POST(req: Request) {
       const vTypeKey = String(body.data.vehicle_type || "").trim().toLowerCase();
       const isExplicitCcoc =
         body.sheet === "missions" ||
-        vTypeKey === "ccoc mobile" ||
-        vIdKey.startsWith("stc");
+        vTypeKey === "ccoc mobile";
       const isUavEdit =
-        !isExplicitCcoc &&
-        (body.sheet === "uav_missions" ||
-          vTypeKey.includes("uav") ||
-          vIdKey.includes("uav") ||
-          (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01"));
+        body.sheet === "uav_missions" ||
+        vTypeKey.includes("uav") ||
+        (!isExplicitCcoc &&
+          (vIdKey.includes("uav") ||
+            (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01")));
 
       const { error } = await supabase
         .from("missions")
@@ -207,14 +206,13 @@ export async function POST(req: Request) {
       const vTypeKey = String(body.data.vehicle_type || "").trim().toLowerCase();
       const isExplicitCcoc =
         body.sheet === "missions" ||
-        vTypeKey === "ccoc mobile" ||
-        vIdKey.startsWith("stc");
+        vTypeKey === "ccoc mobile";
       const isUav =
-        !isExplicitCcoc &&
-        (body.sheet === "uav_missions" ||
-          vTypeKey.includes("uav") ||
-          vIdKey.includes("uav") ||
-          (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01"));
+        body.sheet === "uav_missions" ||
+        vTypeKey.includes("uav") ||
+        (!isExplicitCcoc &&
+          (vIdKey.includes("uav") ||
+            (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01")));
 
       let distKm = String(body.data.distance_km || body.data.distance || body.data.km || "").trim();
       if ((!distKm || distKm === "-") && body.data.coverage_detail) {

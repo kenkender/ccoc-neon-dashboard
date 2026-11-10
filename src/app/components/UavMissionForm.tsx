@@ -205,6 +205,7 @@ function UavMissionForm({
 
     setFormData((prev: any) => {
       if (
+        prev.vehicle_type === "UAV Mobile" &&
         prev.unit_name === lockedUnitName &&
         prev.drone_id === combinedDroneIds &&
         prev.sorties === totalSorties &&
@@ -216,6 +217,7 @@ function UavMissionForm({
       }
       return {
         ...prev,
+        vehicle_type: "UAV Mobile",
         unit_name: lockedUnitName,
         drone_id: combinedDroneIds,
         sorties: totalSorties,

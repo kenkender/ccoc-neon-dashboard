@@ -442,16 +442,21 @@ export default function Home() {
     const currentTimestamp = action === "edit" ? selectedMission.timestamp : new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' });
     const vid = String(payloadData.vehicle_id || "").toLowerCase();
     const vtype = String(payloadData.vehicle_type || "").toLowerCase();
-    const isExplicitCcoc =
-      formVehicleTypeFilter === "CCOC Mobile" ||
-      vid.startsWith("stc") ||
-      vtype === "ccoc mobile";
     const isUav =
-      !isExplicitCcoc &&
-      (formVehicleTypeFilter === "UAV Mobile" ||
-        vtype.includes("uav") || 
-        vid.includes("uav") ||
-        (Boolean(payloadData.drone_id) && payloadData.drone_id !== "Drone-01"));
+      action === "edit"
+        ? (
+            String(selectedMission?.vehicle_type || "").toLowerCase().includes("uav") ||
+            String(selectedMission?.vehicle_id || "").toLowerCase().includes("uav") ||
+            (Boolean(selectedMission?.drone_id) && selectedMission.drone_id !== "Drone-01") ||
+            vtype.includes("uav") ||
+            (Boolean(payloadData.drone_id) && payloadData.drone_id !== "Drone-01")
+          )
+        : (
+            formVehicleTypeFilter === "UAV Mobile" ||
+            vid.includes("uav") ||
+            vtype.includes("uav") ||
+            (Boolean(payloadData.drone_id) && payloadData.drone_id !== "Drone-01" && formVehicleTypeFilter !== "CCOC Mobile")
+          );
 
     // 🛠️ FIX COLUMN MISALIGNMENT FOR GOOGLE SHEETS uav_missions SHEET:
     // Strictly match Row 1 Header columns A to R:
@@ -683,8 +688,13 @@ export default function Home() {
   const handleEditClick = () => {
     const formatDate = (dateStr: string) => dateStr ? new Date(dateStr).toISOString().split('T')[0] : "";
     const vId = String(selectedMission.vehicle_id || "").toLowerCase();
-    const isCcoc = vId.startsWith("stc") || String(selectedMission.vehicle_type || "").toLowerCase() === "ccoc mobile";
-    const resolvedType = isCcoc ? "CCOC Mobile" : (selectedMission.vehicle_type || (vId.includes("uav") ? "UAV Mobile" : "CCOC Mobile"));
+    const vType = String(selectedMission.vehicle_type || "").toLowerCase();
+    const isUavMission =
+      vType.includes("uav") ||
+      vId.includes("uav") ||
+      (Boolean(selectedMission.drone_id) && selectedMission.drone_id !== "Drone-01");
+    const isCcoc = !isUavMission;
+    const resolvedType = isUavMission ? "UAV Mobile" : "CCOC Mobile";
     setFormVehicleTypeFilter(resolvedType);
 
     setFormData({
@@ -1868,6 +1878,23 @@ export default function Home() {
                    </div>
                    
                    <div className="flex items-center gap-3">
+                     {(currentUser?.role === "admin" || String(currentUser?.vehicle_type || "").toUpperCase() === "ALL") && (
+                       <button
+                         type="button"
+                         onClick={() => {
+                           setFormVehicleTypeFilter("UAV Mobile");
+                           setFormData(prev => ({
+                             ...prev,
+                             vehicle_type: "UAV Mobile",
+                             drone_id: prev.drone_id || "DJI Matrice 4T",
+                             sorties: prev.sorties || 1
+                           }));
+                         }}
+                         className={`text-xs font-bold px-3.5 py-2.5 rounded-xl btn-3d flex items-center gap-1.5 ${isDarkMode ? 'btn-menu-dark text-cyan-400' : 'btn-menu-light text-cyan-600'}`}
+                       >
+                         <Plane size={14} /> <span className="hidden sm:inline">สลับไป</span>ฟอร์ม UAV
+                       </button>
+                     )}
                      <button 
                        type="button" 
                        onClick={() => setShowMapOverlay(true)} 

@@ -237,12 +237,12 @@ export function parseCoverageAndAltitude(
 export function buildMissionReportText(mission: any): string {
   const vid = String(mission.raw_vehicle_id || mission.vehicle_id || "").toLowerCase();
   const vtype = String(mission.vehicle_type || "").toLowerCase();
-  const isExplicitCcoc = vid.startsWith("stc") || vtype === "ccoc mobile";
+  const isExplicitCcoc = vtype === "ccoc mobile";
   const isUav =
-    !isExplicitCcoc &&
-    (vtype.includes("uav") ||
-      vid.includes("uav") ||
-      (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01"));
+    vtype.includes("uav") ||
+    (!isExplicitCcoc &&
+      (vid.includes("uav") ||
+        (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01")));
 
   const sDate = formatThaiReportDate(mission.start_date || mission.timestamp);
 
@@ -359,12 +359,12 @@ export function buildMissionReportText(mission: any): string {
 export function buildMissionFlexMessage(mission: any) {
   const vid = String(mission.raw_vehicle_id || mission.vehicle_id || "").toLowerCase();
   const vtype = String(mission.vehicle_type || "").toLowerCase();
-  const isExplicitCcoc = vid.startsWith("stc") || vtype === "ccoc mobile";
+  const isExplicitCcoc = vtype === "ccoc mobile";
   const isUav =
-    !isExplicitCcoc &&
-    (vtype.includes("uav") ||
-      vid.includes("uav") ||
-      (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01"));
+    vtype.includes("uav") ||
+    (!isExplicitCcoc &&
+      (vid.includes("uav") ||
+        (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01")));
 
   const rawVid = String(mission.raw_vehicle_id || mission.vehicle_id || (isUav ? "UAV" : "STC01")).toUpperCase();
   const aff = mission.affiliation || "บช.ทท.";
