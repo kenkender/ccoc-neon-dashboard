@@ -166,8 +166,135 @@ export async function broadcastToAllLineGroups(messages: any[]): Promise<number>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TEMPLATES: FLEX MESSAGES สไตล์ Neon Dashboard
+// TEMPLATES: FLEX MESSAGES & TEXT MESSAGES สไตล์ Neon Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
+
+const THAI_MONTHS_SHORT = [
+  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+];
+
+export function formatThaiReportDate(dateVal: any): string {
+  if (!dateVal) return "-";
+  const s = String(dateVal).trim();
+  const m = s.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+  if (m) {
+    let y = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10) - 1;
+    const d = parseInt(m[3], 10);
+    if (y < 2500) y += 543;
+    const shortY = String(y).slice(-2);
+    return `${d} ${THAI_MONTHS_SHORT[mo] || ""} ${shortY}`;
+  }
+  const dt = new Date(s);
+  if (!isNaN(dt.getTime())) {
+    let y = dt.getFullYear();
+    if (y < 2500) y += 543;
+    const shortY = String(y).slice(-2);
+    return `${dt.getDate()} ${THAI_MONTHS_SHORT[dt.getMonth()]} ${shortY}`;
+  }
+  return s;
+}
+
+/**
+ * สร้างข้อความรายงานผู้บังคับบัญชาแบบ Plain Text (สามารถแตะค้างเพื่อคัดลอก หรือแชร์ต่อได้ทันที)
+ */
+export function buildMissionReportText(mission: any): string {
+  const isUav =
+    String(mission.vehicle_type || "").toLowerCase().includes("uav") ||
+    Boolean(mission.drone_id) ||
+    String(mission.vehicle_id || "").toLowerCase().includes("uav");
+
+  const sDate = formatThaiReportDate(mission.start_date || mission.timestamp);
+
+  // เวลา
+  let timeStr = String(mission.start_time || "").trim();
+  if (!timeStr || timeStr === "-") {
+    timeStr = "-";
+  } else if (!timeStr.endsWith("น.") && !timeStr.endsWith("น")) {
+    timeStr = `${timeStr} น.`;
+  }
+
+  // หน่วย และ สังกัด
+  const rawVid = String(mission.raw_vehicle_id || mission.vehicle_id || "").toUpperCase();
+  const unitName = mission.unit_name || rawVid || "-";
+  const aff = mission.affiliation || "บช.ทท.";
+
+  // สถานที่
+  const loc = mission.location ? mission.location.trim() : "";
+  const prov = mission.province ? mission.province.trim() : "";
+  let fullLocation = loc;
+  if (prov && !loc.includes(prov)) {
+    fullLocation = loc ? `${loc} จ.${prov}` : `จ.${prov}`;
+  }
+  if (!fullLocation) fullLocation = "-";
+
+  // ระยะทาง
+  let distStr = String(mission.distance_km || mission.distance || mission.km || "-").trim();
+  if (distStr && distStr !== "-" && distStr !== "0") {
+    if (!distStr.includes("กม")) distStr = `${distStr} กม.`;
+  } else {
+    distStr = "-";
+  }
+
+  // จำนวนนักท่องเที่ยว
+  let touristStr = String(
+    mission.tourist_count_est ||
+    mission.people_total ||
+    mission.people_per_day ||
+    mission.tourist_density ||
+    "-"
+  ).trim();
+  if (touristStr && touristStr !== "-" && /^\d+$/.test(touristStr)) {
+    touristStr = `${Number(touristStr).toLocaleString()} คน`;
+  } else if (touristStr && touristStr !== "-" && !touristStr.includes("คน")) {
+    touristStr = `${touristStr} คน`;
+  }
+
+  const incident =
+    mission.incident_report && mission.incident_report !== "-"
+      ? mission.incident_report
+      : "เหตุการณ์ทั่วไปปกติ";
+
+  if (isUav) {
+    const droneModel = mission.drone_id || "UAV";
+    const sorties = mission.sorties || 1;
+    const duration = mission.flight_duration_min || 0;
+    const coverage = mission.coverage_detail || "-";
+    const altitude = mission.flight_altitude ? `${mission.flight_altitude}` : "-";
+
+    return `UAV Mobile ${aff}
+เรียน ผู้บังคับบัญชา
+🗓️  วันที่: ${sDate}
+🕗  เวลา: ${timeStr}
+👮‍♂️  ผู้ปฏิบัติ: ${unitName} (${rawVid.toLowerCase()})
+🟥  การปฏิบัติ: ${mission.mission_name || "-"}
+📍  สถานที่: ${fullLocation}
+🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ): ${distStr}
+👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${touristStr}
+🛸  ข้อมูลการบิน UAV Mobile:
+    - รหัส/รุ่นโดรน: ${droneModel} (${sorties} รอบบิน / รวม ${duration} นาที)
+    - รายละเอียดพื้นที่ปฏิบัติการ: ${coverage}
+    - ความสูงในการขึ้นบิน: ${altitude}
+🟦  ผลการปฏิบัติงาน: ${incident}`;
+  } else {
+    // CCOC Mobile
+    const coverage = mission.coverage_detail
+      ? `\n       รายละเอียดพื้นที่ปฏิบัติการ: ${mission.coverage_detail}`
+      : "";
+
+    return `${rawVid} ${aff}
+เรียน ผู้บังคับบัญชา
+🗓️  วันที่: ${sDate}
+🕗  เวลา: ${timeStr}
+👮‍♂️  ผู้ปฏิบัติ: ${unitName} (${rawVid.toLowerCase()})
+🟥  การปฏิบัติ: ${mission.mission_name || "-"}
+📍  สถานที่: ${fullLocation}
+🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ): ${distStr}
+👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${touristStr}${coverage}
+🟦  ผลการปฏิบัติงาน: ${incident}`;
+  }
+}
 
 /**
  * การ์ด Flex Message: แจ้งเตือนเมื่อมีหน่วยลงบันทึกภารกิจสำเร็จ
@@ -702,3 +829,4 @@ export function buildStatusFlexMessage(
     },
   };
 }
+

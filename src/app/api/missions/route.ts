@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { SYSTEM_USERS, VEHICLE_AFFILIATIONS } from "@/app/data/users";
 import { supabase } from "@/lib/supabase";
-import { broadcastToAllLineGroups, buildMissionFlexMessage } from "@/lib/lineBot";
+import {
+  broadcastToAllLineGroups,
+  buildMissionFlexMessage,
+  buildMissionReportText,
+} from "@/lib/lineBot";
 
 export const dynamic = "force-dynamic";
 
@@ -245,8 +249,13 @@ export async function POST(req: Request) {
       const { error } = await supabase.from("missions").insert([newMission]);
       if (error) console.error("⚠️ Supabase insert mission error:", error.message);
 
-      // ส่งแจ้งเตือน Real-time เข้ากลุ่มไลน์อัตโนมัติ
-      broadcastToAllLineGroups([buildMissionFlexMessage(newMission)]).catch((err) =>
+      // ส่งแจ้งเตือน Real-time เข้ากลุ่มไลน์อัตโนมัติ:
+      // 1. Flex Message: การ์ดภาพรวมสรุปภารกิจสีสันสดใส
+      // 2. Text Message: ข้อความรูปแบบ "เรียน ผู้บังคับบัญชา..." ให้แตะค้างคัดลอก/ส่งต่อได้ทันที
+      const flexMsg = buildMissionFlexMessage(newMission);
+      const textMsg = { type: "text", text: buildMissionReportText(newMission) };
+
+      broadcastToAllLineGroups([flexMsg, textMsg]).catch((err) =>
         console.warn("⚠️ LINE broadcast mission error:", err)
       );
 
