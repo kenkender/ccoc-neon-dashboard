@@ -261,10 +261,13 @@ export async function POST(req: Request) {
       const { error } = await supabase.from("missions").insert([newMission]);
       if (error) console.error("⚠️ Supabase insert mission error:", error.message);
 
-      // ส่งแจ้งเตือน Real-time เข้ากลุ่มไลน์อัตโนมัติ: การ์ด Flex Message สไตล์ Executive Pro
+      // ส่งแจ้งเตือน Real-time เข้ากลุ่มไลน์อัตโนมัติ:
+      // 1. Flex Message: การ์ดภาพรวมสรุปภารกิจระดับ Executive Pro
+      // 2. Text Message: ข้อความทางการแบบครบถ้วน (เพื่อให้คลิกขวา "ส่งต่อ" หรือ "คัดลอก" บน LINE PC ได้ทันที)
       const flexMsg = buildMissionFlexMessage(newMission);
+      const textMsg = { type: "text", text: buildMissionReportText(newMission) };
 
-      broadcastToAllLineGroups([flexMsg]).catch((err) =>
+      broadcastToAllLineGroups([flexMsg, textMsg]).catch((err) =>
         console.warn("⚠️ LINE broadcast mission error:", err)
       );
 
