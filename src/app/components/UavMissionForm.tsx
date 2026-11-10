@@ -63,6 +63,7 @@ interface DroneEntry {
   sorties: number | string;
   flight_duration_min: number | string;
   coverage_detail: string;
+  flight_altitude?: string;
 }
 
 export { VEHICLE_UNIT_MAP };
@@ -182,7 +183,8 @@ function UavMissionForm({
       drone_id: "DJI Matrice 4T",
       sorties: "1",
       flight_duration_min: "",
-      coverage_detail: ""
+      coverage_detail: "",
+      flight_altitude: ""
     }
   ]);
 
@@ -193,6 +195,13 @@ function UavMissionForm({
     const totalSorties = droneEntries.reduce((sum, d) => sum + Number(d.sorties || 0), 0);
     const totalFlightMins = droneEntries.reduce((sum, d) => sum + Number(d.flight_duration_min || 0), 0);
     const combinedCoverage = droneEntries.map(d => d.coverage_detail).filter(Boolean).join(" | ");
+    const combinedAltitude = droneEntries.map(d => d.flight_altitude).filter(Boolean).join(" | ");
+
+    // เก็บความสูงไว้ใน coverage_detail สำหรับ fallback และเก็บไว้ใน flight_altitude
+    let finalCoverage = combinedCoverage;
+    if (combinedAltitude) {
+      finalCoverage = combinedCoverage ? `${combinedCoverage} | ความสูง: ${combinedAltitude}` : `ความสูง: ${combinedAltitude}`;
+    }
 
     setFormData((prev: any) => {
       if (
@@ -200,7 +209,8 @@ function UavMissionForm({
         prev.drone_id === combinedDroneIds &&
         prev.sorties === totalSorties &&
         prev.flight_duration_min === totalFlightMins &&
-        prev.coverage_detail === combinedCoverage
+        prev.coverage_detail === finalCoverage &&
+        prev.flight_altitude === combinedAltitude
       ) {
         return prev;
       }
@@ -210,7 +220,8 @@ function UavMissionForm({
         drone_id: combinedDroneIds,
         sorties: totalSorties,
         flight_duration_min: totalFlightMins,
-        coverage_detail: combinedCoverage
+        coverage_detail: finalCoverage,
+        flight_altitude: combinedAltitude
       };
     });
   }, [droneEntries, lockedUnitName, setFormData]);
@@ -225,7 +236,8 @@ function UavMissionForm({
         drone_id: nextModel,
         sorties: "1",
         flight_duration_min: "",
-        coverage_detail: ""
+        coverage_detail: "",
+        flight_altitude: ""
       }
     ]);
   };
@@ -486,7 +498,7 @@ function UavMissionForm({
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                   {/* รุ่นอุปกรณ์โดรน (Dropdown แบบ 3 รุ่นตามที่ผู้ใช้กำหนด) */}
                   <div className="flex flex-col gap-1 min-w-0">
                     <label className={`text-xs font-mono font-bold truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>รุ่นอุปกรณ์โดรน</label>
@@ -561,6 +573,18 @@ function UavMissionForm({
                       onChange={(e) => updateDroneEntry(index, 'coverage_detail', e.target.value)}
                       placeholder="อย่างเช่น 1.5 กม."
                       className={`py-2 px-3 rounded-xl text-xs sm:text-sm focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`}
+                    />
+                  </div>
+
+                  {/* ความสูงในการขึ้นบิน */}
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <label className={`text-xs font-mono font-bold truncate ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>ความสูงในการขึ้นบิน</label>
+                    <input
+                      type="text"
+                      value={entry.flight_altitude || ""}
+                      onChange={(e) => updateDroneEntry(index, 'flight_altitude', e.target.value)}
+                      placeholder="เช่น 90 ม. / 100 เมตร"
+                      className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold focus:outline-none transition-all w-full min-w-0 ${isDarkMode ? 'input-3d-dark text-amber-300' : 'input-3d-light text-amber-700'}`}
                     />
                   </div>
                 </div>

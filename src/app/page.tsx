@@ -174,7 +174,7 @@ export default function Home() {
   const [formData, setFormData] = useState({
     affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "",
     location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ",
-    drone_id: "", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: "CCOC Mobile"
+    drone_id: "", sorties: 1, flight_duration_min: 45, coverage_detail: "", flight_altitude: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: "CCOC Mobile"
   });
 
   const API_URL = "/api/missions";
@@ -629,7 +629,7 @@ export default function Home() {
         ],
       });
 
-      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "", sorties: 1, flight_duration_min: 45, coverage_detail: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: formVehicleTypeFilter };
+      let resetForm = { affiliation: "", unit_name: "", vehicle_id: "", mission_name: "", province: "", start_date: "", end_date: "", total_days: "", distance_km: "", people_per_day: "", people_total: "", incident_report: "", remark: "", location: "", start_time: "", operators: "สายตรวจอากาศยานไร้คนขับ", drone_id: "", sorties: 1, flight_duration_min: 45, coverage_detail: "", flight_altitude: "", tourist_density: "ปริมาณน้อย", tourist_count_est: "", vehicle_type: formVehicleTypeFilter };
       if (currentUser.role === "user") { resetForm.affiliation = currentUser.affiliation; resetForm.vehicle_id = currentUser.vehicle_id; }
       setFormData(resetForm);
       setUploadedFiles([]);
@@ -681,6 +681,7 @@ export default function Home() {
       sorties: selectedMission.sorties || 1,
       flight_duration_min: selectedMission.flight_duration_min || 45,
       coverage_detail: selectedMission.coverage_detail || "",
+      flight_altitude: selectedMission.flight_altitude || "",
       tourist_density: selectedMission.tourist_density || "",
       tourist_count_est: selectedMission.tourist_count_est || "",
       vehicle_type: selectedMission.vehicle_type || (String(selectedMission.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile")
@@ -1190,19 +1191,46 @@ export default function Home() {
         logsByVehicle[targetVid].push(m);
       });
 
+      const parseCoverageAndAltitude = (coverageDetail: any, explicitAltitude?: any) => {
+        let altitude = String(explicitAltitude || "").trim();
+        let coverage = String(coverageDetail || "").trim();
+
+        if ((!altitude || altitude === "-") && coverage && coverage !== "-") {
+          const match = coverage.match(/(?:[\|\(\[]\s*)?(?:ความสูง(?:ในการขึ้นบิน)?|altitude)\s*:?\s*([^\]\)\|\n]+)/i);
+          if (match && match[1]) {
+            altitude = match[1].trim();
+            coverage = coverage.replace(/(?:[\|\(\[]\s*)?(?:ความสูง(?:ในการขึ้นบิน)?|altitude)\s*:?\s*[^\]\)\|\n]+[\)\]]?/i, "").trim();
+            coverage = coverage.replace(/^[\|\s]+|[\|\s]+$/g, "");
+          }
+        }
+
+        coverage = coverage.replace(/\(ระยะทาง(?:รวม)?(?:ไป-กลับ)?\s*[\d.]+\s*กม\.?\)/i, "").trim();
+
+        return {
+          coverage: coverage && coverage !== "-" ? coverage : "-",
+          altitude:
+            altitude && altitude !== "-"
+              ? altitude.endsWith("ม.") || altitude.endsWith("เมตร") || altitude.endsWith("m")
+                ? altitude
+                : `${altitude} ม.`
+              : "-",
+        };
+      };
+
       let html = `<table class="section-uav"><thead><tr>
-        <th rowspan="2" width="4%">ลำดับ</th>
-        <th rowspan="2" width="14%">หน่วย</th>
-        <th rowspan="2" width="18%">ชื่อภารกิจ / สถานที่ / จังหวัด</th>
+        <th rowspan="2" width="3%">ลำดับ</th>
+        <th rowspan="2" width="13%">หน่วย</th>
+        <th rowspan="2" width="17%">ชื่อภารกิจ / สถานที่ / จังหวัด</th>
         <th colspan="2">วันเวลาปฏิบัติการ</th>
-        <th colspan="3">ข้อมูลการบิน UAV</th>
-        <th rowspan="2" width="8%">ระยะทาง<br/>ปฏิบัติภารกิจ (กม.)</th>
-        <th rowspan="2" width="8%">ปริมาณ/จำนวน<br/>นักท่องเที่ยว</th>
-        <th rowspan="2" width="14%">เหตุการณ์สำคัญ</th>
-        <th rowspan="2" width="8%">หมายเหตุ</th>
+        <th colspan="5">ข้อมูลการบิน UAV</th>
+        <th rowspan="2" width="7%">ระยะทาง<br/>ปฏิบัติภารกิจ (กม.)</th>
+        <th rowspan="2" width="7%">ปริมาณ/จำนวน<br/>นักท่องเที่ยว</th>
+        <th rowspan="2" width="13%">เหตุการณ์สำคัญ</th>
+        <th rowspan="2" width="7%">หมายเหตุ</th>
       </tr><tr>
-        <th width="7%">วันที่</th><th width="5%">เวลา</th>
-        <th width="9%">รุ่น/รหัสโดรน</th><th width="5%">รอบบิน</th><th width="6%">เวลาบิน (นาที)</th>
+        <th width="6%">วันที่</th><th width="5%">เวลา</th>
+        <th width="8%">รุ่น/รหัสโดรน</th><th width="4%">รอบบิน</th><th width="5%">เวลาบิน (นาที)</th>
+        <th width="8%">พื้นที่ปฏิบัติการ</th><th width="5%">ความสูงบิน</th>
       </tr></thead><tbody>`;
 
       let curAff = ""; let rowIdx = 1;
@@ -1216,7 +1244,7 @@ export default function Home() {
 
         // แสดง header ของ บก. เมื่อเปลี่ยนสังกัด
         if (aff !== curAff) {
-          html += `<tr><td colspan="12" class="bg-group">${toThaiNumber(aff)}</td></tr>`;
+          html += `<tr><td colspan="14" class="bg-group">${toThaiNumber(aff)}</td></tr>`;
           curAff = aff;
           rowIdx = 1;
         }
@@ -1227,7 +1255,7 @@ export default function Home() {
             + `<td class="text-center">—</td>`
             + `<td>${toThaiNumber(station.unit_name)}</td>`
             + `<td class="text-center" style="color:#d1d5db;">— ยังไม่มีการลงภารกิจ —</td>`
-            + `<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`
+            + `<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`
             + `</tr>`;
         } else {
           stationMissions.forEach((m: any) => {
@@ -1241,7 +1269,9 @@ export default function Home() {
             const formattedTimeStr = normalizeTimeStr(m.start_time, "-");
             const distNum = parseNumericPdf(m.distance_km);
             const distDisplay = distNum > 0 ? distNum.toLocaleString() : (m.distance_km || "-");
-            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(distDisplay)}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
+            const { coverage: covText, altitude: altText } = parseCoverageAndAltitude(m.coverage_detail, m.flight_altitude);
+
+            html += `<tr><td class="text-center">${toThaiNumber(rowIdx++)}</td><td>${toThaiNumber(unitName)}</td><td>${toThaiNumber(missionAndPlace)}</td><td class="text-center">${toThaiNumber(sDate)}</td><td class="text-center">${toThaiNumber(formattedTimeStr)}</td><td class="text-center">${toThaiNumber(m.drone_id || "-")}</td><td class="text-center">${toThaiNumber(m.sorties || 1)}</td><td class="text-center">${toThaiNumber(flightMin)}</td><td class="text-center">${toThaiNumber(covText)}</td><td class="text-center">${toThaiNumber(altText)}</td><td class="text-center">${toThaiNumber(distDisplay)}</td><td class="text-center">${toThaiNumber(touristVal)}</td><td>${toThaiNumber(m.incident_report || "-")}</td><td>${toThaiNumber(m.remark || "-")}</td></tr>`;
           });
         }
       });
@@ -1264,7 +1294,7 @@ export default function Home() {
 
       const touristTotalText = totTourists > 0 ? `${toThaiNumber(totTourists.toLocaleString())} คน` : "-";
 
-      html += `<tr style="background-color:#dbeafe;font-weight:bold;font-size:12px;"><td colspan="7" class="text-right">รวมสถิติทั้งหมด ${toThaiNumber(logs.length.toLocaleString())} ภารกิจ :</td><td class="text-center">${formatFlightTotal(totFlight)}</td><td class="text-center">${toThaiNumber(totDist.toLocaleString())}</td><td class="text-center">${touristTotalText}</td><td colspan="2"></td></tr>`;
+      html += `<tr style="background-color:#dbeafe;font-weight:bold;font-size:12px;"><td colspan="7" class="text-right">รวมสถิติทั้งหมด ${toThaiNumber(logs.length.toLocaleString())} ภารกิจ :</td><td class="text-center">${formatFlightTotal(totFlight)}</td><td colspan="2"></td><td class="text-center">${toThaiNumber(totDist.toLocaleString())}</td><td class="text-center">${touristTotalText}</td><td colspan="2"></td></tr>`;
       html += `</tbody></table>`;
       return html;
     };

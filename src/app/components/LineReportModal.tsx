@@ -74,8 +74,15 @@ export default function LineReportModal({
       })()}
 🛸  ข้อมูลการบิน UAV Mobile:
     - รหัส/รุ่นโดรน: ${missionData.drone_id || "UAV"} (${missionData.sorties || 1} รอบบิน / รวม ${missionData.flight_duration_min || 0} นาที)
-    - รายละเอียดพื้นที่ปฏิบัติการ: ${missionData.coverage_detail || "-"}
-    - ความสูงในการขึ้นบิน: ${missionData.flight_altitude || "-"}
+    - ความสูงในการขึ้นบิน: ${(() => {
+        let alt = String(missionData.flight_altitude || "").trim();
+        if ((!alt || alt === "-") && missionData.coverage_detail) {
+          const m = String(missionData.coverage_detail).match(/(?:[\|\(\[]\s*)?(?:ความสูง(?:ในการขึ้นบิน)?|altitude)\s*:?\s*([^\]\)\|\n]+)/i);
+          if (m && m[1]) alt = m[1].trim();
+        }
+        if (!alt || alt === "-") return "-";
+        return (alt.endsWith("ม.") || alt.endsWith("เมตร") || alt.endsWith("m")) ? alt : `${alt} ม.`;
+      })()}
 🟦  ผลการปฏิบัติงาน: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}`
     : `${String(missionData.raw_vehicle_id || missionData.vehicle_id || "STC01").toUpperCase()} ${missionData.affiliation || "บช.ทท."}
 เรียน ผู้บังคับบัญชา
@@ -105,7 +112,7 @@ export default function LineReportModal({
         const str = String(val).trim();
         if (/^\d+$/.test(str)) return `${Number(str).toLocaleString()} คน`;
         return str.includes("คน") ? str : `${str} คน`;
-      })()}${missionData.coverage_detail ? `\n       รายละเอียดพื้นที่ปฏิบัติการ: ${missionData.coverage_detail}` : ""}
+      })()}
 🟦  ผลการปฏิบัติงาน: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}`;
 
   const handleCopy = async () => {

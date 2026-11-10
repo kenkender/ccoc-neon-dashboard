@@ -196,6 +196,35 @@ export function formatThaiReportDate(dateVal: any): string {
   return s;
 }
 
+export function parseCoverageAndAltitude(
+  coverageDetail: any,
+  explicitAltitude?: any
+): { coverage: string; altitude: string } {
+  let altitude = String(explicitAltitude || "").trim();
+  let coverage = String(coverageDetail || "").trim();
+
+  if ((!altitude || altitude === "-") && coverage && coverage !== "-") {
+    const match = coverage.match(/(?:[\|\(\[]\s*)?(?:ความสูง(?:ในการขึ้นบิน)?|altitude)\s*:?\s*([^\]\)\|\n]+)/i);
+    if (match && match[1]) {
+      altitude = match[1].trim();
+      coverage = coverage.replace(/(?:[\|\(\[]\s*)?(?:ความสูง(?:ในการขึ้นบิน)?|altitude)\s*:?\s*[^\]\)\|\n]+[\)\]]?/i, "").trim();
+      coverage = coverage.replace(/^[\|\s]+|[\|\s]+$/g, "");
+    }
+  }
+
+  coverage = coverage.replace(/\(ระยะทาง(?:รวม)?(?:ไป-กลับ)?\s*[\d.]+\s*กม\.?\)/i, "").trim();
+
+  return {
+    coverage: coverage && coverage !== "-" ? coverage : "-",
+    altitude:
+      altitude && altitude !== "-"
+        ? altitude.endsWith("ม.") || altitude.endsWith("เมตร") || altitude.endsWith("m")
+          ? altitude
+          : `${altitude} ม.`
+        : "-",
+  };
+}
+
 /**
  * สร้างข้อความรายงานผู้บังคับบัญชาแบบ Plain Text (สามารถแตะค้างเพื่อคัดลอก หรือแชร์ต่อได้ทันที)
  */
@@ -260,8 +289,7 @@ export function buildMissionReportText(mission: any): string {
     const droneModel = mission.drone_id || "UAV";
     const sorties = mission.sorties || 1;
     const duration = mission.flight_duration_min || 0;
-    const coverage = mission.coverage_detail || "-";
-    const altitude = mission.flight_altitude ? `${mission.flight_altitude}` : "-";
+    const { altitude } = parseCoverageAndAltitude(mission.coverage_detail, mission.flight_altitude);
 
     return `UAV Mobile ${aff}
 เรียน ผู้บังคับบัญชา
@@ -274,15 +302,10 @@ export function buildMissionReportText(mission: any): string {
 👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${touristStr}
 🛸  ข้อมูลการบิน UAV Mobile:
     - รหัส/รุ่นโดรน: ${droneModel} (${sorties} รอบบิน / รวม ${duration} นาที)
-    - รายละเอียดพื้นที่ปฏิบัติการ: ${coverage}
     - ความสูงในการขึ้นบิน: ${altitude}
 🟦  ผลการปฏิบัติงาน: ${incident}`;
   } else {
     // CCOC Mobile
-    const coverage = mission.coverage_detail
-      ? `\n       รายละเอียดพื้นที่ปฏิบัติการ: ${mission.coverage_detail}`
-      : "";
-
     return `${rawVid} ${aff}
 เรียน ผู้บังคับบัญชา
 🗓️  วันที่: ${sDate}
@@ -291,7 +314,7 @@ export function buildMissionReportText(mission: any): string {
 🟥  การปฏิบัติ: ${mission.mission_name || "-"}
 📍  สถานที่: ${fullLocation}
 🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ): ${distStr}
-👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${touristStr}${coverage}
+👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${touristStr}
 🟦  ผลการปฏิบัติงาน: ${incident}`;
   }
 }
