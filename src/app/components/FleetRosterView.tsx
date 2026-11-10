@@ -384,7 +384,6 @@ export default function FleetRosterView({ isDarkMode, currentUser, usersList, mi
         <div className={`text-center py-16 ${isDarkMode ? "text-gray-600" : "text-gray-400"}`}>
           <Truck size={48} className="mx-auto mb-4 opacity-30" />
           <p className="font-mono text-sm">ไม่พบข้อมูลรถในระบบ</p>
-          <p className="text-xs mt-1">กำลังโหลดข้อมูล...</p>
         </div>
       )}
     </div>

@@ -12,6 +12,7 @@ import VehicleManagementView from "./components/VehicleManagementView";
 import FleetRosterView from "./components/FleetRosterView";
 import UavMissionForm from "./components/UavMissionForm";
 import LineReportModal from "./components/LineReportModal";
+import LoadingDatabaseModal from "./components/LoadingDatabaseModal";
 import { usePopup } from "./components/PopupContext";
 import { SYSTEM_USERS, VEHICLE_AFFILIATIONS, VEHICLE_UNIT_MAP, VEHICLE_NAMES, enrichUserData, getUnifiedUsersList, getMissionUnitDisplay, getTouristCountDisplay } from "./data/users";
 import { supabase } from "@/lib/supabase";
@@ -2641,6 +2642,14 @@ export default function Home() {
         onClose={() => setShowLineReportModal(false)}
         missionData={lastSubmittedMission}
         isDarkMode={isDarkMode}
+      />
+
+      {/* Database Loading Modal Popup */}
+      <LoadingDatabaseModal
+        isOpen={loading && Boolean(currentUser)}
+        isDarkMode={isDarkMode}
+        title="กำลังดึงข้อมูลจากฐานข้อมูล"
+        message="รอสักครู่ครับ..."
       />
 
       {/* PDF Export Modal Popup */}

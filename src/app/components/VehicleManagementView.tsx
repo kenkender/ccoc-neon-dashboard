@@ -834,7 +834,7 @@ export default function VehicleManagementView({
               >
                 <Users size={36} className="mx-auto mb-2 opacity-30" />
                 <p className="font-mono text-xs">ยังไม่มีข้อมูลรถในระบบ</p>
-                <p className="text-[11px] mt-1">หรือกำลังโหลดข้อมูล...</p>
+                <p className="text-[11px] mt-1">กรุณากดรีเฟรชข้อมูลหากระบบยังไม่แสดง</p>
               </div>
             )}
           </div>
