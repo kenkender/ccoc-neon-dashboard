@@ -149,11 +149,17 @@ export async function POST(req: Request) {
         VEHICLE_AFFILIATIONS[vIdKey] ||
         "";
 
+      const vTypeKey = String(body.data.vehicle_type || "").trim().toLowerCase();
+      const isExplicitCcoc =
+        body.sheet === "missions" ||
+        vTypeKey === "ccoc mobile" ||
+        vIdKey.startsWith("stc");
       const isUavEdit =
-        body.sheet === "uav_missions" ||
-        String(body.data.vehicle_type || "").toLowerCase() === "uav mobile" ||
-        vIdKey.includes("uav") ||
-        (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01");
+        !isExplicitCcoc &&
+        (body.sheet === "uav_missions" ||
+          vTypeKey.includes("uav") ||
+          vIdKey.includes("uav") ||
+          (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01"));
 
       const { error } = await supabase
         .from("missions")
@@ -198,11 +204,17 @@ export async function POST(req: Request) {
     // 5. เพิ่มภารกิจใหม่ (Default Add Mission)
     if (body.data) {
       const vIdKey = String(body.data.vehicle_id || "").trim().toLowerCase();
+      const vTypeKey = String(body.data.vehicle_type || "").trim().toLowerCase();
+      const isExplicitCcoc =
+        body.sheet === "missions" ||
+        vTypeKey === "ccoc mobile" ||
+        vIdKey.startsWith("stc");
       const isUav =
-        body.sheet === "uav_missions" ||
-        String(body.data.vehicle_type || "").toLowerCase() === "uav mobile" ||
-        vIdKey.includes("uav") ||
-        (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01");
+        !isExplicitCcoc &&
+        (body.sheet === "uav_missions" ||
+          vTypeKey.includes("uav") ||
+          vIdKey.includes("uav") ||
+          (Boolean(body.data.drone_id) && body.data.drone_id !== "Drone-01"));
 
       let distKm = String(body.data.distance_km || body.data.distance || body.data.km || "").trim();
       if ((!distKm || distKm === "-") && body.data.coverage_detail) {

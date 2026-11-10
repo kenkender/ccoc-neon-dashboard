@@ -439,10 +439,18 @@ export default function Home() {
     }
 
     const currentTimestamp = action === "edit" ? selectedMission.timestamp : new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' });
-    const isUav = formVehicleTypeFilter === "UAV Mobile" ||
-                  String(payloadData.vehicle_type || "").toLowerCase().includes("uav") || 
-                  String(payloadData.vehicle_id || "").toLowerCase().includes("uav") ||
-                  (Boolean(payloadData.drone_id) && payloadData.drone_id !== "Drone-01"); // ✅ ป้องกันไม่ให้ค่าเริ่มต้น Drone-01 ทำให้ภารกิจ CCOC กลายเป็น UAV
+    const vid = String(payloadData.vehicle_id || "").toLowerCase();
+    const vtype = String(payloadData.vehicle_type || "").toLowerCase();
+    const isExplicitCcoc =
+      formVehicleTypeFilter === "CCOC Mobile" ||
+      vid.startsWith("stc") ||
+      vtype === "ccoc mobile";
+    const isUav =
+      !isExplicitCcoc &&
+      (formVehicleTypeFilter === "UAV Mobile" ||
+        vtype.includes("uav") || 
+        vid.includes("uav") ||
+        (Boolean(payloadData.drone_id) && payloadData.drone_id !== "Drone-01"));
 
     // 🛠️ FIX COLUMN MISALIGNMENT FOR GOOGLE SHEETS uav_missions SHEET:
     // Strictly match Row 1 Header columns A to R:
@@ -515,6 +523,9 @@ export default function Home() {
         ...payloadData,
         affiliation: userAffiliation,
         drone_id: "",
+        sorties: 0,
+        flight_duration_min: 0,
+        flight_altitude: "",
         vehicle_type: "CCOC Mobile",
       };
     }
@@ -553,7 +564,11 @@ export default function Home() {
       start_time: payloadData.start_time || "",
       distance_km: userDistance || payloadData.distance_km || "-",
       affiliation: userAffiliation,
-      vehicle_type: isUav ? "UAV Mobile" : (payloadData.vehicle_type || "CCOC Mobile")
+      vehicle_type: isUav ? "UAV Mobile" : (payloadData.vehicle_type || "CCOC Mobile"),
+      drone_id: isUav ? payloadData.drone_id : "",
+      sorties: isUav ? payloadData.sorties : 0,
+      flight_duration_min: isUav ? payloadData.flight_duration_min : 0,
+      flight_altitude: isUav ? payloadData.flight_altitude : "",
     };
 
     setData((prev: any) => {
@@ -652,7 +667,12 @@ export default function Home() {
     if (name === "vehicle_id") {
       const isUav = String(value || "").toLowerCase().includes("uav");
       setFormVehicleTypeFilter(isUav ? "UAV Mobile" : "CCOC Mobile");
-      setFormData(prev => ({ ...prev, vehicle_id: value, vehicle_type: isUav ? "UAV Mobile" : "CCOC Mobile" }));
+      setFormData(prev => ({
+        ...prev,
+        vehicle_id: value,
+        vehicle_type: isUav ? "UAV Mobile" : "CCOC Mobile",
+        ...(isUav ? {} : { drone_id: "", sorties: 0, flight_duration_min: 0, flight_altitude: "" })
+      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -660,6 +680,11 @@ export default function Home() {
 
   const handleEditClick = () => {
     const formatDate = (dateStr: string) => dateStr ? new Date(dateStr).toISOString().split('T')[0] : "";
+    const vId = String(selectedMission.vehicle_id || "").toLowerCase();
+    const isCcoc = vId.startsWith("stc") || String(selectedMission.vehicle_type || "").toLowerCase() === "ccoc mobile";
+    const resolvedType = isCcoc ? "CCOC Mobile" : (selectedMission.vehicle_type || (vId.includes("uav") ? "UAV Mobile" : "CCOC Mobile"));
+    setFormVehicleTypeFilter(resolvedType);
+
     setFormData({
       affiliation: selectedMission.affiliation || "",
       unit_name: selectedMission.unit_name || "",
@@ -677,14 +702,14 @@ export default function Home() {
       location: selectedMission.location || "",
       start_time: selectedMission.start_time || "",
       operators: selectedMission.operators || "",
-      drone_id: (selectedMission.drone_id && selectedMission.drone_id !== "Drone-01") ? selectedMission.drone_id : "",
-      sorties: selectedMission.sorties || 1,
-      flight_duration_min: selectedMission.flight_duration_min || 45,
+      drone_id: isCcoc ? "" : ((selectedMission.drone_id && selectedMission.drone_id !== "Drone-01") ? selectedMission.drone_id : ""),
+      sorties: isCcoc ? 0 : (selectedMission.sorties || 1),
+      flight_duration_min: isCcoc ? 0 : (selectedMission.flight_duration_min || 45),
       coverage_detail: selectedMission.coverage_detail || "",
-      flight_altitude: selectedMission.flight_altitude || "",
+      flight_altitude: isCcoc ? "" : (selectedMission.flight_altitude || ""),
       tourist_density: selectedMission.tourist_density || "",
       tourist_count_est: selectedMission.tourist_count_est || "",
-      vehicle_type: selectedMission.vehicle_type || (String(selectedMission.vehicle_id || "").toLowerCase().includes("uav") ? "UAV Mobile" : "CCOC Mobile")
+      vehicle_type: resolvedType
     });
     setIsEditing(true);
   };
@@ -1713,7 +1738,8 @@ export default function Home() {
                       vehicle_id: vehicleId,
                       vehicle_type: vType,
                       unit_name: foundUser?.unit_name || prev.unit_name,
-                      affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation
+                      affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation,
+                      ...(vType === "CCOC Mobile" ? { drone_id: "", sorties: 0, flight_duration_min: 0, flight_altitude: "" } : {})
                     }));
                     setShowMapOverlay(false);
                   }}
@@ -1734,7 +1760,8 @@ export default function Home() {
                       vehicle_id: vehicleId,
                       vehicle_type: vType,
                       unit_name: foundUser?.unit_name || prev.unit_name,
-                      affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation
+                      affiliation: affiliation || VEHICLE_AFFILIATIONS[vehicleId?.toLowerCase()] || prev.affiliation,
+                      ...(vType === "CCOC Mobile" ? { drone_id: "", sorties: 0, flight_duration_min: 0, flight_altitude: "" } : {})
                     }));
                     setShowMapOverlay(false);
                   }}
@@ -1778,7 +1805,19 @@ export default function Home() {
                       }}
                       isSubmitting={isSubmitting}
                       setShowMapOverlay={setShowMapOverlay}
-                      onSwitchFormType={(type) => setFormVehicleTypeFilter(type)}
+                      onSwitchFormType={(type) => {
+                        setFormVehicleTypeFilter(type);
+                        if (type === "CCOC Mobile") {
+                          setFormData(prev => ({
+                            ...prev,
+                            vehicle_type: "CCOC Mobile",
+                            drone_id: "",
+                            sorties: 0,
+                            flight_duration_min: 0,
+                            flight_altitude: ""
+                          }));
+                        }
+                      }}
                     />
                   </div>
 

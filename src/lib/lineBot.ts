@@ -234,10 +234,14 @@ export function parseCoverageAndAltitude(
  * สร้างข้อความรายงานผู้บังคับบัญชาแบบ Plain Text (สามารถแตะค้างเพื่อคัดลอก หรือแชร์ต่อได้ทันที)
  */
 export function buildMissionReportText(mission: any): string {
+  const vid = String(mission.raw_vehicle_id || mission.vehicle_id || "").toLowerCase();
+  const vtype = String(mission.vehicle_type || "").toLowerCase();
+  const isExplicitCcoc = vid.startsWith("stc") || vtype === "ccoc mobile";
   const isUav =
-    String(mission.vehicle_type || "").toLowerCase().includes("uav") ||
-    Boolean(mission.drone_id) ||
-    String(mission.vehicle_id || "").toLowerCase().includes("uav");
+    !isExplicitCcoc &&
+    (vtype.includes("uav") ||
+      vid.includes("uav") ||
+      (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01"));
 
   const sDate = formatThaiReportDate(mission.start_date || mission.timestamp);
 
@@ -328,10 +332,14 @@ export function buildMissionReportText(mission: any): string {
  * การ์ด Flex Message: แจ้งเตือนเมื่อมีหน่วยลงบันทึกภารกิจสำเร็จ
  */
 export function buildMissionFlexMessage(mission: any) {
+  const vid = String(mission.raw_vehicle_id || mission.vehicle_id || "").toLowerCase();
+  const vtype = String(mission.vehicle_type || "").toLowerCase();
+  const isExplicitCcoc = vid.startsWith("stc") || vtype === "ccoc mobile";
   const isUav =
-    String(mission.vehicle_type || "").toLowerCase().includes("uav") ||
-    Boolean(mission.drone_id) ||
-    String(mission.vehicle_id || "").toLowerCase().includes("uav");
+    !isExplicitCcoc &&
+    (vtype.includes("uav") ||
+      vid.includes("uav") ||
+      (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01"));
 
   const headerTitle = isUav ? "🛸 บันทึกภารกิจ UAV Mobile สำเร็จ" : "🚗 บันทึกภารกิจ CCOC Mobile สำเร็จ";
   const headerColor = isUav ? "#06B6D4" : "#D946EF"; // Cyan vs Fuchsia
@@ -503,7 +511,6 @@ export function buildMissionFlexMessage(mission: any) {
                 size: "xxs",
                 color: headerColor,
                 weight: "bold",
-                letterSpacing: "1px",
               },
               {
                 type: "text",
@@ -580,7 +587,6 @@ export function buildDaily1700FlexMessage(inactiveCcocCount: number, inactiveUav
             size: "xs",
             color: "#F59E0B",
             weight: "bold",
-            letterSpacing: "1px",
           },
           {
             type: "text",
@@ -720,7 +726,6 @@ export function buildStatusFlexMessage(
             size: "xs",
             color: "#38BDF8",
             weight: "bold",
-            letterSpacing: "1px",
           },
           {
             type: "text",

@@ -35,11 +35,14 @@ export default function LineReportModal({
     }
   };
 
+  const vid = String(missionData.raw_vehicle_id || missionData.vehicle_id || "").toLowerCase();
+  const vtype = String(missionData.vehicle_type || "").toLowerCase();
+  const isExplicitCcoc = vid.startsWith("stc") || vtype === "ccoc mobile";
   const isUav =
-    String(missionData.vehicle_id || "").toLowerCase().includes("uav") ||
-    String(missionData.vehicle_type || "").toLowerCase().includes("uav") ||
-    Boolean(missionData.drone_id) ||
-    Boolean(missionData.sorties);
+    !isExplicitCcoc &&
+    (vtype.includes("uav") ||
+      vid.includes("uav") ||
+      (Boolean(missionData.drone_id) && missionData.drone_id !== "Drone-01"));
 
   // 📝 สร้างข้อความรายงานผู้บังคับบัญชาแบบตำรวจ (LINE Report Format สำหรับคัดลอก/ส่งต่อ)
   const lineMessageText = isUav
