@@ -89,34 +89,54 @@ export default function LineReportModal({
 🟦  ผลการปฏิบัติงาน: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}`
     : `${String(missionData.raw_vehicle_id || missionData.vehicle_id || "STC01").toUpperCase()} ${missionData.affiliation || "บช.ทท."}
 เรียน ผู้บังคับบัญชา
-🗓️  วันที่: ${formatDateThai(missionData.start_date)}
-🕗  เวลา: ${(() => {
-        const t = String(missionData.start_time || "-").trim();
-        if (!t || t === "-") return "-";
-        return (t.endsWith("น.") || t.endsWith("น")) ? t : `${t} น.`;
+🗓️  วันที่เริ่มภารกิจ : ${formatDateThai(missionData.start_date)}
+       วันที่สิ้นสุดภารกิจ : ${formatDateThai(missionData.end_date || missionData.start_date)}
+       ระยะเวลารวม : ${(() => {
+        let d = String(missionData.total_days || "").trim();
+        if (!d || d === "-" || d === "0") return "1 วัน";
+        return d.includes("วัน") ? d : `${d} วัน`;
       })()}
-👮‍♂️  ผู้ปฏิบัติ: ${missionData.unit_name ? `${missionData.unit_name} (${(missionData.raw_vehicle_id || missionData.vehicle_id || "").toLowerCase()})` : "-"}
-🟥  การปฏิบัติ: ${missionData.mission_name || "-"}
-📍  สถานที่: ${(() => {
+👮‍♂️  หน่วยที่ออกภารกิจ : ${missionData.unit_name ? `${missionData.unit_name} (${(missionData.raw_vehicle_id || missionData.vehicle_id || "").toLowerCase()})` : `บช.ทท. (${(missionData.raw_vehicle_id || missionData.vehicle_id || "stc01").toLowerCase()})`}
+       ชื่อภารกิจ : ${missionData.mission_name || "-"}
+🟥  พิกัดที่ปฏิบัติหน้าที่ : ${(() => {
         const loc = missionData.location ? String(missionData.location).trim() : "";
         const prov = missionData.province ? String(missionData.province).trim() : "";
-        if (loc && prov && !loc.includes(prov)) return `${loc} จ.${prov}`;
-        return loc || (prov ? `จ.${prov}` : "-");
+        if (loc && prov && loc !== prov) return loc;
+        if (prov && prov.includes("จ.")) {
+          const parts = prov.split(/จ\./);
+          if (parts[0].trim()) return parts[0].trim();
+        }
+        return loc || "-";
       })()}
-🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ): ${(() => {
+📍  สถานที่ : ${(() => {
+        const loc = missionData.location ? String(missionData.location).trim() : "";
+        const prov = missionData.province ? String(missionData.province).trim() : "";
+        if (loc && prov && loc !== prov) {
+          return prov.includes("จ.") ? prov : (prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`);
+        }
+        if (prov) {
+          if (prov.includes("จ.")) {
+            const parts = prov.split(/จ\./);
+            return `จ.${parts[1].trim()}`;
+          }
+          return prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`;
+        }
+        return loc ? (loc.includes("จ.") ? loc : `จ.${loc}`) : "-";
+      })()}
+🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ) : ${(() => {
         const dist = missionData.distance_km || missionData.distance || missionData.km;
         if (!dist || dist === "-" || dist === "0") return "-";
         const distStr = String(dist).trim();
         return distStr.includes("กม") ? distStr : `${distStr} กม.`;
       })()}
-👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${(() => {
+👥  จำนวนนักท่องเที่ยวโดยประมาณ : ${(() => {
         const val = missionData.tourist_count_est || missionData.people_total || missionData.people_per_day || missionData.tourist_density;
         if (!val || val === "-") return "-";
         const str = String(val).trim();
         if (/^\d+$/.test(str)) return `${Number(str).toLocaleString()} คน`;
         return str.includes("คน") ? str : `${str} คน`;
       })()}
-🟦  ผลการปฏิบัติงาน: ${missionData.incident_report || "เหตุการณ์ทั่วไปปกติ"}`;
+🟦  ผลการปฏิบัติงาน : ${missionData.incident_report && missionData.incident_report !== "-" && missionData.incident_report !== "ไม่ระบุ" ? missionData.incident_report : "เหตุการณ์ปกติ"}`;
 
   const handleCopy = async () => {
     try {

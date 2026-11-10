@@ -314,17 +314,61 @@ export function buildMissionReportText(mission: any): string {
     - ความสูงในการขึ้นบิน: ${altitude}
 🟦  ผลการปฏิบัติงาน: ${incident}`;
   } else {
-    // CCOC Mobile
+    // CCOC Mobile (รูปแบบรายงานมาตรฐาน)
+    const eDate = mission.end_date ? formatThaiReportDate(mission.end_date) : sDate;
+
+    let totalDaysStr = String(mission.total_days || "").trim();
+    if (!totalDaysStr || totalDaysStr === "-" || totalDaysStr === "0") {
+      totalDaysStr = "1 วัน";
+    } else if (!totalDaysStr.includes("วัน")) {
+      totalDaysStr = `${totalDaysStr} วัน`;
+    }
+
+    // แยกพิกัดที่ปฏิบัติหน้าที่ และ สถานที่
+    let coordinatesStr = "-";
+    let locationStr = "-";
+
+    if (loc && prov && loc !== prov) {
+      coordinatesStr = loc;
+      locationStr = prov.includes("จ.") ? prov : (prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`);
+    } else if (prov) {
+      if (prov.includes("จ.")) {
+        const parts = prov.split(/จ\./);
+        if (parts[0].trim()) {
+          coordinatesStr = parts[0].trim();
+          locationStr = `จ.${parts[1].trim()}`;
+        } else {
+          coordinatesStr = "-";
+          locationStr = prov;
+        }
+      } else {
+        coordinatesStr = "-";
+        locationStr = prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`;
+      }
+    } else if (loc) {
+      coordinatesStr = loc;
+      locationStr = "-";
+    }
+
+    const cleanIncident =
+      mission.incident_report &&
+      mission.incident_report !== "-" &&
+      mission.incident_report !== "ไม่ระบุ"
+        ? mission.incident_report
+        : "เหตุการณ์ปกติ";
+
     return `${rawVid} ${aff}
 เรียน ผู้บังคับบัญชา
-🗓️  วันที่: ${sDate}
-🕗  เวลา: ${timeStr}
-👮‍♂️  ผู้ปฏิบัติ: ${unitName} (${rawVid.toLowerCase()})
-🟥  การปฏิบัติ: ${mission.mission_name || "-"}
-📍  สถานที่: ${fullLocation}
-🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ): ${distStr}
-👥  จำนวนนักท่องเที่ยวโดยประมาณ: ${touristStr}
-🟦  ผลการปฏิบัติงาน: ${incident}`;
+🗓️  วันที่เริ่มภารกิจ : ${sDate}
+       วันที่สิ้นสุดภารกิจ : ${eDate}
+       ระยะเวลารวม : ${totalDaysStr}
+👮‍♂️  หน่วยที่ออกภารกิจ : ${unitName} (${rawVid.toLowerCase()})
+       ชื่อภารกิจ : ${mission.mission_name || "-"}
+🟥  พิกัดที่ปฏิบัติหน้าที่ : ${coordinatesStr}
+📍  สถานที่ : ${locationStr}
+🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ) : ${distStr}
+👥  จำนวนนักท่องเที่ยวโดยประมาณ : ${touristStr}
+🟦  ผลการปฏิบัติงาน : ${cleanIncident}`;
   }
 }
 
