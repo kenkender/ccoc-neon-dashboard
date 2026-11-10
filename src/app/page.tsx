@@ -561,6 +561,7 @@ export default function Home() {
       raw_vehicle_id: payloadData.vehicle_id || (isUav ? "UAV Mobile" : "CCOC Mobile"),
       unit_name: payloadData.unit_name || currentUser.unit_name || currentUser.affiliation || "-",
       province: payloadData.province || "-",
+      location: payloadData.location || "-",
       start_date: payloadData.start_date || new Date().toISOString().split('T')[0],
       start_time: payloadData.start_time || "",
       distance_km: userDistance || payloadData.distance_km || "-",
@@ -1955,15 +1956,20 @@ export default function Home() {
                    <input required type="text" name="unit_name" value={formData.unit_name} onChange={handleChange} placeholder="เช่น บช.ทท." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
                  </div>
 
-                 <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
-                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>2. ชื่อภารกิจ</label>
-                   <input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ...ออกตรวจดูแลนักท่องเที่ยว หรือ ภารกิจสนับสนุน ของบช.ทท." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-                 </div>
-
                  <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
-                   <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>พิกัด/จังหวัด</label>
-                   <input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="เช่น สวนเบญ จ.กทม." className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
-                 </div>
+                    <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>2. ชื่อภารกิจ</label>
+                    <input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="เช่น ออกตรวจดูแลนักท่องเที่ยว" className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                    <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>พิกัด / จุดปฏิบัติหน้าที่</label>
+                    <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="เช่น กองบัญชาการตำรวจท่องเที่ยว, สวนเบญ" className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
+                    <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>จังหวัด</label>
+                    <input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="เช่น กรุงเทพมหานคร, เชียงใหม่" className={`py-3 px-4 rounded-xl text-sm sm:text-base focus:outline-none transition-all ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} />
+                  </div>
 
                  <div className="flex flex-col gap-1.5 sm:col-span-1 lg:col-span-1">
                    <label className={`text-sm sm:text-base font-mono font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>3. วันที่เริ่มภารกิจ</label>
@@ -2603,7 +2609,8 @@ export default function Home() {
                         <>
                           {/* ฟอร์มแก้ไขสำหรับ CCOC Mobile */}
                           <div className="flex flex-col gap-2 md:col-span-2"><label className="text-sm font-bold text-yellow-500">ชื่อภารกิจ</label><input required type="text" name="mission_name" value={formData.mission_name} onChange={handleChange} placeholder="ระบุชื่อภารกิจ...ออกตรวจดูแลนักท่องเที่ยว หรือ ภารกิจสนับสนุน ของบช.ทท." className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
-                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">จังหวัด/พิกัด</label><input required type="text" name="province" value={formData.province} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">พิกัด / จุดปฏิบัติหน้าที่</label><input type="text" name="location" value={formData.location || ""} onChange={handleChange} placeholder="เช่น กองบัญชาการตำรวจท่องเที่ยว" className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
+                          <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">จังหวัด</label><input required type="text" name="province" value={formData.province} onChange={handleChange} placeholder="เช่น กรุงเทพมหานคร" className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
                           <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">ระยะทาง (กม.)</label><input type="number" name="distance_km" value={formData.distance_km} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white focus:border-yellow-500' : 'input-3d-light text-black'}`} /></div>
                           <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">วันที่เริ่ม</label><input required type="date" name="start_date" value={formData.start_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}}/></div>
                           <div className="flex flex-col gap-2"><label className="text-sm font-bold text-yellow-500">วันที่สิ้นสุด</label><input required type="date" name="end_date" value={formData.end_date} onChange={handleChange} className={`p-4 rounded-xl focus:outline-none ${isDarkMode ? 'input-3d-dark text-white' : 'input-3d-light text-black'}`} style={{colorScheme: isDarkMode ? "dark" : "light"}}/></div>

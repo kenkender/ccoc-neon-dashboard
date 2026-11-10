@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { supabase } from "./supabase";
+import { formatLocationAndProvince } from "./locationHelper";
 
 export const LINE_CHANNEL_ID =
   process.env.LINE_CHANNEL_ID || "2012523104";
@@ -259,13 +260,15 @@ export function buildMissionReportText(mission: any): string {
   const aff = mission.affiliation || "บช.ทท.";
 
   // สถานที่
-  const loc = mission.location ? mission.location.trim() : "";
-  const prov = mission.province ? mission.province.trim() : "";
-  let fullLocation = loc;
-  if (prov && !loc.includes(prov)) {
-    fullLocation = loc ? `${loc} จ.${prov}` : `จ.${prov}`;
+  const { coordinatesStr: uavCoord, locationStr: uavLoc } = formatLocationAndProvince(mission.location, mission.province);
+  let fullLocation = "-";
+  if (uavCoord !== "-" && uavLoc !== "-") {
+    fullLocation = `${uavCoord} ${uavLoc}`;
+  } else if (uavLoc !== "-") {
+    fullLocation = uavLoc;
+  } else if (uavCoord !== "-") {
+    fullLocation = uavCoord;
   }
-  if (!fullLocation) fullLocation = "-";
 
   // ระยะทาง
   let distStr = String(mission.distance_km || mission.distance || mission.km || "-").trim();
@@ -325,30 +328,7 @@ export function buildMissionReportText(mission: any): string {
     }
 
     // แยกพิกัดที่ปฏิบัติหน้าที่ และ สถานที่
-    let coordinatesStr = "-";
-    let locationStr = "-";
-
-    if (loc && prov && loc !== prov) {
-      coordinatesStr = loc;
-      locationStr = prov.includes("จ.") ? prov : (prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`);
-    } else if (prov) {
-      if (prov.includes("จ.")) {
-        const parts = prov.split(/จ\./);
-        if (parts[0].trim()) {
-          coordinatesStr = parts[0].trim();
-          locationStr = `จ.${parts[1].trim()}`;
-        } else {
-          coordinatesStr = "-";
-          locationStr = prov;
-        }
-      } else {
-        coordinatesStr = "-";
-        locationStr = prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`;
-      }
-    } else if (loc) {
-      coordinatesStr = loc;
-      locationStr = "-";
-    }
+    const { coordinatesStr, locationStr } = formatLocationAndProvince(mission.location, mission.province);
 
     const cleanIncident =
       mission.incident_report &&
@@ -403,32 +383,7 @@ export function buildMissionFlexMessage(mission: any) {
   }
 
   // พิกัด และ สถานที่
-  const loc = mission.location ? String(mission.location).trim() : "";
-  const prov = mission.province ? String(mission.province).trim() : "";
-  let coordinatesStr = "-";
-  let locationStr = "-";
-
-  if (loc && prov && loc !== prov) {
-    coordinatesStr = loc;
-    locationStr = prov.includes("จ.") ? prov : (prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`);
-  } else if (prov) {
-    if (prov.includes("จ.")) {
-      const parts = prov.split(/จ\./);
-      if (parts[0].trim()) {
-        coordinatesStr = parts[0].trim();
-        locationStr = `จ.${parts[1].trim()}`;
-      } else {
-        coordinatesStr = "-";
-        locationStr = prov;
-      }
-    } else {
-      coordinatesStr = "-";
-      locationStr = prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`;
-    }
-  } else if (loc) {
-    coordinatesStr = loc;
-    locationStr = "-";
-  }
+  const { coordinatesStr, locationStr } = formatLocationAndProvince(mission.location, mission.province);
 
   // ระยะทาง
   let distStr = String(mission.distance_km || mission.distance || mission.km || "-").trim();

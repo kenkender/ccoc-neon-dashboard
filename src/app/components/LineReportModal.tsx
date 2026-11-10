@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, MessageSquare, X } from "lucide-react";
+import { formatLocationAndProvince } from "@/lib/locationHelper";
 
 interface LineReportModalProps {
   isOpen: boolean;
@@ -57,10 +58,11 @@ export default function LineReportModal({
 👮‍♂️  ผู้ปฏิบัติ: ${missionData.unit_name ? `${missionData.unit_name} (${(missionData.raw_vehicle_id || missionData.vehicle_id || "uav").toLowerCase()})` : "สายตรวจอากาศยานไร้คนขับ"}
 🟥  การปฏิบัติ: ${missionData.mission_name || "-"}
 📍  สถานที่: ${(() => {
-        const loc = missionData.location ? String(missionData.location).trim() : "";
-        const prov = missionData.province ? String(missionData.province).trim() : "";
-        if (loc && prov && !loc.includes(prov)) return `${loc} จ.${prov}`;
-        return loc || (prov ? `จ.${prov}` : "-");
+        const { coordinatesStr, locationStr } = formatLocationAndProvince(missionData.location, missionData.province);
+        if (coordinatesStr !== "-" && locationStr !== "-") return `${coordinatesStr} ${locationStr}`;
+        if (locationStr !== "-") return locationStr;
+        if (coordinatesStr !== "-") return coordinatesStr;
+        return "-";
       })()}
 🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ): ${(() => {
         const dist = missionData.distance_km || missionData.distance || missionData.km;
@@ -98,30 +100,12 @@ export default function LineReportModal({
       })()}
 👮‍♂️  หน่วยที่ออกภารกิจ : ${missionData.unit_name ? `${missionData.unit_name} (${(missionData.raw_vehicle_id || missionData.vehicle_id || "").toLowerCase()})` : `บช.ทท. (${(missionData.raw_vehicle_id || missionData.vehicle_id || "stc01").toLowerCase()})`}
        ชื่อภารกิจ : ${missionData.mission_name || "-"}${(() => {
-        const loc = missionData.location ? String(missionData.location).trim() : "";
-        const prov = missionData.province ? String(missionData.province).trim() : "";
-        let c = "-";
-        if (loc && prov && loc !== prov) c = loc;
-        else if (prov && prov.includes("จ.")) {
-          const parts = prov.split(/จ\./);
-          if (parts[0].trim()) c = parts[0].trim();
-        } else if (loc) c = loc;
-        return (c && c !== "-") ? `\n🟥  พิกัดที่ปฏิบัติหน้าที่ : ${c}` : "";
+        const { coordinatesStr } = formatLocationAndProvince(missionData.location, missionData.province);
+        return (coordinatesStr && coordinatesStr !== "-") ? `\n🟥  พิกัดที่ปฏิบัติหน้าที่ : ${coordinatesStr}` : "";
       })()}
 📍  สถานที่ : ${(() => {
-        const loc = missionData.location ? String(missionData.location).trim() : "";
-        const prov = missionData.province ? String(missionData.province).trim() : "";
-        if (loc && prov && loc !== prov) {
-          return prov.includes("จ.") ? prov : (prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`);
-        }
-        if (prov) {
-          if (prov.includes("จ.")) {
-            const parts = prov.split(/จ\./);
-            return `จ.${parts[1].trim()}`;
-          }
-          return prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`;
-        }
-        return loc ? (loc.includes("จ.") ? loc : `จ.${loc}`) : "-";
+        const { locationStr } = formatLocationAndProvince(missionData.location, missionData.province);
+        return locationStr;
       })()}
 🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ) : ${(() => {
         const dist = missionData.distance_km || missionData.distance || missionData.km;
