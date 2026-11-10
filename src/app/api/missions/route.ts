@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { SYSTEM_USERS, VEHICLE_AFFILIATIONS } from "@/app/data/users";
 import { supabase } from "@/lib/supabase";
+import { broadcastToAllLineGroups, buildMissionFlexMessage } from "@/lib/lineBot";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,13 @@ export async function GET(request: Request) {
     const [missionsRes, usersRes, logsRes] = await Promise.all([
       supabase.from("missions").select("*").order("created_at", { ascending: false }),
       supabase.from("users").select("*"),
-      supabase.from("login_logs").select("*").neq("role", "push_sub").order("timestamp", { ascending: false }).limit(100),
+      supabase
+        .from("login_logs")
+        .select("*")
+        .neq("role", "push_sub")
+        .neq("role", "line_group")
+        .order("timestamp", { ascending: false })
+        .limit(100),
     ]);
 
     const hasMissions = missionsRes.data && missionsRes.data.length > 0;
@@ -237,6 +244,11 @@ export async function POST(req: Request) {
 
       const { error } = await supabase.from("missions").insert([newMission]);
       if (error) console.error("⚠️ Supabase insert mission error:", error.message);
+
+      // ส่งแจ้งเตือน Real-time เข้ากลุ่มไลน์อัตโนมัติ
+      broadcastToAllLineGroups([buildMissionFlexMessage(newMission)]).catch((err) =>
+        console.warn("⚠️ LINE broadcast mission error:", err)
+      );
 
       postToGASBackground(body);
       return NextResponse.json({ status: "success", message: "Mission saved to Supabase" });

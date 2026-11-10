@@ -656,6 +656,26 @@ export default function NotificationManager({
                   </div>
                 </div>
 
+                {/* กล่อง LINE Bot Group Alert Status */}
+                <div className="p-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-[#06C755]/20 text-[#06C755] border border-[#06C755]/40 flex items-center justify-center font-black text-xs shrink-0">
+                      LINE
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-emerald-300 truncate">
+                        บอทกลุ่มไลน์: CCOC&UAV Alert Bot
+                      </p>
+                      <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                        แจ้งเตือนภารกิจใหม่ทันที และเตือนความจำ 17:00 น. ในกลุ่มเดิม
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                    เปิดใช้งาน
+                  </span>
+                </div>
+
                 {/* กล่องที่ 2: สถานะความเคลื่อนไหวของหน่วยผู้ใช้งานปัจจุบัน */}
                 {myUnitStatus && (
                   <div

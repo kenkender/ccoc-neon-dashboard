@@ -5,6 +5,11 @@ import {
   analyzeStationInactivity,
   buildNotificationForUnit,
 } from "@/lib/webPush";
+import {
+  broadcastToAllLineGroups,
+  buildDaily1700FlexMessage,
+  buildStatusFlexMessage,
+} from "@/lib/lineBot";
 import { SYSTEM_USERS } from "@/app/data/users";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +71,25 @@ async function executeNotificationBroadcast(mode: "daily_1700" | "inactivity_onl
     await supabase.from("login_logs").delete().in("id", expiredIds);
   }
 
+  // 🔔 ส่งข้อความแจ้งเตือนเข้ากลุ่มไลน์อัตโนมัติ
+  let lineSentGroups = 0;
+  try {
+    const inactiveCcoc = inactiveUnits.filter((u) => u.username.startsWith("stc"));
+    const inactiveUav = inactiveUnits.filter((u) => u.username.startsWith("uav"));
+
+    if (mode === "inactivity_only") {
+      lineSentGroups = await broadcastToAllLineGroups([
+        buildStatusFlexMessage(inactiveCcoc, inactiveUav, missions.length),
+      ]);
+    } else {
+      lineSentGroups = await broadcastToAllLineGroups([
+        buildDaily1700FlexMessage(inactiveCcoc.length, inactiveUav.length),
+      ]);
+    }
+  } catch (err) {
+    console.warn("⚠️ LINE group broadcast warning in cron:", err);
+  }
+
   return {
     status: "success",
     executedAt: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
@@ -74,6 +98,7 @@ async function executeNotificationBroadcast(mode: "daily_1700" | "inactivity_onl
     sentCount,
     failedCount,
     cleanedExpiredCount: expiredIds.length,
+    lineGroupsNotified: lineSentGroups,
     totalUnitsChecked: statuses.length,
     inactiveUnitsCount: inactiveUnits.length,
     inactiveUnits: inactiveUnits.map((u) => ({
