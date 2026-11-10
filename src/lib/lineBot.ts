@@ -357,14 +357,15 @@ export function buildMissionReportText(mission: any): string {
         ? mission.incident_report
         : "เหตุการณ์ปกติ";
 
+    const coordLine = (coordinatesStr && coordinatesStr !== "-") ? `\n🟥  พิกัดที่ปฏิบัติหน้าที่ : ${coordinatesStr}` : "";
+
     return `${rawVid} ${aff}
 เรียน ผู้บังคับบัญชา
 🗓️  วันที่เริ่มภารกิจ : ${sDate}
        วันที่สิ้นสุดภารกิจ : ${eDate}
        ระยะเวลารวม : ${totalDaysStr}
 👮‍♂️  หน่วยที่ออกภารกิจ : ${unitName} (${rawVid.toLowerCase()})
-       ชื่อภารกิจ : ${mission.mission_name || "-"}
-🟥  พิกัดที่ปฏิบัติหน้าที่ : ${coordinatesStr}
+       ชื่อภารกิจ : ${mission.mission_name || "-"}${coordLine}
 📍  สถานที่ : ${locationStr}
 🚗  ระยะทางปฏิบัติภารกิจ (รวมไป-กลับ) : ${distStr}
 👥  จำนวนนักท่องเที่ยวโดยประมาณ : ${touristStr}

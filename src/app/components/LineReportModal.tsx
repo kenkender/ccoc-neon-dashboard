@@ -97,16 +97,16 @@ export default function LineReportModal({
         return d.includes("วัน") ? d : `${d} วัน`;
       })()}
 👮‍♂️  หน่วยที่ออกภารกิจ : ${missionData.unit_name ? `${missionData.unit_name} (${(missionData.raw_vehicle_id || missionData.vehicle_id || "").toLowerCase()})` : `บช.ทท. (${(missionData.raw_vehicle_id || missionData.vehicle_id || "stc01").toLowerCase()})`}
-       ชื่อภารกิจ : ${missionData.mission_name || "-"}
-🟥  พิกัดที่ปฏิบัติหน้าที่ : ${(() => {
+       ชื่อภารกิจ : ${missionData.mission_name || "-"}${(() => {
         const loc = missionData.location ? String(missionData.location).trim() : "";
         const prov = missionData.province ? String(missionData.province).trim() : "";
-        if (loc && prov && loc !== prov) return loc;
-        if (prov && prov.includes("จ.")) {
+        let c = "-";
+        if (loc && prov && loc !== prov) c = loc;
+        else if (prov && prov.includes("จ.")) {
           const parts = prov.split(/จ\./);
-          if (parts[0].trim()) return parts[0].trim();
-        }
-        return loc || "-";
+          if (parts[0].trim()) c = parts[0].trim();
+        } else if (loc) c = loc;
+        return (c && c !== "-") ? `\n🟥  พิกัดที่ปฏิบัติหน้าที่ : ${c}` : "";
       })()}
 📍  สถานที่ : ${(() => {
         const loc = missionData.location ? String(missionData.location).trim() : "";
