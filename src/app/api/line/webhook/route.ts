@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   verifyLineSignature,
   registerLineGroupId,
+  unregisterLineGroupId,
   replyLineMessage,
   buildStatusFlexMessage,
 } from "@/lib/lineBot";
@@ -35,20 +36,29 @@ export async function POST(req: Request) {
 
     for (const event of events) {
       const source = event.source || {};
-      const targetId = source.groupId || source.roomId || source.userId;
+      const groupOrRoomId = source.groupId || source.roomId;
 
-      // 1. บันทึก targetId ทุกครั้งที่มีปฏิสัมพันธ์ (รองรับทั้งกลุ่ม, ห้อง, และแชทเดี่ยวส่วนตัวสำหรับทดสอบ)
-      if (targetId) {
-        await registerLineGroupId(targetId);
+      // 1. กรณีบอทถูกนำออกจากกลุ่มหรือห้อง (Leave Event) -> ลบออกจากฐานข้อมูลทันที
+      if (event.type === "leave") {
+        if (groupOrRoomId) {
+          await unregisterLineGroupId(groupOrRoomId);
+        }
+        continue;
       }
 
-      // 2. เมื่อผู้ใช้เพิ่มเพื่อนบอทในไลน์ส่วนตัว (Follow Event)
+      // 2. บันทึกเฉพาะ groupId หรือ roomId ลงฐานข้อมูล (ไม่รวมแชทส่วนตัว เพื่อไม่ให้กินโควตาข้อความ)
+      if (groupOrRoomId) {
+        await registerLineGroupId(groupOrRoomId);
+      }
+
+      // 3. เมื่อผู้ใช้เพิ่มเพื่อนบอทในไลน์ส่วนตัว (Follow Event)
       if (event.type === "follow") {
         const welcomePersonal =
-          "👋 สวัสดีครับ! คุณได้เชื่อมต่อกับ CCOC&UAV Alert Bot แล้ว 🚀\n\n" +
-          "📱 ห้องแชทนี้เปิดโหมดทดสอบส่วนตัวเรียบร้อยแล้วครับ:\n" +
-          "• ลองพิมพ์ \"สถานะ\" หรือ \"เช็คภารกิจ\" เพื่อดูรายงานได้ทันที\n" +
-          "• เมื่อคุณทดลองบันทึกภารกิจบนเว็บ บอทจะส่งการ์ดสรุปและข้อความรายงานมาให้ในแชทนี้ทันทีครับ!\n\n" +
+          "👋 สวัสดีครับ! คุณได้เพิ่ม CCOC&UAV Alert Bot เป็นเพื่อนแล้ว 🚀\n\n" +
+          "📢 การแจ้งเตือนภารกิจอัตโนมัติและแจ้งเตือนประจำวัน 17:00 น. จะส่งเข้าใน **กลุ่มไลน์** ที่เชิญบอทเข้าร่วมครับ\n\n" +
+          "💡 ในแชทส่วนตัวนี้คุณสามารถ:\n" +
+          "• พิมพ์ \"สถานะ\" หรือ \"เช็คภารกิจ\" เพื่อตรวจดูรายงานหน่วยที่ขาดส่งได้ตลอดเวลา\n" +
+          "• เชิญบอทเข้ากลุ่มเพื่อรับการแจ้งเตือนแบบ Real-time\n\n" +
           "🌐 เว็บระบบ: https://ccoc-neon-dashboard.vercel.app/";
 
         if (event.replyToken) {
@@ -57,7 +67,7 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // 3. เมื่อบอทถูกดึงเข้าร่วมกลุ่ม (Join Group Event)
+      // 4. เมื่อบอทถูกดึงเข้าร่วมกลุ่ม (Join Group Event)
       if (event.type === "join") {
         const greetingText =
           "👋 สวัสดีครับทุกท่าน! CCOC&UAV Alert Bot เข้าร่วมกลุ่มเรียบร้อยแล้วครับ 🚀\n\n" +

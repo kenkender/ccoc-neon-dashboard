@@ -24,6 +24,7 @@ export async function GET(request: Request) {
         .select("*")
         .neq("role", "push_sub")
         .neq("role", "line_group")
+        .neq("role", "line_group_left")
         .order("timestamp", { ascending: false })
         .limit(100),
     ]);
@@ -265,9 +266,11 @@ export async function POST(req: Request) {
       const flexMsg = buildMissionFlexMessage(newMission);
       const textMsg = { type: "text", text: buildMissionReportText(newMission) };
 
-      broadcastToAllLineGroups([flexMsg, textMsg]).catch((err) =>
-        console.warn("⚠️ LINE broadcast mission error:", err)
-      );
+      try {
+        await broadcastToAllLineGroups([flexMsg, textMsg]);
+      } catch (err) {
+        console.warn("⚠️ LINE broadcast mission error:", err);
+      }
 
       postToGASBackground(body);
       return NextResponse.json({ status: "success", message: "Mission saved to Supabase" });

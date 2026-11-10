@@ -31,62 +31,102 @@ export function verifyLineSignature(body: string, signature: string): boolean {
 }
 
 /**
- * บันทึกหรืออัปเดต targetId (groupId, roomId, หรือ userId สำหรับทดสอบส่วนตัว) ลงใน Supabase
+ * บันทึก groupId / roomId ลงใน Supabase (ไม่รวมแชทส่วนตัว U... เพื่อประหยัดโควตาและแจ้งเตือนเฉพาะกลุ่ม)
  */
 export async function registerLineGroupId(targetId: string): Promise<void> {
   if (
     !targetId ||
-    (!targetId.startsWith("C") && !targetId.startsWith("R") && !targetId.startsWith("U"))
+    (!targetId.startsWith("C") && !targetId.startsWith("R"))
   ) {
     return;
   }
   try {
-    const { data: existing } = await supabase
+    const { data: latest } = await supabase
       .from("login_logs")
-      .select("id")
-      .eq("role", "line_group")
+      .select("id, role")
+      .in("role", ["line_group", "line_group_left"])
       .eq("affiliation", targetId)
+      .order("id", { ascending: false })
       .limit(1);
 
-    if (existing && existing.length > 0) {
-      // อัปเดต timestamp ล่าสุด
-      await supabase
-        .from("login_logs")
-        .update({
-          timestamp: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
-        })
-        .eq("id", existing[0].id);
-    } else {
-      await supabase.from("login_logs").insert([
-        {
-          username: targetId.startsWith("U") ? "line_user_test" : "line_group",
-          role: "line_group",
-          affiliation: targetId,
-          timestamp: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
-        },
-      ]);
+    if (latest && latest.length > 0 && latest[0].role === "line_group") {
+      return;
     }
+
+    await supabase.from("login_logs").insert([
+      {
+        username: "line_group",
+        role: "line_group",
+        affiliation: targetId,
+        timestamp: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
+      },
+    ]);
   } catch (err) {
     console.error("⚠️ Failed to register LINE targetId:", err);
   }
 }
 
 /**
- * ดึงรายการ targetId ทั้งหมดที่บอทเข้าร่วม (กลุ่ม, ห้องสนทนา หรือบัญชีส่วนตัวที่เปิดทดสอบ)
+ * ยกเลิกการลงทะเบียน groupId / roomId เมื่อบอทถูกนำออกจากกลุ่ม (leave event)
+ */
+export async function unregisterLineGroupId(targetId: string): Promise<void> {
+  if (!targetId) return;
+  try {
+    await supabase
+      .from("login_logs")
+      .delete()
+      .eq("role", "line_group")
+      .eq("affiliation", targetId);
+
+    const { data: latest } = await supabase
+      .from("login_logs")
+      .select("id, role")
+      .in("role", ["line_group", "line_group_left"])
+      .eq("affiliation", targetId)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (latest && latest.length > 0 && latest[0].role === "line_group") {
+      await supabase.from("login_logs").insert([
+        {
+          username: "line_group_left",
+          role: "line_group_left",
+          affiliation: targetId,
+          timestamp: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
+        },
+      ]);
+    }
+  } catch (err) {
+    console.error("⚠️ Failed to unregister LINE targetId:", err);
+  }
+}
+
+/**
+ * ดึงรายการ groupId / roomId ทั้งหมดที่บอทเข้าร่วมอยู่
  */
 export async function getRegisteredLineGroupIds(): Promise<string[]> {
   try {
     const { data } = await supabase
       .from("login_logs")
-      .select("affiliation")
-      .eq("role", "line_group");
+      .select("id, affiliation, role")
+      .in("role", ["line_group", "line_group_left"])
+      .order("id", { ascending: true });
 
-    const ids = (data || [])
-      .map((row) => String(row.affiliation || "").trim())
-      .filter((id) => id.startsWith("C") || id.startsWith("R") || id.startsWith("U"));
+    const statusMap = new Map<string, string>();
+    for (const row of data || []) {
+      const id = String(row.affiliation || "").trim();
+      if (id.startsWith("C") || id.startsWith("R")) {
+        statusMap.set(id, String(row.role || ""));
+      }
+    }
 
-    // Deduplicate
-    return Array.from(new Set(ids));
+    const activeIds: string[] = [];
+    for (const [id, role] of statusMap.entries()) {
+      if (role === "line_group") {
+        activeIds.push(id);
+      }
+    }
+    return activeIds;
   } catch (err) {
     console.error("⚠️ Failed to fetch LINE group IDs:", err);
     return [];
@@ -154,7 +194,7 @@ export async function replyLineMessage(replyToken: string, messages: any[]): Pro
 }
 
 /**
- * ส่งแจ้งเตือนไปยังทุกกลุ่มไลน์ที่ลงทะเบียนไว้
+ * ส่งแจ้งเตือนไปยังทุกกลุ่มไลน์ที่ลงทะเบียนไว้ (ส่งพร้อมกันแบบ Parallel)
  */
 export async function broadcastToAllLineGroups(messages: any[]): Promise<number> {
   const groupIds = await getRegisteredLineGroupIds();
@@ -163,12 +203,8 @@ export async function broadcastToAllLineGroups(messages: any[]): Promise<number>
     return 0;
   }
 
-  let sent = 0;
-  for (const gid of groupIds) {
-    const ok = await sendLinePush(gid, messages);
-    if (ok) sent++;
-  }
-  return sent;
+  const results = await Promise.all(groupIds.map((gid) => sendLinePush(gid, messages)));
+  return results.filter(Boolean).length;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

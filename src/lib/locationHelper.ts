@@ -75,3 +75,4 @@ export function formatLocationAndProvince(rawLoc: any, rawProv: any): { coordina
 
   return { coordinatesStr, locationStr };
 }
+
