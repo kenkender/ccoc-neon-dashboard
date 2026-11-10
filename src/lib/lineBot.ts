@@ -373,7 +373,7 @@ export function buildMissionReportText(mission: any): string {
 }
 
 /**
- * การ์ด Flex Message: แจ้งเตือนเมื่อมีหน่วยลงบันทึกภารกิจสำเร็จ
+ * การ์ด Flex Message: แจ้งเตือนเมื่อมีหน่วยลงบันทึกภารกิจสำเร็จ (ดีไซน์ Executive Pro สไตล์ Dashboard)
  */
 export function buildMissionFlexMessage(mission: any) {
   const vid = String(mission.raw_vehicle_id || mission.vehicle_id || "").toLowerCase();
@@ -385,25 +385,115 @@ export function buildMissionFlexMessage(mission: any) {
       vid.includes("uav") ||
       (Boolean(mission.drone_id) && mission.drone_id !== "Drone-01"));
 
-  const headerTitle = isUav ? "🛸 บันทึกภารกิจ UAV Mobile สำเร็จ" : "🚗 บันทึกภารกิจ CCOC Mobile สำเร็จ";
-  const headerColor = isUav ? "#06B6D4" : "#D946EF"; // Cyan vs Fuchsia
-  const badgeColor = isUav ? "#0891B2" : "#A21CAF";
+  const rawVid = String(mission.raw_vehicle_id || mission.vehicle_id || (isUav ? "UAV" : "STC01")).toUpperCase();
+  const aff = mission.affiliation || "บช.ทท.";
+  const unitName = mission.unit_name || aff || rawVid;
+  const missionName = mission.mission_name || (isUav ? "ว.43 สายตรวจโดรนมุมสูง" : "ภารกิจ CCOC Mobile");
 
-  const rows: any[] = [
+  const sDate = formatThaiReportDate(mission.start_date || mission.timestamp);
+  const eDate = mission.end_date ? formatThaiReportDate(mission.end_date) : sDate;
+  const dateRangeStr = eDate && eDate !== sDate && eDate !== "-" ? `${sDate} - ${eDate}` : sDate;
+
+  let totalDaysStr = String(mission.total_days || "").trim();
+  if (!totalDaysStr || totalDaysStr === "-" || totalDaysStr === "0") {
+    totalDaysStr = "1 วัน";
+  } else if (!totalDaysStr.includes("วัน")) {
+    totalDaysStr = `${totalDaysStr} วัน`;
+  }
+
+  // พิกัด และ สถานที่
+  const loc = mission.location ? String(mission.location).trim() : "";
+  const prov = mission.province ? String(mission.province).trim() : "";
+  let coordinatesStr = "-";
+  let locationStr = "-";
+
+  if (loc && prov && loc !== prov) {
+    coordinatesStr = loc;
+    locationStr = prov.includes("จ.") ? prov : (prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`);
+  } else if (prov) {
+    if (prov.includes("จ.")) {
+      const parts = prov.split(/จ\./);
+      if (parts[0].trim()) {
+        coordinatesStr = parts[0].trim();
+        locationStr = `จ.${parts[1].trim()}`;
+      } else {
+        coordinatesStr = "-";
+        locationStr = prov;
+      }
+    } else {
+      coordinatesStr = "-";
+      locationStr = prov.startsWith("กรุงเทพ") ? `จ.${prov}` : `จ.${prov}`;
+    }
+  } else if (loc) {
+    coordinatesStr = loc;
+    locationStr = "-";
+  }
+
+  // ระยะทาง
+  let distStr = String(mission.distance_km || mission.distance || mission.km || "-").trim();
+  if (distStr && distStr !== "-" && distStr !== "0") {
+    if (!distStr.includes("กม")) distStr = `${distStr} กม.`;
+  } else {
+    distStr = "-";
+  }
+
+  // นักท่องเที่ยว
+  let touristStr = String(
+    mission.tourist_count_est ||
+    mission.people_total ||
+    mission.people_per_day ||
+    mission.tourist_density ||
+    "-"
+  ).trim();
+  if (touristStr && touristStr !== "-" && /^\d+$/.test(touristStr)) {
+    touristStr = `${Number(touristStr).toLocaleString()} คน`;
+  } else if (touristStr && touristStr !== "-" && !touristStr.includes("คน")) {
+    touristStr = `${touristStr} คน`;
+  }
+
+  // เหตุการณ์
+  const cleanIncident =
+    mission.incident_report &&
+    mission.incident_report !== "-" &&
+    mission.incident_report !== "ไม่ระบุ"
+      ? mission.incident_report
+      : "เหตุการณ์ปกติ";
+
+  const badgeText = isUav ? "🛸 UAV MOBILE REPORT" : "🚗 CCOC MOBILE REPORT";
+  const badgeBg = isUav ? "#0369A1" : "#831843";
+  const badgeColor = isUav ? "#38BDF8" : "#F472B6";
+  const headerTitle = isUav ? `UAV Mobile ${aff}` : `${rawVid} ${aff}`;
+
+  // 3 Metric Stat Boxes
+  const statBox1 = isUav
+    ? { title: "🛸 เที่ยวบิน", value: `${mission.sorties || 1} รอบบิน`, color: "#38BDF8" }
+    : { title: "🗓️ ระยะเวลา", value: totalDaysStr, color: "#38BDF8" };
+
+  const statBox2 = isUav
+    ? { title: "⏱️ เวลาบินรวม", value: `${mission.flight_duration_min || 0} นาที`, color: "#FCD34D" }
+    : { title: "🚗 ระยะทาง", value: distStr, color: "#FCD34D" };
+
+  const statBox3 = {
+    title: "👥 นทท. โดยประมาณ",
+    value: touristStr,
+    color: "#34D399",
+  };
+
+  const detailRows: any[] = [
     {
       type: "box",
       layout: "baseline",
       spacing: "sm",
       contents: [
-        { type: "text", text: "หน่วย", color: "#94A3B8", size: "sm", flex: 2 },
+        { type: "text", text: "👮‍♂️ หน่วย", color: "#94A3B8", size: "xs", flex: 3 },
         {
           type: "text",
-          text: `${mission.unit_name || "-"} [${mission.vehicle_id || "-"}]`,
+          text: `${unitName} (${rawVid.toLowerCase()})`,
           wrap: true,
           color: "#F8FAFC",
-          size: "sm",
+          size: "xs",
           weight: "bold",
-          flex: 5,
+          flex: 7,
         },
       ],
     },
@@ -412,32 +502,15 @@ export function buildMissionFlexMessage(mission: any) {
       layout: "baseline",
       spacing: "sm",
       contents: [
-        { type: "text", text: "สังกัด", color: "#94A3B8", size: "sm", flex: 2 },
+        { type: "text", text: "⭐ ภารกิจ", color: "#94A3B8", size: "xs", flex: 3 },
         {
           type: "text",
-          text: mission.affiliation || "-",
-          wrap: true,
-          color: "#38BDF8",
-          size: "sm",
-          weight: "bold",
-          flex: 5,
-        },
-      ],
-    },
-    {
-      type: "box",
-      layout: "baseline",
-      spacing: "sm",
-      contents: [
-        { type: "text", text: "ภารกิจ", color: "#94A3B8", size: "sm", flex: 2 },
-        {
-          type: "text",
-          text: mission.mission_name || "-",
+          text: missionName,
           wrap: true,
           color: "#FCD34D",
-          size: "sm",
+          size: "xs",
           weight: "bold",
-          flex: 5,
+          flex: 7,
         },
       ],
     },
@@ -446,88 +519,93 @@ export function buildMissionFlexMessage(mission: any) {
       layout: "baseline",
       spacing: "sm",
       contents: [
-        { type: "text", text: "วันที่", color: "#94A3B8", size: "sm", flex: 2 },
+        { type: "text", text: "🗓️ ห้วงเวลา", color: "#94A3B8", size: "xs", flex: 3 },
         {
           type: "text",
-          text: mission.start_date || mission.timestamp || "-",
+          text: dateRangeStr,
           wrap: true,
           color: "#E2E8F0",
-          size: "sm",
-          flex: 5,
+          size: "xs",
+          flex: 7,
         },
       ],
     },
   ];
 
-  if (mission.province || mission.location) {
-    rows.push({
+  if (isUav) {
+    const droneModel = mission.drone_id || "UAV";
+    const { altitude } = parseCoverageAndAltitude(mission.coverage_detail, mission.flight_altitude);
+    detailRows.push(
+      {
+        type: "box",
+        layout: "baseline",
+        spacing: "sm",
+        contents: [
+          { type: "text", text: "🛸 รุ่นโดรน", color: "#94A3B8", size: "xs", flex: 3 },
+          {
+            type: "text",
+            text: droneModel,
+            wrap: true,
+            color: "#A78BFA",
+            size: "xs",
+            weight: "bold",
+            flex: 7,
+          },
+        ],
+      },
+      {
+        type: "box",
+        layout: "baseline",
+        spacing: "sm",
+        contents: [
+          { type: "text", text: "📏 ความสูง", color: "#94A3B8", size: "xs", flex: 3 },
+          {
+            type: "text",
+            text: altitude,
+            wrap: true,
+            color: "#C084FC",
+            size: "xs",
+            flex: 7,
+          },
+        ],
+      }
+    );
+  }
+
+  if (coordinatesStr !== "-") {
+    detailRows.push({
       type: "box",
       layout: "baseline",
       spacing: "sm",
       contents: [
-        { type: "text", text: "พื้นที่", color: "#94A3B8", size: "sm", flex: 2 },
+        { type: "text", text: "🟥 พิกัด", color: "#94A3B8", size: "xs", flex: 3 },
         {
           type: "text",
-          text: `${mission.province || ""} ${mission.location || ""}`.trim() || "-",
+          text: coordinatesStr,
           wrap: true,
           color: "#E2E8F0",
-          size: "sm",
-          flex: 5,
+          size: "xs",
+          flex: 7,
         },
       ],
     });
   }
 
-  if (isUav && (mission.drone_id || mission.sorties || mission.flight_duration_min)) {
-    rows.push({
+  if (locationStr !== "-") {
+    detailRows.push({
       type: "box",
       layout: "baseline",
       spacing: "sm",
       contents: [
-        { type: "text", text: "การบิน", color: "#94A3B8", size: "sm", flex: 2 },
+        { type: "text", text: "📍 สถานที่", color: "#94A3B8", size: "xs", flex: 3 },
         {
           type: "text",
-          text: `${mission.drone_id || "UAV"} | ${mission.sorties || 1} เที่ยวบิน | ${mission.flight_duration_min || 0} นาที`,
+          text: locationStr,
           wrap: true,
-          color: "#34D399",
-          size: "sm",
-          flex: 5,
-        },
-      ],
-    });
-  } else if (!isUav && mission.distance_km) {
-    rows.push({
-      type: "box",
-      layout: "baseline",
-      spacing: "sm",
-      contents: [
-        { type: "text", text: "ระยะทาง", color: "#94A3B8", size: "sm", flex: 2 },
-        {
-          type: "text",
-          text: `${mission.distance_km} กม.`,
-          wrap: true,
-          color: "#34D399",
-          size: "sm",
-          flex: 5,
-        },
-      ],
-    });
-  }
-
-  if (mission.incident_report && mission.incident_report !== "-") {
-    rows.push({
-      type: "box",
-      layout: "baseline",
-      spacing: "sm",
-      contents: [
-        { type: "text", text: "เหตุการณ์", color: "#94A3B8", size: "sm", flex: 2 },
-        {
-          type: "text",
-          text: mission.incident_report,
-          wrap: true,
-          color: "#CBD5E1",
-          size: "sm",
-          flex: 5,
+          color: "#38BDF8",
+          size: "xs",
+          weight: "bold",
+          flex: 7,
         },
       ],
     });
@@ -535,10 +613,10 @@ export function buildMissionFlexMessage(mission: any) {
 
   return {
     type: "flex",
-    altText: `📢 ${headerTitle}: ${mission.unit_name || mission.vehicle_id} - ${mission.mission_name || ""}`,
+    altText: `📢 รายงานภารกิจ: ${headerTitle} - ${missionName}`,
     contents: {
       type: "bubble",
-      size: "kilo",
+      size: "mega",
       header: {
         type: "box",
         layout: "vertical",
@@ -550,19 +628,42 @@ export function buildMissionFlexMessage(mission: any) {
             layout: "horizontal",
             contents: [
               {
-                type: "text",
-                text: "CCOC NEON ALERT",
-                size: "xxs",
-                color: headerColor,
-                weight: "bold",
+                type: "box",
+                layout: "horizontal",
+                backgroundColor: badgeBg,
+                cornerRadius: "4px",
+                paddingStart: "8px",
+                paddingEnd: "8px",
+                paddingTop: "2px",
+                paddingBottom: "2px",
+                contents: [
+                  {
+                    type: "text",
+                    text: badgeText,
+                    size: "xxs",
+                    color: badgeColor,
+                    weight: "bold",
+                  },
+                ],
               },
               {
-                type: "text",
-                text: "บันทึกเรียบร้อย",
-                size: "xxs",
-                color: "#10B981",
-                align: "end",
-                weight: "bold",
+                type: "box",
+                layout: "horizontal",
+                backgroundColor: "#064E3B",
+                cornerRadius: "4px",
+                paddingStart: "8px",
+                paddingEnd: "8px",
+                paddingTop: "2px",
+                paddingBottom: "2px",
+                contents: [
+                  {
+                    type: "text",
+                    text: "🟢 บันทึกเรียบร้อย",
+                    size: "xxs",
+                    color: "#34D399",
+                    weight: "bold",
+                  },
+                ],
               },
             ],
           },
@@ -570,9 +671,16 @@ export function buildMissionFlexMessage(mission: any) {
             type: "text",
             text: headerTitle,
             weight: "bold",
-            size: "md",
+            size: "xl",
             color: "#F8FAFC",
             margin: "md",
+          },
+          {
+            type: "text",
+            text: "เรียน ผู้บังคับบัญชา — รายงานผลการปฏิบัติหน้าที่",
+            size: "xs",
+            color: "#94A3B8",
+            margin: "xs",
           },
         ],
       },
@@ -582,7 +690,103 @@ export function buildMissionFlexMessage(mission: any) {
         backgroundColor: "#1E293B",
         paddingAll: "16px",
         spacing: "md",
-        contents: rows,
+        contents: [
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "md",
+            contents: [
+              {
+                type: "box",
+                layout: "vertical",
+                backgroundColor: "#0F172A",
+                cornerRadius: "8px",
+                paddingAll: "10px",
+                flex: 1,
+                contents: [
+                  { type: "text", text: statBox1.title, size: "xxs", color: "#94A3B8" },
+                  {
+                    type: "text",
+                    text: statBox1.value,
+                    size: "md",
+                    weight: "bold",
+                    color: statBox1.color,
+                    margin: "xs",
+                  },
+                ],
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                backgroundColor: "#0F172A",
+                cornerRadius: "8px",
+                paddingAll: "10px",
+                flex: 1,
+                contents: [
+                  { type: "text", text: statBox2.title, size: "xxs", color: "#94A3B8" },
+                  {
+                    type: "text",
+                    text: statBox2.value,
+                    size: "md",
+                    weight: "bold",
+                    color: statBox2.color,
+                    margin: "xs",
+                  },
+                ],
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                backgroundColor: "#0F172A",
+                cornerRadius: "8px",
+                paddingAll: "10px",
+                flex: 1,
+                contents: [
+                  { type: "text", text: statBox3.title, size: "xxs", color: "#94A3B8" },
+                  {
+                    type: "text",
+                    text: statBox3.value,
+                    size: "md",
+                    weight: "bold",
+                    color: statBox3.color,
+                    margin: "xs",
+                  },
+                ],
+              },
+            ],
+          },
+          { type: "separator", color: "#334155" },
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            contents: detailRows,
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            backgroundColor: "#0F172A",
+            cornerRadius: "8px",
+            paddingAll: "12px",
+            contents: [
+              {
+                type: "text",
+                text: "🟦 ผลการปฏิบัติงาน",
+                size: "xs",
+                color: "#38BDF8",
+                weight: "bold",
+              },
+              {
+                type: "text",
+                text: cleanIncident,
+                size: "xs",
+                color: "#F1F5F9",
+                margin: "sm",
+                wrap: true,
+              },
+            ],
+          },
+        ],
       },
       footer: {
         type: "box",
@@ -593,11 +797,11 @@ export function buildMissionFlexMessage(mission: any) {
           {
             type: "button",
             style: "primary",
-            color: badgeColor,
+            color: "#0284C7",
             height: "sm",
             action: {
               type: "uri",
-              label: "📊 ดูข้อมูลในระบบ CCOC NEON",
+              label: "🌐 เปิดดูแดชบอร์ดเต็มรูปแบบ",
               uri: "https://ccoc-neon-dashboard.vercel.app/",
             },
           },
