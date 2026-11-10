@@ -30,16 +30,21 @@ export function verifyLineSignature(body: string, signature: string): boolean {
 }
 
 /**
- * บันทึกหรืออัปเดต groupId ของกลุ่มไลน์ลงใน Supabase (ใช้ตาราง login_logs ด้วย role = 'line_group')
+ * บันทึกหรืออัปเดต targetId (groupId, roomId, หรือ userId สำหรับทดสอบส่วนตัว) ลงใน Supabase
  */
-export async function registerLineGroupId(groupId: string): Promise<void> {
-  if (!groupId || !groupId.startsWith("C")) return;
+export async function registerLineGroupId(targetId: string): Promise<void> {
+  if (
+    !targetId ||
+    (!targetId.startsWith("C") && !targetId.startsWith("R") && !targetId.startsWith("U"))
+  ) {
+    return;
+  }
   try {
     const { data: existing } = await supabase
       .from("login_logs")
       .select("id")
       .eq("role", "line_group")
-      .eq("affiliation", groupId)
+      .eq("affiliation", targetId)
       .limit(1);
 
     if (existing && existing.length > 0) {
@@ -53,20 +58,20 @@ export async function registerLineGroupId(groupId: string): Promise<void> {
     } else {
       await supabase.from("login_logs").insert([
         {
-          username: "line_group",
+          username: targetId.startsWith("U") ? "line_user_test" : "line_group",
           role: "line_group",
-          affiliation: groupId,
+          affiliation: targetId,
           timestamp: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }),
         },
       ]);
     }
   } catch (err) {
-    console.error("⚠️ Failed to register LINE groupId:", err);
+    console.error("⚠️ Failed to register LINE targetId:", err);
   }
 }
 
 /**
- * ดึงรายการ groupId ทั้งหมดที่บอทเข้าร่วม
+ * ดึงรายการ targetId ทั้งหมดที่บอทเข้าร่วม (กลุ่ม, ห้องสนทนา หรือบัญชีส่วนตัวที่เปิดทดสอบ)
  */
 export async function getRegisteredLineGroupIds(): Promise<string[]> {
   try {
@@ -77,7 +82,7 @@ export async function getRegisteredLineGroupIds(): Promise<string[]> {
 
     const ids = (data || [])
       .map((row) => String(row.affiliation || "").trim())
-      .filter((id) => id.startsWith("C") || id.startsWith("R"));
+      .filter((id) => id.startsWith("C") || id.startsWith("R") || id.startsWith("U"));
 
     // Deduplicate
     return Array.from(new Set(ids));

@@ -35,14 +35,29 @@ export async function POST(req: Request) {
 
     for (const event of events) {
       const source = event.source || {};
-      const groupId = source.groupId || source.roomId;
+      const targetId = source.groupId || source.roomId || source.userId;
 
-      // 1. บันทึก groupId ทุกครั้งที่มีปฏิสัมพันธ์ในกลุ่ม
-      if (groupId) {
-        await registerLineGroupId(groupId);
+      // 1. บันทึก targetId ทุกครั้งที่มีปฏิสัมพันธ์ (รองรับทั้งกลุ่ม, ห้อง, และแชทเดี่ยวส่วนตัวสำหรับทดสอบ)
+      if (targetId) {
+        await registerLineGroupId(targetId);
       }
 
-      // 2. เมื่อบอทถูกดึงเข้าร่วมกลุ่ม (Join Group Event)
+      // 2. เมื่อผู้ใช้เพิ่มเพื่อนบอทในไลน์ส่วนตัว (Follow Event)
+      if (event.type === "follow") {
+        const welcomePersonal =
+          "👋 สวัสดีครับ! คุณได้เชื่อมต่อกับ CCOC&UAV Alert Bot แล้ว 🚀\n\n" +
+          "📱 ห้องแชทนี้เปิดโหมดทดสอบส่วนตัวเรียบร้อยแล้วครับ:\n" +
+          "• ลองพิมพ์ \"สถานะ\" หรือ \"เช็คภารกิจ\" เพื่อดูรายงานได้ทันที\n" +
+          "• เมื่อคุณทดลองบันทึกภารกิจบนเว็บ บอทจะส่งการ์ดสรุปและข้อความรายงานมาให้ในแชทนี้ทันทีครับ!\n\n" +
+          "🌐 เว็บระบบ: https://ccoc-neon-dashboard.vercel.app/";
+
+        if (event.replyToken) {
+          await replyLineMessage(event.replyToken, [{ type: "text", text: welcomePersonal }]);
+        }
+        continue;
+      }
+
+      // 3. เมื่อบอทถูกดึงเข้าร่วมกลุ่ม (Join Group Event)
       if (event.type === "join") {
         const greetingText =
           "👋 สวัสดีครับทุกท่าน! CCOC&UAV Alert Bot เข้าร่วมกลุ่มเรียบร้อยแล้วครับ 🚀\n\n" +
