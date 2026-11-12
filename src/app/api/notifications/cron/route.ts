@@ -13,6 +13,7 @@ import {
 import { SYSTEM_USERS } from "@/app/data/users";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 async function executeNotificationBroadcast(mode: "daily_1700" | "inactivity_only" = "daily_1700") {
   const [missionsRes, usersRes, subsRes] = await Promise.all([
@@ -28,22 +29,49 @@ async function executeNotificationBroadcast(mode: "daily_1700" | "inactivity_onl
   const statuses = analyzeStationInactivity(missions, users);
   const inactiveUnits = statuses.filter((s) => s.isInactive5Days);
 
+  // 🔔 ส่งข้อความแจ้งเตือนเข้ากลุ่มไลน์อัตโนมัติเป็นอันดับแรก (ใช้เวลา < 1 วินาที เพื่อไม่ให้ Web Push มาขวาง)
+  let lineSentGroups = 0;
+  try {
+    const inactiveCcoc = inactiveUnits.filter((u) => u.username.startsWith("stc"));
+    const inactiveUav = inactiveUnits.filter((u) => u.username.startsWith("uav"));
+
+    if (mode === "inactivity_only") {
+      lineSentGroups = await broadcastToAllLineGroups([
+        buildStatusFlexMessage(inactiveCcoc, inactiveUav, missions.length),
+      ]);
+    } else {
+      const messagesToSend: any[] = [
+        buildDaily1700FlexMessage(inactiveCcoc.length, inactiveUav.length),
+      ];
+      // หากมีหน่วยขาดส่งเกิน 5 วัน ให้แนบการ์ดสรุปรายชื่อหน่วยที่ขาดส่งไปพร้อมกับแจ้งเตือน 17:00 น. ด้วย
+      if (inactiveCcoc.length > 0 || inactiveUav.length > 0) {
+        messagesToSend.push(
+          buildStatusFlexMessage(inactiveCcoc, inactiveUav, missions.length)
+        );
+      }
+      lineSentGroups = await broadcastToAllLineGroups(messagesToSend);
+    }
+  } catch (err) {
+    console.warn("⚠️ LINE group broadcast warning in cron:", err);
+  }
+
   let sentCount = 0;
   let failedCount = 0;
   const expiredIds: number[] = [];
 
-  for (const row of rawSubs) {
+  // ส่ง Web Push แบบ Parallel (Promise.allSettled) แทนการวนลูปทีละเครื่อง เพื่อไม่ให้ Timeout
+  const pushTasks = rawSubs.map(async (row) => {
     let sub: any = null;
     try {
       sub = JSON.parse(row.affiliation);
     } catch {
       if (row.id) expiredIds.push(row.id);
-      continue;
+      return;
     }
 
     if (!sub || !sub.endpoint || !sub.keys) {
       if (row.id) expiredIds.push(row.id);
-      continue;
+      return;
     }
 
     const uname = String(row.username || "stc01").trim().toLowerCase();
@@ -51,7 +79,7 @@ async function executeNotificationBroadcast(mode: "daily_1700" | "inactivity_onl
 
     // ถ้าเลือกโหมดส่งเฉพาะหน่วยที่ไม่มีภารกิจเคลื่อนไหว 5 วัน
     if (mode === "inactivity_only" && uname !== "admin" && unitStatus && !unitStatus.isInactive5Days) {
-      continue;
+      return;
     }
 
     const payload = buildNotificationForUnit(uname, statuses, "daily_1700");
@@ -65,29 +93,12 @@ async function executeNotificationBroadcast(mode: "daily_1700" | "inactivity_onl
         expiredIds.push(row.id);
       }
     }
-  }
+  });
+
+  await Promise.allSettled(pushTasks);
 
   if (expiredIds.length > 0) {
     await supabase.from("login_logs").delete().in("id", expiredIds);
-  }
-
-  // 🔔 ส่งข้อความแจ้งเตือนเข้ากลุ่มไลน์อัตโนมัติ
-  let lineSentGroups = 0;
-  try {
-    const inactiveCcoc = inactiveUnits.filter((u) => u.username.startsWith("stc"));
-    const inactiveUav = inactiveUnits.filter((u) => u.username.startsWith("uav"));
-
-    if (mode === "inactivity_only") {
-      lineSentGroups = await broadcastToAllLineGroups([
-        buildStatusFlexMessage(inactiveCcoc, inactiveUav, missions.length),
-      ]);
-    } else {
-      lineSentGroups = await broadcastToAllLineGroups([
-        buildDaily1700FlexMessage(inactiveCcoc.length, inactiveUav.length),
-      ]);
-    }
-  } catch (err) {
-    console.warn("⚠️ LINE group broadcast warning in cron:", err);
   }
 
   return {

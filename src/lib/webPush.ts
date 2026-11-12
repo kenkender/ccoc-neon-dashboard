@@ -106,6 +106,7 @@ export async function sendWebPushNotification(
         Urgency: "high",
       },
       body: new Uint8Array(bodyBuffer),
+      signal: AbortSignal.timeout(4000),
     });
 
     return {
